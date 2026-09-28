@@ -1,0 +1,10 @@
+{
+  "name": "chief-of-staff-briefing",
+  "private": true,
+  "type": "module",
+  "description": "Weekly Chief of Staff briefing. Static page, rules run in the browser.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "MIT"
+}

@@ -7,9 +7,12 @@ Every row is hand-designed to exercise a specific rule, not randomized.
 docs/dataset_key.md says which row proves which rule, week by week.
 
 Run from anywhere: python scripts/generate_dataset.py
-Writes data/weeks/<week_ending>/<unit>/ and data/alias_table.csv.
+Writes data/weeks/<week_ending>/<unit>/, data/alias_table.csv and
+data/manifest.json, the file list the browser app reads (a web page can't
+list a folder, so it needs to be told what is there).
 """
 import csv
+import json
 import os
 import shutil
 
@@ -445,5 +448,19 @@ for unit in ("wasla_eats", "wasla_mart", "wasla_table", "wasla_express", "wasla_
     old = os.path.join(ROOT, unit)
     if os.path.isdir(old):
         shutil.rmtree(old)
+
+# The manifest: every week, every unit, every file, in a fixed order.
+weeks_dir = os.path.join(ROOT, "weeks")
+manifest = {
+    "alias_table": "alias_table.csv",
+    "weeks": {
+        week: {unit: sorted(os.listdir(os.path.join(weeks_dir, week, unit)))
+               for unit in sorted(os.listdir(os.path.join(weeks_dir, week)))}
+        for week in sorted(os.listdir(weeks_dir))
+    },
+}
+with open(os.path.join(ROOT, "manifest.json"), "w") as f:
+    json.dump(manifest, f, indent=2)
+    f.write("\n")
 
 print("done:", os.path.abspath(ROOT))
