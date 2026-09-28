@@ -5,6 +5,7 @@ import { WASLA_UNITS } from "./config.js";
 import { AliasTable } from "./normalize.js";
 import { loadUnit, detectWeekEnding } from "./loaders.js";
 import {
+  itemKey,
   allCommitments,
   isStale,
   isOverdue,
@@ -28,8 +29,9 @@ week: { weekEnding: "YYYY-MM-DD" or null, files: { unit key: { file name: conten
 options.aliasText: the alias table CSV.
 options.today: a day number. Defaults to the day after weekEnding, the Monday
   the briefing is read.
-options.units: the unit setup, defaults to the six Wasla units. */
-export function buildBriefing(week, { aliasText, today = null, units: specs = WASLA_UNITS } = {}) {
+options.units: the unit setup, defaults to the six Wasla units.
+options.edits: the reader's own changes for this week, see applyEdits. */
+export function buildBriefing(week, { aliasText, today = null, units: specs = WASLA_UNITS, edits = [] } = {}) {
   const aliases = AliasTable.fromCsv(aliasText ?? "");
   const folderDate = parseIsoDate(week.weekEnding);
   if (today == null) {
@@ -41,6 +43,7 @@ export function buildBriefing(week, { aliasText, today = null, units: specs = WA
   for (const spec of specs) units[spec.key] = loadUnit(spec, week.files[spec.key] ?? {}, aliases, today);
   const tiers = Object.fromEntries(specs.map((s) => [s.name, s.tier]));
   const commitments = allCommitments(units);
+  applyEdits(commitments, edits);
 
   const stale = new Set(commitments.filter((c) => isStale(c, today, commitments)));
   const overdue = new Set(commitments.filter((c) => isOverdue(c, today, commitments)));
@@ -95,4 +98,32 @@ export function buildBriefing(week, { aliasText, today = null, units: specs = WA
     unresolvedOwners: aliases.unresolved,   // [[raw name, unit]] not in the alias table
     comparison: null,               // set by history.js
   };
+}
+
+/** The reader's own changes, made on the page: an item ticked done, or a due
+date changed. Each edit is { unit, title, done, due } where title is the
+item's title (rules.js: itemTitle) and due is "YYYY-MM-DD". An edit belongs
+to one week only. Next week's files from the teams replace it: new data
+wins. The item keeps a note of what was changed, so the page can say so. */
+export function applyEdits(commitments, edits) {
+  if (!edits.length) return;
+  const byKey = new Map(edits.map((e) => [`${e.unit}\u0000${e.title}`, e]));
+  for (const c of commitments) {
+    const e = byKey.get(itemKey(c));
+    if (!e) continue;
+    c.edited = { done: false, dueFrom: null };
+    if (e.due != null && parseIsoDate(e.due) != null) {
+      c.edited.dueFrom = c.dueDateRaw;
+      c.dueDate = parseIsoDate(e.due);
+      c.dueDateRaw = e.due;
+      c.dueDateApprox = false;
+    }
+    if (e.done) {
+      c.edited.done = true;
+      c.status = "done";
+      c.statusInferred = false;
+      c.decisionPending = false;
+      c.principalBlocked = false;
+    }
+  }
 }

@@ -13,7 +13,7 @@ The company (Wasla Group), people and numbers are fictional and hand-designed. I
 
 - The tool flags. It never resolves, reassigns, decides, or suggests next steps. This is not up for debate.
 - No AI model at runtime. Scoring is plain rules against stated fields. Metric suggestions come from a fixed list, not a model.
-- Every rule change updates docs/data_contract.md (log it in section 7) and docs/dataset_key.md, and adds or updates a test. Tests map one to one to rows in dataset_key.md.
+- Every rule change updates docs/data_contract.md (log it in section 7) and docs/dataset_key.md, and adds or updates a test. Scenario tests map one to one to rows in dataset_key.md; edge-case tests live in rules.test.js.
 - After adding or changing a rule, break it on purpose and confirm a test fails. Then restore it.
 - Writing, everywhere (UI copy, docs, code comments, commit messages): no em dashes; use commas or periods. Plain language, short sentences, no unexplained jargon or acronyms.
 - Work only in this repo. Never touch Vedant's other repos.
@@ -23,10 +23,10 @@ The company (Wasla Group), people and numbers are fictional and hand-designed. I
 
 - data/weeks/<week_ending>/<unit>/: each unit's KPI export, status update and open tasks, four weeks. Each week is scored as of the Monday after it.
 - data/alias_table.csv: hand-reviewed owner-name matches, shared across weeks. "L. Haddad" is deliberately missing (week 4 story).
-- engine/: Python engine. loaders, normalize, rules, classify, briefing (one week), history (week over week), render (static HTML).
-- output/: generated pages. index.html is the latest week.
+- index.html: the page. app/engine/: the rules as JavaScript modules (parse, loaders, normalize, rules, classify, briefing, history). app/ui/: drawing the page, edits, backup. app/vendor/: SheetJS for Excel.
+- data/manifest.json: the list of files the page loads, written by the generator.
 - scripts/generate_dataset.py: rebuilds data/. Its alias table carries hand-written review notes; don't let a rerun lose them.
-- tests/: test_scenarios.py (week 1), test_history.py (weeks 2 to 4), test_rules.py (edge cases the data doesn't contain). 83 tests.
+- tests/: scenarios.test.js (week 1) and history.test.js (weeks 2 to 4) map one to one to dataset_key.md rows. rules.test.js (edge cases the data doesn't contain), parse.test.js (CSV reader) and edits.test.js (the reader's edits) have no rows. Run with npm test.
 
 ## Rules as they stand
 
@@ -36,10 +36,11 @@ The company (Wasla Group), people and numbers are fictional and hand-designed. I
 - Four groups: needs decision now, on your radar, flag don't escalate, omit. Inside the top group, decisions first, Low effort before High. Inside every group, Flagship, then Core, then Experimental, then most overdue.
 - Week over week: an item's identity is its unit plus its title (text before the first comma). Each flag is marked new, back after a gap, or Nth week running. Closed items are done, cleared (with the reason) or removed without being marked done. Due dates that keep moving are shown.
 - A name missing from the alias table is reported at the top of the page, never guessed.
+- The reader can tick an item done or set its due date. The edit applies to that week only; next week's files win.
 
 ## Open questions for Vedant
 
-- Once GitHub Pages is on, change the README's output link to https://vedantm1049.github.io/chief-of-staff-briefing/output/
+- None right now.
 
 ## Next: steps 2 and 3 (agreed)
 

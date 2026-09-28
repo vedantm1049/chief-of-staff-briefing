@@ -4,7 +4,9 @@ A rules engine that turns messy weekly reporting from several business units int
 
 The company, units, people and numbers are fictional. Every row in the dataset was written by hand to test one rule. This is a portfolio piece, not a production tool, same posture as `scan`.
 
-To see the output, open [`output/index.html`](output/index.html) in a browser. It shows the latest week, with the earlier weeks one click away. Every page is a single static file with no server and no external requests.
+**Open it: https://vedantm1049.github.io/chief-of-staff-briefing/**
+
+It opens on the latest week of the sample, with the earlier weeks one click away. It is one static page. The rules run in your browser, and there is no server. You can tick an item done or change a due date; those changes are saved in your own browser only, and can be exported as a backup file and imported again.
 
 ## Why it exists
 
@@ -32,21 +34,25 @@ There are four weeks of data, ending 27 Sep to 18 Oct 2026. Over those weeks dec
 ## How it works
 
 ```
-data/weeks/<week>/     six units' files for each week
-data/alias_table.csv   hand-reviewed owner-name matches, shared across weeks
-engine/loaders.py      read each unit's format into one common record
-engine/normalize.py    resolve owner names, read status and dates from free text
-engine/rules.py        overdue, stale, conflict, blocked items, no deadline, customer ratings
-engine/classify.py     importance x urgency, effort sort in the top group
-engine/briefing.py     score one week
-engine/history.py      line the weeks up: new, still open, closed
-engine/render.py       one self-contained HTML page per week
+index.html                 the page
+data/weeks/<week>/         six units' files for each week
+data/alias_table.csv       hand-reviewed owner-name matches, shared across weeks
+data/manifest.json         the list of files the page loads
+app/engine/parse.js        read CSV and Excel (SheetJS, stored in app/vendor)
+app/engine/loaders.js      read each unit's format into one common record
+app/engine/normalize.js    resolve owner names, read status and dates from free text
+app/engine/rules.js        overdue, stale, conflict, blocked items, no deadline, customer ratings
+app/engine/classify.js     importance x urgency, effort and tier order inside a group
+app/engine/briefing.js     score one week, apply the reader's own edits
+app/engine/history.js      line the weeks up: new, still open, closed
+app/ui/                    draw the page, week switcher, edits, backup and import
 ```
 
+Plain JavaScript modules, no build step and no packages to install. The page loads its data files from the site it is served from, so it runs on GitHub Pages or any local web server, not from a double-clicked file.
+
 ```
-pip install -r requirements.txt
-python main.py     # writes output/index.html and output/week-<date>.html
-pytest
+npm test                              # Node 20 or later, no install needed
+python scripts/generate_dataset.py   # rebuild data/ (needs pandas and openpyxl)
 ```
 
 ### What gets flagged
@@ -74,7 +80,7 @@ The owner-name alias table is built once, offline, by hand. The engine only read
 
 ## Tests
 
-`tests/test_scenarios.py` covers week 1 and `tests/test_history.py` covers weeks 2 to 4, one test per row of [`docs/dataset_key.md`](docs/dataset_key.md). `tests/test_rules.py` covers cases the contract requires but the data doesn't contain, such as "TBD" as a due date, "done" versus "Done" versus "complete", and an overdue decision that has only been pending two days.
+`tests/scenarios.test.js` covers week 1 and `tests/history.test.js` covers weeks 2 to 4, one test per row of [`docs/dataset_key.md`](docs/dataset_key.md). `tests/rules.test.js` covers cases the contract requires but the data doesn't contain, such as "TBD" as a due date, "done" versus "Done" versus "complete", and an overdue decision that has only been pending two days. `tests/parse.test.js` covers the CSV reader and `tests/edits.test.js` the reader's own changes.
 
 ## Known limits
 
@@ -86,6 +92,6 @@ The owner-name alias table is built once, offline, by hand. The engine only read
 
 ## Out of scope
 
-Suggested fixes or next steps. A chat layer. Any output other than the static pages.
+Suggested fixes or next steps. A chat layer. Any output other than the static page.
 
 `scripts/generate_dataset.py` rebuilds everything in `data/` and is included for transparency.

@@ -26,7 +26,8 @@ oldest first, each with .comparison set. Options pass through to
 buildBriefing, except today: each week is read the Monday after it. */
 export function buildHistory(weeks, options = {}) {
   const sorted = [...weeks].sort((a, b) => (a.weekEnding < b.weekEnding ? -1 : 1));
-  const briefings = sorted.map((w) => buildBriefing(w, { ...options, today: null }));
+  const edits = options.edits ?? {};   // { week ending: [edit] }
+  const briefings = sorted.map((w) => buildBriefing(w, { ...options, today: null, edits: edits[w.weekEnding] ?? [] }));
 
   const flagged = [], everything = [], dupes = [];
   for (const b of briefings) {
@@ -96,6 +97,9 @@ function closedItem(before, now, weeksFlagged) {
   if (now == null) {
     return { before, now: null, outcome: "dropped",
       detail: "Removed from the tracker without being marked done.", weeksFlagged };
+  }
+  if (now.status === "done" && now.edited?.done) {
+    return { before, now, outcome: "done", detail: "Marked done by you on this page.", weeksFlagged };
   }
   if (now.status === "done") {
     const when = now.lastUpdated != null ? ` on ${fmtShort(now.lastUpdated)}` : "";

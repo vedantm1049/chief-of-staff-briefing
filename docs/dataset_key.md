@@ -1,7 +1,7 @@
 # Dataset key
 
 Four weekly snapshots: week ending 2026-09-27, 10-04, 10-11 and 10-18, each scored as of the Monday after (09-28, 10-05, 10-12, 10-19).
-Every scenario below is a deliberately designed row, not randomized data, so this key doubles as a test plan, each line is a case the engine should get right. Week 1 is tested in `tests/test_scenarios.py`, weeks 2 to 4 in `tests/test_history.py`.
+Every scenario below is a deliberately designed row, not randomized data, so this key doubles as a test plan, each line is a case the engine should get right. Week 1 is tested in `tests/scenarios.test.js`, weeks 2 to 4 in `tests/history.test.js`.
 
 ## Week 1, ending 2026-09-27
 
@@ -40,7 +40,7 @@ Reference "today" for all day-counts in this section: 2026-09-28.
 - **Wasla Eats**: 4.4 vs. 4.5, a 0.1 miss. Should NOT trigger, this is the "small miss, within tolerance" case.
 - **Wasla Pay**: 4.2 vs. 4.3, also a 0.1 miss, same non-trigger logic as Eats, a second example so the tolerance isn't a one-off.
 - **Wasla Express**: 3.2 vs. 4.3 looks like the worst miss in the dataset, but `rated_deliveries_count` is only 6, below the 10-interaction floor. Should NOT trigger, on volume grounds, not because the number looks fine, it doesn't.
-- **Mart's miss moves no quadrant in week 1**: a triggered unit lifts importance for its own flagged items, but Mart is already Flagship. `tests/test_scenarios.py` proves the lift on a modified copy where Wasla Table misses its target, and week 4 shows it in the real data, on Wasla Express.
+- **Mart's miss moves no quadrant in week 1**: a triggered unit lifts importance for its own flagged items, but Mart is already Flagship. `tests/scenarios.test.js` proves the lift on a modified copy where Wasla Table misses its target, and week 4 shows it in the real data, on Wasla Express.
 
 ### Format and schema messiness
 
