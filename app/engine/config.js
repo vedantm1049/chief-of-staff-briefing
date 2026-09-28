@@ -63,6 +63,12 @@ export const DECISION_TYPE_EFFORT = {
 };
 export const EFFORT_ORDER = { Low: 0, Medium: 1, High: 2, Unknown: 3 };
 
+// --- Tier order inside a group. Only Flagship lifts importance; Core and
+// Experimental differ only in where their items sit inside a group, Core
+// first. In the sample, Express's stalled item sits below the Core items in
+// weeks 2 and 3.
+export const TIER_ORDER = { Flagship: 0, Core: 1, Experimental: 2 };
+
 // Status values (case-insensitive) that mean closed.
 export const DONE_STATUS_VALUES = new Set(["done", "complete", "completed", "resolved", "closed"]);
 

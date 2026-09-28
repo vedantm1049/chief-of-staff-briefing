@@ -76,7 +76,7 @@ export function buildBriefing(week, { aliasText, today = null, units: specs = WA
     classified.set(c, item);
     quadrants[item.quadrant].push(item);
   }
-  for (const q of QUADRANT_ORDER) quadrants[q] = sortQuadrant(q, quadrants[q], today);
+  for (const q of QUADRANT_ORDER) quadrants[q] = sortQuadrant(q, quadrants[q], today, tiers);
 
   return {
     today,

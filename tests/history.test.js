@@ -111,6 +111,14 @@ test("w2 new ceo decision is new", () => {
   assert.equal(b.classified.get(item).effort, "Medium");
 });
 
+test("w2 core items sit above experimental in a group", () => {
+  // Flagship, then Core, then Experimental inside every group. Mina's Express
+  // item is flagged but sits below Nadia Osman's Core decision, even though
+  // Mina's item is due sooner.
+  const order = weeks[W2].quadrants[QUADRANT_FLAG_DONT_ESCALATE].map((i) => i.commitment.owner);
+  assert.deepEqual(order, ["Layla Haddad", "Nadia Osman", "Mina"]);
+});
+
 test("w2 blank mart status read from text", () => {
   const b = weeks[W2];
   const sop = findCommitment(b, { descriptionContains: "SOP rewrite" });

@@ -62,7 +62,7 @@ An item waiting on another open item is neither stale nor overdue in its own rig
 
 ### How flagged items are ranked
 
-Importance is high if the unit is Flagship, the item waits on the CEO, it blocks two or more open items, or its unit missed its customer-rating target. Urgency is high if the item is overdue, due within 3 days, or a decision that has waited 5 days or more. That gives four groups: needs decision now, on your radar, flag but don't escalate, and omit. Inside the top group, decisions come first, quickest (confirm or reject) before hardest.
+Importance is high if the unit is Flagship, the item waits on the CEO, it blocks two or more open items, or its unit missed its customer-rating target. Urgency is high if the item is overdue, due within 3 days, or a decision that has waited 5 days or more. That gives four groups: needs decision now, on your radar, flag but don't escalate, and omit. Inside the top group, decisions come first, quickest (confirm or reject) before hardest. Inside every group, Flagship items come before Core, and Core before Experimental.
 
 ### Week over week
 
@@ -78,7 +78,7 @@ The owner-name alias table is built once, offline, by hand. The engine only read
 
 ## Known limits
 
-- Only the Flagship tier changes a score. Core and Experimental are treated the same; the tier still shows on every card.
+- Only the Flagship tier changes which group an item lands in. Core and Experimental differ only in the order inside a group.
 - Status-update prose is loaded but never scored. That is deliberate (prose is where stalled work hides), but it means the engine can't catch something that only appears in prose.
 - Renaming an item breaks its history: it shows as one item closing and a new one opening. Two items with the same title in the same unit can't be told apart, and the page says so when it happens.
 - "Next Tuesday" is read as the nearest coming Tuesday. The page shows the original text beside every date it had to interpret.

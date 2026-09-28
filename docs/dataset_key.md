@@ -57,6 +57,7 @@ Reference "today" for all day-counts in this section: 2026-09-28.
 - **Wasla Table, lease renewal**: was a conflict in week 1 (Layla chose to file Pay's regulatory amendment first). Now 6 days overdue. Same item, different flag: it reads as 2nd week running, not new. Proves carry-over follows the item, not the flag.
 - **Wasla Express, mall-retail testing**: still untouched since 14 Sep. Its due date is written "next Tuesday" every week, so it rolls forward on its own and never looks overdue. The card shows the date moving: 29 Sep, 6 Oct.
 - **Wasla Pay, Nadia Osman's KYC decision**: omitted in week 1 at 3 days pending. At 10 days it becomes urgent and moves up to "flag, don't escalate". Not labelled stale: a decision's wait isn't the owner's neglect.
+- **Tier order in "flag, don't escalate"**: Layla's lease, then Nadia Osman's decision, then Mina's mall-retail item. Mina's item is due sooner than Nadia's, but Express is Experimental and Pay is Core, and Core sits above Experimental inside a group.
 - **Wasla Eats, Sharjah expansion budget**: new decision waiting on the CEO, three options (`select-option`, Medium effort). Pending 3 days, so "on your radar", marked new.
 - **Wasla Mart, SOP rewrite**: status left blank, Mart's vocabulary. Read from the description as open. Still blocked, so not flagged.
 - **Wasla Central, data-processing template**: updated 2 Oct, so it clears. Closed as "cleared", with the update date as the reason.

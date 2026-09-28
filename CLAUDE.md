@@ -33,13 +33,12 @@ The company (Wasla Group), people and numbers are fictional and hand-designed. I
 - Flags: overdue, stale (7+ days untouched, last-updated date only, never the prose), owner conflict (same person, due dates within 1 day, after alias resolution), decision pending (status or a fixed phrase list; split by waiting on the CEO or on someone else), no deadline (blank or unreadable due date).
 - A pending decision is never called stale. An item blocked by another open item is neither stale nor overdue; it is listed on its blocker's card.
 - Importance: Flagship tier, waiting on the CEO, blocks 2+ open items, or its unit missed its customer-rating target (more than 0.2 below, at least 10 ratings). Urgency: overdue, due within 3 days, or a decision pending 5+ days.
-- Four groups: needs decision now, on your radar, flag don't escalate, omit. Inside the top group, decisions first, Low effort before High.
+- Four groups: needs decision now, on your radar, flag don't escalate, omit. Inside the top group, decisions first, Low effort before High. Inside every group, Flagship, then Core, then Experimental, then most overdue.
 - Week over week: an item's identity is its unit plus its title (text before the first comma). Each flag is marked new, back after a gap, or Nth week running. Closed items are done, cleared (with the reason) or removed without being marked done. Due dates that keep moving are shown.
 - A name missing from the alias table is reported at the top of the page, never guessed.
 
 ## Open questions for Vedant
 
-- Core and Experimental tiers score the same; only Flagship lifts importance. Keep, or give Experimental its own treatment?
 - Once GitHub Pages is on, change the README's output link to https://vedantm1049.github.io/chief-of-staff-briefing/output/
 
 ## Next: steps 2 and 3 (agreed)

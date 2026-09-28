@@ -90,7 +90,8 @@ test("overdue decision is urgent even if recently pending", () => {
 });
 
 test("core and experimental tiers score the same", () => {
-  // Known simplification: only Flagship lifts importance.
+  // Only Flagship lifts importance. Core ranks above Experimental only in
+  // the order inside a group.
   for (const unit of ["Wasla Pay", "Wasla Express"]) {
     const c = classifyCommitment(make({ unit }), TODAY, [], new Set());
     assert.ok(!c.importance);

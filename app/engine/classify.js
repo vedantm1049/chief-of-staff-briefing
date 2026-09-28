@@ -12,8 +12,8 @@ Urgency is high if any of these hold:
   - it is due within DUE_SOON_DAYS
   - it is a decision that has been pending DECISION_PENDING_URGENT_DAYS or more
 
-Tier counts only at the top: Core and Experimental score the same. The tier
-still shows on every card as context.
+Only Flagship lifts importance. Inside each group, items are ordered by tier,
+Flagship, then Core, then Experimental.
 */
 import {
   WASLA_TIERS,
@@ -22,6 +22,7 @@ import {
   DUE_SOON_DAYS,
   DECISION_TYPE_EFFORT,
   EFFORT_ORDER,
+  TIER_ORDER,
 } from "./config.js";
 
 export const QUADRANT_NEEDS_DECISION_NOW = "Needs decision now";
@@ -91,16 +92,20 @@ function cmp(a, b) {
 
 /** Inside the top group only: decision-pending items first, Low effort
 before High, so a quick confirm/reject sits above anything that needs real
-thought. Everything else, in every group, is ordered most overdue first. */
-export function sortQuadrant(quadrant, items, today) {
+thought. Everything else, in every group, is ordered by tier (Flagship,
+Core, Experimental), then most overdue first. */
+export function sortQuadrant(quadrant, items, today, tiers = WASLA_TIERS) {
+  const tierRank = (i) => TIER_ORDER[tiers[i.commitment.unit]] ?? 99;
   const byDue = (i) => (i.commitment.dueDate != null ? today - i.commitment.dueDate : -1e6);
-  // Owner as tie-break keeps one person's same-day items side by side.
-  const mostOverdueFirst = (x, y) => byDue(y) - byDue(x) || cmp(x.commitment.owner, y.commitment.owner);
+  // Owner as the last tie-break keeps one person's same-day items side by side.
+  const byTierThenOverdue = (x, y) => tierRank(x) - tierRank(y) || byDue(y) - byDue(x)
+    || cmp(x.commitment.owner, y.commitment.owner);
 
-  if (quadrant !== QUADRANT_NEEDS_DECISION_NOW) return [...items].sort(mostOverdueFirst);
+  if (quadrant !== QUADRANT_NEEDS_DECISION_NOW) return [...items].sort(byTierThenOverdue);
 
   const effortRank = (i) => EFFORT_ORDER[i.effort] ?? 99;
-  const decisions = items.filter((i) => i.commitment.decisionPending).sort((x, y) => effortRank(x) - effortRank(y));
-  const others = items.filter((i) => !i.commitment.decisionPending).sort(mostOverdueFirst);
+  const decisions = items.filter((i) => i.commitment.decisionPending)
+    .sort((x, y) => effortRank(x) - effortRank(y) || tierRank(x) - tierRank(y));
+  const others = items.filter((i) => !i.commitment.decisionPending).sort(byTierThenOverdue);
   return [...decisions, ...others];
 }
