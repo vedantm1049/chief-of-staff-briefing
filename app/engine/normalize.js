@@ -21,14 +21,17 @@ The engine only reads it. It never fuzzy-matches names on its own, so a
 name the table has never seen is reported, not guessed at.
 */
 export class AliasTable {
-  /** rows: [{ raw_name, unit, normalized_owner }] */
+  /** rows: [{ raw_name, unit, normalized_owner, email }]. email is optional. */
   constructor(rows) {
     this.byNameAndUnit = new Map();
+    this.emails = new Map();   // canonical owner -> email, the first one listed
     const byName = new Map();
     for (const row of rows) {
       const raw = (row.raw_name ?? "").trim();
       const unit = (row.unit ?? "").trim();
       const canonical = (row.normalized_owner ?? "").trim();
+      const email = (row.email ?? "").trim();
+      if (email && !this.emails.has(canonical)) this.emails.set(canonical, email);
       this.byNameAndUnit.set(`${raw}\u0000${unit}`, canonical);
       if (!byName.has(raw)) byName.set(raw, new Set());
       byName.get(raw).add(canonical);

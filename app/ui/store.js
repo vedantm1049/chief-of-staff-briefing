@@ -1,16 +1,20 @@
-/* The reader's changes, kept in this browser's own storage and nowhere else.
-Nothing here talks to a server. A backup is a JSON file the reader saves
-and can load again, in this browser or another.
+/* The reader's changes and notes, kept in this browser's own storage and
+nowhere else. Nothing here talks to a server. A backup is a JSON file the
+reader saves and can load again, in this browser or another.
+
+Notes are described in notes.js.
 
 An edit: { week, unit, title, label, done, due, at }. week is the week-ending
 date, title the item's title as the engine matches it (engine/rules.js:
 itemTitle), label the same title as written, for showing on the page. due is
 "YYYY-MM-DD" or null, at when the change was made.
 */
+import { cleanNotes } from "./notes.js";
+
 const KEY = "cos-briefing:v1";
 const FORMAT = "chief-of-staff-briefing backup";
 
-/** Returns { edits, saved }. saved is false when the browser blocks storage
+/** Returns { edits, notes, saved }. saved is false when the browser blocks storage
 (some private windows do), so changes last only until the page closes. */
 export function load() {
   let raw;
@@ -19,18 +23,19 @@ export function load() {
     localStorage.setItem(KEY + ":probe", "1");
     localStorage.removeItem(KEY + ":probe");
   } catch {
-    return { edits: [], saved: false };
+    return { edits: [], notes: [], saved: false };
   }
   try {
-    return { edits: raw ? clean(JSON.parse(raw).edits) : [], saved: true };
+    const body = raw ? JSON.parse(raw) : {};
+    return { edits: raw ? clean(body.edits) : [], notes: cleanNotes(body.notes), saved: true };
   } catch {
-    return { edits: [], saved: true };   // damaged entry: start clean rather than break the page
+    return { edits: [], notes: [], saved: true };   // damaged entry: start clean rather than break the page
   }
 }
 
-export function save(edits) {
+export function save(edits, notes) {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ version: 1, edits }));
+    localStorage.setItem(KEY, JSON.stringify({ version: 2, edits, notes }));
     return true;
   } catch {
     return false;
@@ -67,8 +72,8 @@ export function byWeek(edits) {
   return out;
 }
 
-export function backupBlob(edits) {
-  const body = { format: FORMAT, version: 1, exported: new Date().toISOString(), edits };
+export function backupBlob(edits, notes) {
+  const body = { format: FORMAT, version: 2, exported: new Date().toISOString(), edits, notes };
   return new Blob([JSON.stringify(body, null, 2) + "\n"], { type: "application/json" });
 }
 
@@ -80,5 +85,5 @@ export function parseBackup(text) {
     throw new Error("That file isn't a backup from this page. It isn't valid JSON.");
   }
   if (body?.format !== FORMAT) throw new Error("That file isn't a backup from this page.");
-  return clean(body.edits);
+  return { edits: clean(body.edits), notes: cleanNotes(body.notes) };
 }

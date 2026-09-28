@@ -14,6 +14,7 @@ import {
 import { MIN_RATED_SAMPLE, RATING_MISS_MARGIN } from "../engine/config.js";
 import { itemTitle } from "../engine/rules.js";
 import { fmtLong, fmtShort, toIso, parseIsoDate } from "../engine/dates.js";
+import { notesFor, emailDraft, NOTE_FROM } from "./notes.js";
 
 const QUADRANT_META = {
   [QUADRANT_NEEDS_DECISION_NOW]: ["needs", "Important and urgent"],
@@ -102,7 +103,57 @@ function editControls(c) {
         </div>`;
 }
 
-function itemCard(b, item, showEffort, tiers) {
+function noteEntry(n, ctx, item, flags) {
+  const email = ctx.emails.get(n.owner);
+  let action;
+  if (!item) {
+    action = "";
+  } else if (email) {
+    const href = emailDraft({ to: email, owner: n.owner, item, note: n, weekEnding: ctx.week, flags });
+    action = `<a class="button-link" href="${esc(href)}" data-act="email" data-id="${esc(n.id)}">Draft email to ${esc(n.owner)}</a>`
+      + (n.emailed ? '<span class="sent">Draft opened</span>' : "");
+  } else {
+    action = `<span class="meta">No email on file for ${esc(n.owner || "this owner")}.</span>`;
+  }
+  const reply = n.reply
+    ? `<div class="reply"><div class="note-from">${esc(n.owner || "Owner")} replied</div><div class="note-text">${esc(n.reply.text)}</div>`
+      + `<button type="button" class="link" data-act="delete-reply" data-id="${esc(n.id)}">Remove reply</button></div>`
+    : `<details class="add-reply"><summary>Add ${esc(n.owner ? `${n.owner}'s` : "the")} reply</summary>
+        <form data-form="reply" data-id="${esc(n.id)}">
+          <textarea name="text" rows="2" required placeholder="Paste or sum up the reply"></textarea>
+          <button type="submit">Save reply</button>
+        </form></details>`;
+  return `
+          <li class="note-entry">
+            <div><span class="note-from">${esc(n.from)}</span> <span class="meta">week ending ${fmtShort(parseIsoDate(n.week))}</span></div>
+            <div class="note-text">${esc(n.text)}</div>
+            <div class="note-actions">${action}
+              <button type="button" class="link" data-act="delete-note" data-id="${esc(n.id)}">Delete note</button></div>
+            ${reply}
+          </li>`;
+}
+
+/** Notes on one item, and a form to add one. */
+function notesBlock(c, flags, ctx) {
+  const title = itemTitle(c.description);
+  const label = c.description.split(",", 1)[0].trim();
+  const list = notesFor(ctx.notes, c.unit, title, ctx.week);
+  const entries = list.length ? `<ul class="note-list">${list.map((n) => noteEntry(n, ctx, c, flags)).join("")}</ul>` : "";
+  const options = NOTE_FROM.map((f) => `<option>${esc(f)}</option>`).join("");
+  return `
+        <div class="notes">
+          ${entries}
+          <details class="add-note"><summary>Add a note or question</summary>
+            <form data-form="note" data-unit="${esc(c.unit)}" data-title="${esc(title)}" data-label="${esc(label)}" data-owner="${esc(c.owner)}">
+              <label>From <select name="from">${options}</select></label>
+              <textarea name="text" rows="2" required placeholder="A question, a decision, or a note for the record"></textarea>
+              <button type="submit">Save note</button>
+            </form>
+          </details>
+        </div>`;
+}
+
+function itemCard(b, item, showEffort, tiers, ctx) {
   const c = item.commitment;
   const h = hist(b, c);
   let badges = item.flags.map((f) => `<span class="badge badge-${f}">${FLAG_LABELS[f]}</span>`).join("");
@@ -128,14 +179,15 @@ function itemCard(b, item, showEffort, tiers) {
         ${reasons ? `<ul class="reasons">${reasons}</ul>` : ""}
         ${extra}
         ${editControls(c)}
+        ${notesBlock(c, item.flags.map((f) => FLAG_LABELS[f]), ctx)}
       </li>`;
 }
 
-function quadrant(b, name, tiers) {
+function quadrant(b, name, tiers, ctx) {
   const items = b.quadrants[name];
   const [slug, subtitle] = QUADRANT_META[name];
   const body = items.length
-    ? `<ul class="items">${items.map((i) => itemCard(b, i, name === QUADRANT_NEEDS_DECISION_NOW, tiers)).join("")}</ul>`
+    ? `<ul class="items">${items.map((i) => itemCard(b, i, name === QUADRANT_NEEDS_DECISION_NOW, tiers, ctx)).join("")}</ul>`
     : '<p class="empty">Nothing here this week.</p>';
   const head = `<h3>${esc(name)}</h3><span class="count">${items.length}</span>`;
   if (name === QUADRANT_OMIT) {
@@ -295,7 +347,7 @@ function healthSection(b) {
   </section>`;
 }
 
-function needsDeadlineSection(b, tiers) {
+function needsDeadlineSection(b, tiers, ctx) {
   if (!b.needsDeadlineItems.length) return "";
   const rows = b.needsDeadlineItems.map((c) => `
       <li class="item">
@@ -303,12 +355,45 @@ function needsDeadlineSection(b, tiers) {
         <div class="desc">${esc(c.description)}</div>
         <div class="meta">Due ${dueText(c)} · last touched ${fmtLong(c.lastUpdated)}</div>
         ${editControls(c)}
+        ${notesBlock(c, ["No deadline"], ctx)}
       </li>`).join("");
   return `
   <section>
     <h2>Needs a deadline set</h2>
     <p class="section-note">No usable due date, so urgency can't be judged. Listed so a date gets set,
     not quietly treated as "not urgent".</p>
+    <ul class="items">${rows}</ul>
+  </section>`;
+}
+
+/** Notes whose item has no card this week: closed, cleared, or not flagged.
+The item is looked up in this week's files so the email draft has facts. */
+function otherNotesSection(b, shown, ctx) {
+  const shownKeys = new Set(shown.map((c) => `${c.unit}\u0000${itemTitle(c.description)}`));
+  const rest = ctx.notes.filter((n) => n.week <= ctx.week && !shownKeys.has(`${n.unit}\u0000${n.title}`));
+  if (!rest.length) return "";
+  const groups = new Map();
+  for (const n of rest) {
+    const k = `${n.unit}\u0000${n.title}`;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(n);
+  }
+  const rows = [...groups.values()].map((list) => {
+    const n0 = list[0];
+    const item = b.allCommitments.find((c) => c.unit === n0.unit && itemTitle(c.description) === n0.title) ?? null;
+    const state = item ? (item.status === "done" ? "Done" : "Open, not flagged this week") : "Not in this week's files";
+    return `
+      <li class="item">
+        <div class="item-head"><span class="unit-tag">${esc(n0.unit)}</span><span class="owner">${esc(n0.label)}</span>
+          <span class="meta">${state}</span></div>
+        <ul class="note-list">${list.map((n) => noteEntry(n, ctx, item, [])).join("")}</ul>
+      </li>`;
+  }).join("");
+  return `
+  <section>
+    <h2>Notes on items not flagged this week</h2>
+    <p class="section-note">Notes stay with their item from week to week. These items have no card this
+    week, so their notes are kept here.</p>
     <ul class="items">${rows}</ul>
   </section>`;
 }
@@ -335,10 +420,11 @@ function yourChanges(weekEdits) {
 }
 
 function storageBar(state) {
-  const count = state.edits.length;
+  const count = state.edits.length + state.notes.length;
   const status = state.saved
-    ? `Your changes are saved in this browser only. There is no server: nothing you do here leaves your
-       computer. They stay in this one browser until you export a backup.`
+    ? `Your changes and notes are saved in this browser only. There is no server: nothing you do here
+       leaves your computer. They stay in this one browser until you export a backup. An email draft opens
+       in your own email app and is sent only if you send it.`
     : `This browser is blocking storage, so your changes will be lost when you close the page. Export a
        backup to keep them. Nothing you do here leaves your computer.`;
   return `
@@ -347,16 +433,18 @@ function storageBar(state) {
       <div class="storage-actions">
         <button type="button" data-act="export"${count ? "" : " disabled"}>Export backup</button>
         <button type="button" data-act="import">Import backup</button>
-        ${count ? `<button type="button" class="link" data-act="reset">Clear all ${plural(count, "change")}</button>` : ""}
+        ${count ? `<button type="button" class="link" data-act="reset">Clear all changes and notes</button>` : ""}
         <input type="file" accept="application/json,.json" data-act="import-file" hidden>
       </div>
       ${state.message ? `<p class="message" role="status">${esc(state.message)}</p>` : ""}
     </div>`;
 }
 
-/** state: { briefings, current, tiers, edits, weekEdits, saved, message } */
+/** state: { briefings, current, tiers, edits, notes, weekEdits, saved, message } */
 export function renderPage(state) {
   const { briefings, current: b, tiers } = state;
+  const ctx = { notes: state.notes, week: toIso(b.weekEnding), emails: b.ownerEmails };
+  const shown = [...[...b.classified.values()].map((i) => i.commitment), ...b.needsDeadlineItems];
   const week = fmtLong(b.weekEnding);
   const aliasLine = b.unresolvedOwners.length ? "" : "<p>Every owner name this week matched the reviewed alias table.</p>";
   return `
@@ -366,8 +454,9 @@ export function renderPage(state) {
     <div class="header-meta">For the Group CEO · week ending ${week} · scored as of ${fmtLong(b.today)}</div>
     ${weekNav(briefings, b)}
     <div class="fiction">Fictional company and data, built to show a rules-based briefing. Not a production tool.</div>
-    <p class="privacy">You can mark items done or change due dates. Changes are saved in this browser only
-    and never leave your computer. <a href="#your-data">Backup and import</a> are at the bottom.</p>
+    <p class="privacy">You can mark items done, change due dates, and add notes and replies. All of it is
+    saved in this browser only and never leaves your computer. <a href="#your-data">Backup and import</a>
+    are at the bottom.</p>
     ${summary(b)}
     ${dataCheck(b)}
   </header>
@@ -377,13 +466,14 @@ export function renderPage(state) {
     <p class="section-note">Only items a rule flagged appear here: overdue, stale, in an owner conflict,
     or waiting on a decision. Each is placed by importance and urgency, with the reasons listed on the
     card. Nothing has been resolved or decided on your behalf.</p>
-    <div class="grid">${QUADRANT_ORDER.map((q) => quadrant(b, q, tiers)).join("")}</div>
+    <div class="grid">${QUADRANT_ORDER.map((q) => quadrant(b, q, tiers, ctx)).join("")}</div>
   </section>
   ${yourChanges(state.weekEdits)}
   ${closedSection(b, tiers)}
   ${conflictsSection(b, tiers)}
   ${healthSection(b)}
-  ${needsDeadlineSection(b, tiers)}
+  ${needsDeadlineSection(b, tiers, ctx)}
+  ${otherNotesSection(b, shown, ctx)}
 
   <footer>
     ${storageBar(state)}

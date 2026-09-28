@@ -96,6 +96,7 @@ export function buildBriefing(week, { aliasText, today = null, units: specs = WA
     quadrants,                      // group name -> [classified item], sorted
     customerHealth,
     unresolvedOwners: aliases.unresolved,   // [[raw name, unit]] not in the alias table
+    ownerEmails: aliases.emails,            // canonical owner -> email, from the alias table
     comparison: null,               // set by history.js
   };
 }
