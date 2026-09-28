@@ -9,12 +9,18 @@ date, title the item's title as the engine matches it (engine/rules.js:
 itemTitle), label the same title as written, for showing on the page. due is
 "YYYY-MM-DD" or null, at when the change was made.
 */
-import { cleanNotes } from "./notes.js";
+import { cleanNotes, isEmail } from "./notes.js";
 
 const KEY = "cos-briefing:v1";
 const FORMAT = "chief-of-staff-briefing backup";
 
-/** Returns { edits, notes, saved }. saved is false when the browser blocks storage
+/** Settings the reader can change. cosEmail: copied on every email draft,
+null until the reader sets one (the page then uses the sample's). */
+export function cleanSettings(s) {
+  return { cosEmail: isEmail(s?.cosEmail) ? s.cosEmail.trim() : null };
+}
+
+/** Returns { edits, notes, settings, saved }. saved is false when the browser blocks storage
 (some private windows do), so changes last only until the page closes. */
 export function load() {
   let raw;
@@ -23,19 +29,21 @@ export function load() {
     localStorage.setItem(KEY + ":probe", "1");
     localStorage.removeItem(KEY + ":probe");
   } catch {
-    return { edits: [], notes: [], saved: false };
+    return { edits: [], notes: [], settings: cleanSettings(null), saved: false };
   }
   try {
     const body = raw ? JSON.parse(raw) : {};
-    return { edits: raw ? clean(body.edits) : [], notes: cleanNotes(body.notes), saved: true };
+    return { edits: raw ? clean(body.edits) : [], notes: cleanNotes(body.notes),
+      settings: cleanSettings(body.settings), saved: true };
   } catch {
-    return { edits: [], notes: [], saved: true };   // damaged entry: start clean rather than break the page
+    // Damaged entry: start clean rather than break the page.
+    return { edits: [], notes: [], settings: cleanSettings(null), saved: true };
   }
 }
 
-export function save(edits, notes) {
+export function save(edits, notes, settings) {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ version: 2, edits, notes }));
+    localStorage.setItem(KEY, JSON.stringify({ version: 2, edits, notes, settings }));
     return true;
   } catch {
     return false;
@@ -72,8 +80,8 @@ export function byWeek(edits) {
   return out;
 }
 
-export function backupBlob(edits, notes) {
-  const body = { format: FORMAT, version: 2, exported: new Date().toISOString(), edits, notes };
+export function backupBlob(edits, notes, settings) {
+  const body = { format: FORMAT, version: 2, exported: new Date().toISOString(), edits, notes, settings };
   return new Blob([JSON.stringify(body, null, 2) + "\n"], { type: "application/json" });
 }
 
@@ -85,5 +93,5 @@ export function parseBackup(text) {
     throw new Error("That file isn't a backup from this page. It isn't valid JSON.");
   }
   if (body?.format !== FORMAT) throw new Error("That file isn't a backup from this page.");
-  return { edits: clean(body.edits), notes: cleanNotes(body.notes) };
+  return { edits: clean(body.edits), notes: cleanNotes(body.notes), settings: cleanSettings(body.settings) };
 }

@@ -109,8 +109,10 @@ function noteEntry(n, ctx, item, flags) {
   if (!item) {
     action = "";
   } else if (email) {
-    const href = emailDraft({ to: email, owner: n.owner, item, note: n, weekEnding: ctx.week, flags });
-    action = `<a class="button-link" href="${esc(href)}" data-act="email" data-id="${esc(n.id)}">Draft email to ${esc(n.owner)}</a>`
+    const href = emailDraft({ to: email, cc: ctx.cosEmail, owner: n.owner, item, note: n, weekEnding: ctx.week, flags });
+    const copied = ctx.cosEmail && ctx.cosEmail.toLowerCase() !== email.toLowerCase()
+      ? `<span class="meta">copies ${esc(ctx.cosEmail)}</span>` : "";
+    action = `<a class="button-link" href="${esc(href)}" data-act="email" data-id="${esc(n.id)}">Draft email to ${esc(n.owner)}</a>${copied}`
       + (n.emailed ? '<span class="sent">Draft opened</span>' : "");
   } else {
     action = `<span class="meta">No email on file for ${esc(n.owner || "this owner")}.</span>`;
@@ -436,14 +438,19 @@ function storageBar(state) {
         ${count ? `<button type="button" class="link" data-act="reset">Clear all changes and notes</button>` : ""}
         <input type="file" accept="application/json,.json" data-act="import-file" hidden>
       </div>
+      <form class="cos-email" data-form="cos-email">
+        <label for="cos-email">Chief of Staff email, copied on every email draft</label>
+        <div><input id="cos-email" name="email" type="email" required value="${esc(state.cosEmail)}">
+        <button type="submit">Save</button></div>
+      </form>
       ${state.message ? `<p class="message" role="status">${esc(state.message)}</p>` : ""}
     </div>`;
 }
 
-/** state: { briefings, current, tiers, edits, notes, weekEdits, saved, message } */
+/** state: { briefings, current, tiers, edits, notes, cosEmail, weekEdits, saved, message } */
 export function renderPage(state) {
   const { briefings, current: b, tiers } = state;
-  const ctx = { notes: state.notes, week: toIso(b.weekEnding), emails: b.ownerEmails };
+  const ctx = { notes: state.notes, week: toIso(b.weekEnding), emails: b.ownerEmails, cosEmail: state.cosEmail };
   const shown = [...[...b.classified.values()].map((i) => i.commitment), ...b.needsDeadlineItems];
   const week = fmtLong(b.weekEnding);
   const aliasLine = b.unresolvedOwners.length ? "" : "<p>Every owner name this week matched the reviewed alias table.</p>";

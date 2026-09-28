@@ -94,4 +94,8 @@ export const WASLA_UNITS = [
   { key: "wasla_central", name: "Wasla Central", tier: "Core", metric: null },
 ];
 
+// Copied on every email draft to an owner. Fictional, on the reserved
+// .example domain. The reader can change it on the page.
+export const WASLA_CHIEF_OF_STAFF_EMAIL = "chief.of.staff@wasla.example";
+
 export const WASLA_TIERS = Object.fromEntries(WASLA_UNITS.map((u) => [u.name, u.tier]));

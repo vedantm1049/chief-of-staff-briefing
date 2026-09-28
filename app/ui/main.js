@@ -3,7 +3,7 @@ the page whenever the reader switches week or changes an item.
 */
 import { loadDataFolder } from "../engine/sample.js";
 import { buildHistory } from "../engine/history.js";
-import { WASLA_UNITS } from "../engine/config.js";
+import { WASLA_UNITS, WASLA_CHIEF_OF_STAFF_EMAIL } from "../engine/config.js";
 import { toIso } from "../engine/dates.js";
 import * as store from "./store.js";
 import { newNote } from "./notes.js";
@@ -18,6 +18,7 @@ let briefings = [];
 let week = null;       // the week ending being shown, "YYYY-MM-DD"
 let edits = [];
 let notes = [];
+let settings = { cosEmail: null };
 let saved = true;
 let message = "";
 
@@ -42,6 +43,7 @@ function draw() {
   const current = briefings[isos.indexOf(week)];
   root.innerHTML = renderPage({
     briefings, current, tiers, edits, notes, saved, message,
+    cosEmail: settings.cosEmail ?? WASLA_CHIEF_OF_STAFF_EMAIL,
     weekEdits: edits.filter((e) => e.week === week),
   });
   document.title = `Wasla Group briefing, week ending ${week}`;
@@ -59,7 +61,7 @@ function changeNotes(next, note = "") {
 
 /** Save everything; rescore only when an edit could move an item. */
 function commit(note, rescoreToo = true) {
-  const ok = store.save(edits, notes);
+  const ok = store.save(edits, notes, settings);
   if (saved && !ok) saved = false;
   message = note;
   if (rescoreToo) rescore();
@@ -94,6 +96,7 @@ root.addEventListener("change", (ev) => {
       if (replace) {
         edits = incoming.edits;
         notes = incoming.notes;
+        if (incoming.settings.cosEmail) settings = incoming.settings;
         commit(`Imported ${incoming.edits.length} changes and ${incoming.notes.length} notes.`);
       }
     });
@@ -103,6 +106,11 @@ root.addEventListener("change", (ev) => {
 root.addEventListener("submit", (ev) => {
   ev.preventDefault();
   const form = ev.target;
+  if (form.dataset.form === "cos-email") {
+    settings = store.cleanSettings({ cosEmail: new FormData(form).get("email")?.toString() });
+    commit(settings.cosEmail ? `Drafts will copy ${settings.cosEmail}.` : "That doesn't look like an email address.", false);
+    return;
+  }
   const text = new FormData(form).get("text")?.toString().trim();
   if (!text) return;
   if (form.dataset.form === "note") {
@@ -138,7 +146,7 @@ root.addEventListener("click", (ev) => {
   } else if (act === "undo") {
     change(store.upsert(edits, week, unit, title, { done: false, due: null }));
   } else if (act === "export") {
-    const url = URL.createObjectURL(store.backupBlob(edits, notes));
+    const url = URL.createObjectURL(store.backupBlob(edits, notes, settings));
     const a = Object.assign(document.createElement("a"), {
       href: url, download: `briefing-backup-${new Date().toISOString().slice(0, 10)}.json`,
     });
@@ -171,7 +179,7 @@ async function start() {
       address, not as a file on your computer.</p><p class="meta">${esc(err.message)}</p></div>`;
     return;
   }
-  ({ edits, notes, saved } = store.load());
+  ({ edits, notes, settings, saved } = store.load());
   week = weekFromHash();
   rescore();
   draw();

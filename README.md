@@ -6,7 +6,7 @@ The company, units, people and numbers are fictional. Every row in the dataset w
 
 **Open it: https://vedantm1049.github.io/chief-of-staff-briefing/**
 
-It opens on the latest week of the sample, with the earlier weeks one click away. It is one static page. The rules run in your browser, and there is no server. You can tick an item done or change a due date, and add notes: the CEO's questions and decisions, or the Chief of Staff's own. "Draft email" opens a draft to the item's owner in your own email app, and their answer can be pasted back as a reply. All of it is saved in your own browser only, and can be exported as a backup file and imported again. Notes never change how an item is scored.
+It opens on the latest week of the sample, with the earlier weeks one click away. It is one static page. The rules run in your browser, and there is no server. You can tick an item done or change a due date, and add notes: the CEO's questions and decisions, or the Chief of Staff's own. "Draft email" opens a draft to the item's owner in your own email app, with the Chief of Staff copied, and their answer can be pasted back as a reply. All of it is saved in your own browser only, and can be exported as a backup file and imported again. Notes never change how an item is scored.
 
 ## Why it exists
 

@@ -37,7 +37,7 @@ The company (Wasla Group), people and numbers are fictional and hand-designed. I
 - Week over week: an item's identity is its unit plus its title (text before the first comma). Each flag is marked new, back after a gap, or Nth week running. Closed items are done, cleared (with the reason) or removed without being marked done. Due dates that keep moving are shown.
 - A name missing from the alias table is reported at the top of the page, never guessed.
 - The reader can tick an item done or set its due date. The edit applies to that week only; next week's files win.
-- The CEO decides, the Chief of Staff maintains the page. Notes (from the CEO or the Chief of Staff) stay with an item across weeks. "Draft email" opens a mailto draft in the reader's own email app; the page never sends anything and the draft holds only the note and the card's facts. Replies are pasted in by hand. Notes never change a score.
+- The CEO decides, the Chief of Staff maintains the page. Notes (from the CEO or the Chief of Staff) stay with an item across weeks. "Draft email" opens a mailto draft in the reader's own email app, always copying the Chief of Staff (address set on the page); the page never sends anything and the draft holds only the note and the card's facts. Replies are pasted in by hand. Notes never change a score.
 
 ## Open questions for Vedant
 

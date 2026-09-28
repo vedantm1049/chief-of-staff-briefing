@@ -57,11 +57,24 @@ test("the email draft carries the note and the card's facts, nothing more", () =
   ]);
 });
 
+test("the chief of staff is copied on every draft", () => {
+  const b = weeks[W2];
+  const item = findCommitment(b, { owner: "Layla Haddad", unit: "Wasla Table" });
+  const note = newNote({ ...LEASE, from: "CEO", text: "Status?", week: W2 });
+  const draft = (to, cc) => new URL(emailDraft({ to, cc, owner: "Layla Haddad", item, note, weekEnding: W2, flags: [] }));
+  assert.equal(draft("layla.haddad@wasla.example", "chief.of.staff@wasla.example").searchParams.get("cc"),
+    "chief.of.staff@wasla.example");
+  // Not copied on an email to themselves, and never on a malformed address.
+  assert.equal(draft("chief.of.staff@wasla.example", "Chief.of.Staff@wasla.example").searchParams.get("cc"), null);
+  assert.equal(draft("layla.haddad@wasla.example", "not an email").searchParams.get("cc"), null);
+});
+
 test("notes and replies survive a backup and import", async () => {
   const note = { ...newNote({ ...LEASE, from: "Chief of Staff", text: "Chased twice", week: W3 }),
     emailed: true, reply: { text: "Redlines due Monday", at: "2026-10-12T09:00:00Z" } };
-  const back = parseBackup(await backupBlob([], [note]).text());
+  const back = parseBackup(await backupBlob([], [note], { cosEmail: "cos@example.com" }).text());
   assert.deepEqual(back.notes, [note]);
+  assert.equal(back.settings.cosEmail, "cos@example.com");
 });
 
 test("a damaged note is dropped, not trusted", () => {

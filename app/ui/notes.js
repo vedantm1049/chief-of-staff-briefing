@@ -49,10 +49,16 @@ export function cleanNotes(list) {
     }));
 }
 
+/** A basic shape check, enough to catch a typo. */
+export function isEmail(text) {
+  return /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(text ?? "");
+}
+
 /** A mailto: link that opens a draft in the reader's own email app. Nothing
 is sent from the page. The body is the note and the facts on the card, no
-more: the page adds no advice of its own. */
-export function emailDraft({ to, owner, item, note, weekEnding, flags }) {
+more: the page adds no advice of its own. The Chief of Staff is copied,
+unless they are the owner. */
+export function emailDraft({ to, cc, owner, item, note, weekEnding, flags }) {
   const c = item;
   const lines = [
     `Hi ${owner.split(" ")[0]},`,
@@ -66,5 +72,6 @@ export function emailDraft({ to, owner, item, note, weekEnding, flags }) {
   if (flags.length) lines.push(`Flagged: ${flags.join(", ")}`);
   lines.push("", `From the weekly briefing, week ending ${fmtLong(parseIsoDate(weekEnding))}.`);
   const subject = `Briefing: ${c.description.split(",", 1)[0].trim()}`;
-  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines.join("\n"))}`;
+  const copy = isEmail(cc) && cc.toLowerCase() !== to.toLowerCase() ? `cc=${encodeURIComponent(cc)}&` : "";
+  return `mailto:${encodeURIComponent(to)}?${copy}subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines.join("\n"))}`;
 }
