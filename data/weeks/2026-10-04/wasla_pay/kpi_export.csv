@@ -1,0 +1,2 @@
+week_ending,transactions_processed,take_rate_bps,wallet_signups,dispute_rate_pct,compliance_flags_open,transaction_csat_avg,transaction_csat_target,rated_transactions_count
+2026-10-04,314000,45,9100,0.6,1,4.2,4.3,2250

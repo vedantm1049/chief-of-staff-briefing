@@ -1,0 +1,4 @@
+owner,description,due_date,status,last_updated,blocked_by,decision_type
+Ahmed El-Sayed,Fix stockout alerting for Sharjah dark stores,2026-09-19,done,2026-10-09,,
+Ahmed El-Sayed,Sharjah replenishment SOP rewrite,2026-10-24,In Progress,2026-10-10,Fix stockout alerting for Sharjah dark stores,
+Nadia Farouk,Q4 inventory forecast model,2026-10-19,Open,2026-09-18,Fix stockout alerting for Sharjah dark stores,

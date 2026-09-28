@@ -1,0 +1,4 @@
+owner,description,due_date,status,regulatory_deadline,last_updated,blocked_by,decision_type
+Raj Mehta,Dispute-resolution SLA renegotiation with acquiring bank,2026-10-20,In Progress,FALSE,2026-10-09,,
+Nadia Osman,"Wallet KYC flow, Legal approved, live",2026-10-08,Done,FALSE,2026-10-08,,confirm/reject
+Raj Mehta,Waiting on CEO sign-off to extend acquiring-bank contract by 12 months,2026-10-23,Pending Decision,FALSE,2026-10-08,,confirm/reject

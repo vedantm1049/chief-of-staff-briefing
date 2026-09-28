@@ -1,0 +1,14 @@
+raw_name,unit,normalized_owner,review_note
+Priya Nair,Wasla Eats,Priya Nair,"canonical form; Central growth/loyalty lead, listed against an Eats-side task on the joint loyalty pilot"
+P. Nair,Wasla Mart,Priya Nair,"fuzzy-match candidate, confirmed same person during offline review; same Central growth/loyalty lead, Mart-side of the same pilot"
+Rahul Mehta,Wasla Express,Rahul Mehta,canonical form
+Raj Mehta,Wasla Pay,Raj Mehta,"fuzzy-match candidate, confirmed DIFFERENT person during offline review, not merged"
+Ahmed El-Sayed,Wasla Mart,Ahmed El-Sayed,canonical form
+Nadia Farouk,Wasla Mart,Nadia Farouk,canonical form
+Farah Al Mansoori,Wasla Eats,Farah Al Mansoori,canonical form
+Layla Haddad,Wasla Central,Layla Haddad,"canonical form; appears as owner across Table, Pay, and Central"
+Omar Siddiqui,Wasla Central,Omar Siddiqui,canonical form
+Reem Qassim,Wasla Table,Reem Qassim,canonical form
+Zayd,Wasla Express,Zayd,"first-name-only per Express's convention, no ambiguity found"
+Mina,Wasla Express,Mina,"first-name-only per Express's convention, no ambiguity found"
+Nadia Osman,Wasla Pay,Nadia Osman,"canonical form, distinct from Nadia Farouk (Mart), different surname, not merged"

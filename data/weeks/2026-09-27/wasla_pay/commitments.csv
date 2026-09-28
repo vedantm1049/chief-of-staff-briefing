@@ -1,0 +1,4 @@
+owner,description,due_date,status,regulatory_deadline,last_updated,blocked_by,decision_type
+Layla Haddad,Finalize compliance amendment for updated licensing terms,2026-09-29,Open,TRUE,2026-09-26,,
+Raj Mehta,Dispute-resolution SLA renegotiation with acquiring bank,2026-10-20,In Progress,FALSE,2026-09-25,,
+Nadia Osman,"Wallet KYC flow, waiting on Central Legal review",2026-10-08,Pending Decision,FALSE,2026-09-25,Central Legal review,confirm/reject

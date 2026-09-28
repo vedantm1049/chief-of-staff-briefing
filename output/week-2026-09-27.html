@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wasla Group briefing, week ending Sun 27 Sep 2026</title>
+<style>
+:root {
+  --bg: #f6f5f2; --panel: #fff; --ink: #1c1b19; --muted: #6b6862; --border: #e4e1d9;
+  --needs: #b3441e; --radar: #93661a; --flag: #3a5a8c; --omit: #8a8578; --ok: #3f7d4f;
+  --radius: 10px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+.page { max-width: 1000px; margin: 0 auto; padding: 32px 16px 64px; }
+.eyebrow { text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: var(--muted); font-weight: 600; }
+h1 { font-size: 30px; margin: 4px 0 4px; }
+h2 { font-size: 19px; margin: 0 0 4px; }
+h3 { font-size: 15px; margin: 0; }
+.header-meta { color: var(--muted); font-size: 14px; }
+nav.weeks { margin-top: 6px; font-size: 13px; color: var(--muted); }
+nav.weeks a { color: var(--flag); }
+nav.weeks strong { color: var(--ink); }
+.fiction { margin: 12px 0; padding: 8px 12px; font-size: 12px; color: var(--muted);
+  background: #eeeae0; border: 1px solid var(--border); border-radius: var(--radius); }
+.summary { font-size: 15px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--border);
+  border-left: 4px solid var(--needs); border-radius: var(--radius); }
+.summary-history { margin-top: 4px; font-size: 14px; color: var(--muted); }
+.summary-history strong { color: var(--ink); }
+.check { margin-top: 10px; padding: 10px 14px; font-size: 13px; background: #fbeee4;
+  border: 1px solid #e8c9ab; border-radius: var(--radius); }
+section { margin: 32px 0; }
+.section-note { color: var(--muted); font-size: 13px; max-width: 70ch; margin: 0 0 14px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+.quadrant { background: var(--panel); border: 1px solid var(--border); border-top: 4px solid var(--omit);
+  border-radius: var(--radius); padding: 14px; min-width: 0; }
+.quadrant-needs { border-top-color: var(--needs); }
+.quadrant-radar { border-top-color: var(--radar); }
+.quadrant-flag { border-top-color: var(--flag); }
+.quadrant-head { display: inline-flex; align-items: center; gap: 8px; }
+.count { font-size: 12px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 8px; }
+.subtitle { display: block; color: var(--muted); font-size: 12px; margin: 2px 0 10px; }
+details.quadrant summary { cursor: pointer; list-style: none; }
+details.quadrant summary::-webkit-details-marker { display: none; }
+details.quadrant summary .quadrant-head::before { content: "▸"; color: var(--muted); }
+details.quadrant[open] summary .quadrant-head::before { content: "▾"; }
+.empty { color: var(--muted); font-size: 13px; font-style: italic; margin: 0; }
+ul.items, ul.conflicts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.item { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: #fffefc; }
+.item-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+.unit-tag { font-size: 11px; font-weight: 600; color: var(--muted); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 4px; padding: 0 6px; white-space: nowrap; }
+.owner { font-weight: 600; font-size: 14px; }
+.desc { font-size: 14px; margin-bottom: 2px; overflow-wrap: anywhere; }
+.meta { color: var(--muted); font-size: 12px; font-weight: 400; }
+.approx { font-style: italic; }
+ul.reasons { margin: 6px 0 0; padding-left: 18px; font-size: 12px; color: var(--muted); }
+.note { margin-top: 6px; font-size: 12px; }
+.note-conflict { color: var(--flag); }
+.note-blocks { color: var(--needs); }
+.note-slip { color: var(--radar); }
+.badge { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; color: #fff; white-space: nowrap; }
+.badge-decision-pending { background: var(--needs); }
+.badge-overdue { background: #7a2e14; }
+.badge-stale { background: var(--radar); }
+.badge-conflict { background: var(--flag); }
+.badge-health-ok { background: var(--ok); }
+.badge-health-miss { background: var(--needs); }
+.badge-health-lowsample { background: var(--omit); }
+.hist { font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--border); color: var(--ink); background: var(--bg); }
+.hist-new { color: var(--flag); border-color: var(--flag); background: #fff; }
+.hist-back { color: var(--radar); border-color: var(--radar); background: #fff; }
+.effort { font-size: 11px; border: 1px solid; border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+.effort-low { color: var(--ok); }
+.effort-medium { color: var(--radar); }
+.effort-high, .effort-unknown { color: var(--needs); }
+.chip { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 4px; white-space: nowrap; color: #fff; }
+.chip-done { background: var(--ok); }
+.chip-cleared { background: var(--omit); }
+.chip-removed { background: var(--needs); }
+.closed-removed { border-color: #e8c9ab; background: #fdf6f1; }
+.conflict-pair { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.conflict-owner { font-weight: 700; margin-bottom: 4px; }
+.conflict-side { font-size: 13px; margin-top: 4px; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+th { background: var(--bg); font-size: 11px; text-transform: uppercase; color: var(--muted); }
+td.why { color: var(--muted); font-size: 12px; white-space: normal; min-width: 200px; }
+td.last { color: var(--muted); font-size: 12px; }
+.last-miss { color: var(--needs); font-weight: 600; }
+footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+footer p { max-width: 72ch; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="eyebrow">Chief of Staff · Weekly briefing</div>
+    <h1>Wasla Group</h1>
+    <div class="header-meta">For the Group CEO · week ending Sun 27 Sep 2026 · scored as of Mon 28 Sep 2026</div>
+    <nav class="weeks">Week ending: <strong aria-current="page">27 Sep</strong> · <a href="week-2026-10-04.html">4 Oct</a> · <a href="week-2026-10-11.html">11 Oct</a> · <a href="week-2026-10-18.html">18 Oct</a></nav>
+    <div class="fiction">Fictional company and data, built to demonstrate a deterministic briefing engine.
+    Not a production tool.</div>
+    <div class="summary"><strong>2 items</strong> need you now · <strong>2 owner conflicts</strong> · <strong>1 customer-rating miss</strong> (Wasla Mart) · <strong>1 item</strong> with no deadline<div class="summary-history">First week tracked, so nothing to compare against yet.</div></div>
+    
+  </header>
+
+  <section>
+    <h2>Priorities</h2>
+    <p class="section-note">Only items a rule flagged appear here: overdue, stale, in an owner conflict,
+    or waiting on a decision. Each is placed by importance and urgency, with the reasons listed on the
+    card. Nothing has been resolved or decided on your behalf.</p>
+    <div class="grid">
+    <div class="quadrant quadrant-needs">
+      <div class="quadrant-head"><h3>Needs decision now</h3><span class="count">2</span></div>
+      <div class="subtitle">Important and urgent</div>
+      <ul class="items">
+      <li class="item">
+        <div class="item-head"><span class="unit-tag">Wasla Express · Experimental</span><span class="owner">Zayd</span><span class="badge badge-decision-pending">Decision pending</span><span class="effort effort-low">Low effort</span></div>
+        <div class="desc">Waiting on CEO sign-off on partner-tier commission change, submitted memo for review</div>
+        <div class="meta">Due ≈ Fri 2 Oct 2026 <span class="approx">(written as "end of this week")</span> · last touched Tue 22 Sep 2026</div>
+        <ul class="reasons"><li>waiting on you (the principal) specifically</li><li>decision pending for 6 days</li></ul>
+        
+      </li>
+      <li class="item">
+        <div class="item-head"><span class="unit-tag">Wasla Mart · Flagship</span><span class="owner">Ahmed El-Sayed</span><span class="badge badge-overdue">Overdue</span><span class="badge badge-stale">Stale</span></div>
+        <div class="desc">Fix stockout alerting for Sharjah dark stores</div>
+        <div class="meta">Due Sat 19 Sep 2026 · last touched Sun 20 Sep 2026</div>
+        <ul class="reasons"><li>Wasla Mart is Flagship tier</li><li>blocks 2 other open items</li><li>Wasla Mart missed its customer-rating target this week</li><li>overdue by 9 days</li></ul>
+        <div class="note note-blocks">Holding up: Sharjah replenishment SOP rewrite (Ahmed El-Sayed); Q4 inventory forecast model (Nadia Farouk)</div>
+      </li></ul>
+    </div>
+    <div class="quadrant quadrant-radar">
+      <div class="quadrant-head"><h3>On your radar</h3><span class="count">2</span></div>
+      <div class="subtitle">Important, not yet urgent</div>
+      <ul class="items">
+      <li class="item">
+        <div class="item-head"><span class="unit-tag">Wasla Mart · Flagship</span><span class="owner">Priya Nair</span><span class="badge badge-conflict">Conflict</span></div>
+        <div class="desc">Loyalty-points pilot data integration (Mart side)</div>
+        <div class="meta">Due Fri 2 Oct 2026 · last touched Thu 24 Sep 2026</div>
+        <ul class="reasons"><li>Wasla Mart is Flagship tier</li><li>Wasla Mart missed its customer-rating target this week</li></ul>
+        <div class="note note-conflict">Same owner also has: Wasla Eats: Launch loyalty-points pilot in Dubai Marina…, due Sat 3 Oct 2026</div>
+      </li>
+      <li class="item">
+        <div class="item-head"><span class="unit-tag">Wasla Eats · Flagship</span><span class="owner">Priya Nair</span><span class="badge badge-conflict">Conflict</span></div>
+        <div class="desc">Launch loyalty-points pilot in Dubai Marina (Eats side)</div>
+        <div class="meta">Due Sat 3 Oct 2026 · last touched Fri 25 Sep 2026</div>
+        <ul class="reasons"><li>Wasla Eats is Flagship tier</li></ul>
+        <div class="note note-conflict">Same owner also has: Wasla Mart: Loyalty-points pilot data integration (Mart…, due Fri 2 Oct 2026</div>
+      </li></ul>
+    </div>
+    <div class="quadrant quadrant-flag">
+      <div class="quadrant-head"><h3>Flag, don&#x27;t escalate</h3><span class="count">3</span></div>
+      <div class="subtitle">Urgent, not important</div>
+      <ul class="items">
+      <li class="item">
+        <div class="item-head"><span class="unit-tag">Wasla Table · Core</span><span class="owner">Layla Haddad</span><span class="badge badge-conflict">Conflict</span></div>
+        <div class="desc">Review and countersign Downtown Dubai flagship lease renewal, still waiting on redlines from landlord&#x27;s counsel</div>
+        <div class="meta">Due Tue 29 Sep 2026 · last touched Sun 27 Sep 2026</div>
+        <ul class="reasons"><li>due in 1 day</li></ul>
+        <div class="note note-conflict">Same owner also has: Wasla Pay: Finalize compliance amendment for updated…, due Tue 29 Sep 2026</div>
+      </li>
+      <li class="item">
+        <div class="item-head"><span class="unit-tag">Wasla Pay · Core</span><span class="owner">Layla Haddad</span><span class="badge badge-conflict">Conflict</span></div>
+        <div class="desc">Finalize compliance amendment for updated licensing terms</div>
+        <div class="meta">Due Tue 29 Sep 2026 · last touched Sat 26 Sep 2026</div>
+        <ul class="reasons"><li>due in 1 day</li></ul>
+        <div class="note note-conflict">Same owner also has: Wasla Table: Review and countersign Downtown Dubai flagship…, due Tue 29 Sep 2026</div>
+      </li>
+      <li class="item">
+        <div class="item-head"><span class="unit-tag">Wasla Express · Experimental</span><span class="owner">Mina</span><span class="badge badge-stale">Stale</span></div>
+        <div class="desc">Mall-retail partner integration testing, huge momentum, on the verge of a big unlock</div>
+        <div class="meta">Due ≈ Tue 29 Sep 2026 <span class="approx">(written as "next Tuesday")</span> · last touched Mon 14 Sep 2026</div>
+        <ul class="reasons"><li>due in 1 day</li></ul>
+        
+      </li></ul>
+    </div>
+    <details class="quadrant quadrant-omit">
+      <summary><span class="quadrant-head"><h3>Omit</h3><span class="count">3</span></span><span class="subtitle">Neither. Listed for audit, not for action</span></summary>
+      <ul class="items">
+      <li class="item">
+        <div class="item-head"><span class="unit-tag">Wasla Pay · Core</span><span class="owner">Nadia Osman</span><span class="badge badge-decision-pending">Decision pending</span></div>
+        <div class="desc">Wallet KYC flow, waiting on Central Legal review</div>
+        <div class="meta">Due Thu 8 Oct 2026 · last touched Fri 25 Sep 2026</div>
+        
+        
+      </li>
+      <li class="item">
+        <div class="item-head"><span class="unit-tag">Wasla Table · Core</span><span class="owner">Reem Qassim</span><span class="badge badge-stale">Stale</span></div>
+        <div class="desc">Diner NPS survey redesign, sent follow-up to vendor, no response yet</div>
+        <div class="meta">Due Thu 15 Oct 2026 · last touched Sat 19 Sep 2026</div>
+        
+        
+      </li>
+      <li class="item">
+        <div class="item-head"><span class="unit-tag">Wasla Central · Core</span><span class="owner">Layla Haddad</span><span class="badge badge-stale">Stale</span></div>
+        <div class="desc">Update group-wide data-processing agreement template</div>
+        <div class="meta">Due Sun 1 Nov 2026 · last touched Sun 20 Sep 2026</div>
+        
+        
+      </li></ul>
+    </details></div>
+  </section>
+  
+  
+  <section>
+    <h2>Owner conflicts</h2>
+    <p class="section-note">One person, two open items, due within a day of each other. A bandwidth
+    question for you to settle. Nothing here has been reassigned.</p>
+    <ul class="conflicts">
+      <li class="conflict-pair">
+        <div class="conflict-owner">Priya Nair <span class="meta">due dates 1 day apart</span></div>
+        <div class="conflict-side"><span class="unit-tag">Wasla Eats · Flagship</span> Launch loyalty-points pilot in Dubai Marina (Eats side) <span class="meta">due Sat 3 Oct 2026</span></div>
+        <div class="conflict-side"><span class="unit-tag">Wasla Mart · Flagship</span> Loyalty-points pilot data integration (Mart side) <span class="meta">due Fri 2 Oct 2026</span></div>
+      </li>
+      <li class="conflict-pair">
+        <div class="conflict-owner">Layla Haddad <span class="meta">due the same day</span></div>
+        <div class="conflict-side"><span class="unit-tag">Wasla Table · Core</span> Review and countersign Downtown Dubai flagship lease renewal, still waiting on redlines from landlord&#x27;s counsel <span class="meta">due Tue 29 Sep 2026</span></div>
+        <div class="conflict-side"><span class="unit-tag">Wasla Pay · Core</span> Finalize compliance amendment for updated licensing terms <span class="meta">due Tue 29 Sep 2026</span></div>
+      </li></ul>
+  </section>
+  
+  <section>
+    <h2>Customer ratings vs. target</h2>
+    <p class="section-note">Judged on this week alone. A unit counts as a miss when it is more than
+    0.2 below its own target and logged at least 10 rated interactions.
+    A miss raises the priority of that unit's items above. Wasla Central has no customer rating.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Unit</th><th>Rating</th><th>Target</th><th>Rated</th><th></th><th>Why</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Wasla Eats</td>
+          <td>4.40</td>
+          <td>4.50</td>
+          <td>52,300</td>
+          <td><span class="badge badge-health-ok">Within tolerance</span></td>
+          
+          <td class="why">within 0.2 of target</td>
+        </tr>
+        <tr>
+          <td>Wasla Mart</td>
+          <td>3.93</td>
+          <td>4.50</td>
+          <td>31,800</td>
+          <td><span class="badge badge-health-miss">Miss</span></td>
+          
+          <td class="why">0.57 below target, more than the 0.2 margin</td>
+        </tr>
+        <tr>
+          <td>Wasla Table</td>
+          <td>4.60</td>
+          <td>4.50</td>
+          <td>1,150</td>
+          <td><span class="badge badge-health-ok">On target</span></td>
+          
+          <td class="why">within 0.2 of target</td>
+        </tr>
+        <tr>
+          <td>Wasla Express</td>
+          <td>3.20</td>
+          <td>4.30</td>
+          <td>6</td>
+          <td><span class="badge badge-health-lowsample">Not enough data</span></td>
+          
+          <td class="why">only 6 rated this week, below the floor of 10</td>
+        </tr>
+        <tr>
+          <td>Wasla Pay</td>
+          <td>4.20</td>
+          <td>4.30</td>
+          <td>2,200</td>
+          <td><span class="badge badge-health-ok">Within tolerance</span></td>
+          
+          <td class="why">within 0.2 of target</td>
+        </tr></tbody>
+    </table></div>
+  </section>
+  
+  <section>
+    <h2>Needs a deadline set</h2>
+    <p class="section-note">No usable due date, so urgency can't be judged. Listed so a date gets set,
+    not quietly treated as "not urgent".</p>
+    <ul class="items">
+      <li class="item">
+        <div class="item-head"><span class="unit-tag">Wasla Central · Core</span><span class="owner">Omar Siddiqui</span></div>
+        <div class="desc">Q4 product roadmap prioritization workshop</div>
+        <div class="meta">Due not set · last touched Tue 15 Sep 2026</div>
+      </li></ul>
+  </section>
+
+  <footer>
+    <p>Rules engine, no AI model at runtime. Status-update prose is never scored: an item's
+    last-updated date is trusted over how it is described. Items are matched from week to week by
+    unit and title (the text before the first comma).</p>
+    <p>Every owner name this week matched the reviewed alias table.</p>
+  </footer>
+</div>
+</body>
+</html>

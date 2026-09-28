@@ -1,0 +1,4 @@
+Another mixed week. Dubai is steady. Sharjah stockouts got worse before they get better,
+the alerting fix is still in progress and Ahmed expects a vendor patch soon. The SOP
+rewrite and the forecast model are both waiting on that fix. Ratings dipped again in
+Sharjah, which tracks with the stockouts.
