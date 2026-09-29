@@ -4,7 +4,7 @@ after a gap, or how many weeks running. Items flagged last week but not this
 week are reported as closed, with the reason: done, cleared, or removed from
 the tracker without being marked done.
 
-An item's identity across weeks is its unit plus its title (see rules.js:
+An item's identity across weeks is its area plus its title (see rules.js:
 itemKey). Nothing here changes how a week is scored.
 */
 import { buildBriefing, flaggedCommitments } from "./briefing.js";
@@ -21,7 +21,7 @@ function index(commitments) {
   return [out, dupes];
 }
 
-/** weeks: [{ weekEnding, files }], any order. Returns one briefing per week,
+/** weeks: [{ weekEnding, tasks, metrics }], any order. Returns one briefing per week,
 oldest first, each with .comparison set. Options pass through to
 buildBriefing, except today: each week is read the Monday after it. */
 export function buildHistory(weeks, options = {}) {
@@ -81,8 +81,8 @@ export function buildHistory(weeks, options = {}) {
       previousWeek: prev ? prev.weekEnding : null,
       items,
       closed,
-      prevHealth: prev ? Object.fromEntries(prev.customerHealth.map((r) => [r.unitName, r])) : {},
-      duplicateTitles: dupes[i],   // [[unit, title]]: two items, one title, history can't tell them apart
+      prevHealth: prev ? Object.fromEntries(prev.customerHealth.map((r) => [r.area, r])) : {},
+      duplicateTitles: dupes[i],   // [[area, title]]: two items, one title, history can't tell them apart
       count(label) {
         let n = 0;
         for (const h of items.values()) if (h.label === label) n++;

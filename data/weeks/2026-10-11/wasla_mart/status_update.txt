@@ -1,4 +1,0 @@
-Long week, but the headline is good: the Sharjah stockout alerting fix went live on 9 Oct
-and stockout rates are already falling. The SOP rewrite restarted the next day with a new
-date. The forecast model hasn't moved yet and its date has slipped a week. Ratings
-recovered partway across all three clusters.

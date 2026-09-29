@@ -11,16 +11,19 @@ import {
   QUADRANT_OMIT,
 } from "../app/engine/classify.js";
 import { toIso } from "../app/engine/dates.js";
-import { loadSample, copySample, week, briefWeek, editCsv, findCommitment, TODAY, W1 } from "./helpers.js";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
+import { csvRecords } from "../app/engine/parse.js";
+import { loadSample, copySample, week, briefWeek, editRows, findCommitment, DATA_ROOT, TODAY, W1 } from "./helpers.js";
 
 const sample = await loadSample();
 const briefing = briefWeek(sample, W1, TODAY);
 
-/** A week-1 copy with one file edited, scored again. */
-function rebuiltWith(unit, file, match, updates) {
+/** A week-1 copy with some rows edited, scored again. kind: "tasks" or "metrics". */
+function rebuiltWith(kind, match, updates) {
   const copy = copySample(sample);
-  const files = week(copy, W1).files[unit];
-  files[file] = editCsv(files[file], match, updates);
+  editRows(week(copy, W1)[kind], match, updates);
   return briefWeek(copy, W1, TODAY);
 }
 
@@ -29,8 +32,8 @@ function rebuiltWith(unit, file, match, updates) {
 test("layla haddad same day conflict", () => {
   // Layla Haddad: Table's lease renewal and Pay's compliance amendment, both
   // due 2026-09-29. Same day, no alias resolution needed.
-  const lease = findCommitment(briefing, { owner: "Layla Haddad", unit: "Wasla Table" });
-  const compliance = findCommitment(briefing, { owner: "Layla Haddad", unit: "Wasla Pay" });
+  const lease = findCommitment(briefing, { owner: "Layla Haddad", area: "Wasla Table" });
+  const compliance = findCommitment(briefing, { owner: "Layla Haddad", area: "Wasla Pay" });
   assert.ok((briefing.conflictPartnerMap.get(lease) ?? []).includes(compliance));
   assert.ok((briefing.conflictPartnerMap.get(compliance) ?? []).includes(lease));
 });
@@ -38,8 +41,8 @@ test("layla haddad same day conflict", () => {
 test("priya nair conflict depends on alias merge", () => {
   // Priya Nair / P. Nair: Eats' and Mart's loyalty-pilot items, one day apart.
   // Only visible if "P. Nair" merges into "Priya Nair".
-  const eats = findCommitment(briefing, { owner: "Priya Nair", unit: "Wasla Eats", descriptionContains: "loyalty-points" });
-  const mart = findCommitment(briefing, { owner: "Priya Nair", unit: "Wasla Mart" });
+  const eats = findCommitment(briefing, { owner: "Priya Nair", area: "Wasla Eats", descriptionContains: "loyalty-points" });
+  const mart = findCommitment(briefing, { owner: "Priya Nair", area: "Wasla Mart" });
   assert.equal(mart.rawOwner, "P. Nair");
   assert.ok((briefing.conflictPartnerMap.get(eats) ?? []).includes(mart));
 });
@@ -77,8 +80,8 @@ test("unseen shorthand is reported not guessed", () => {
   // If Mart writes "P Nair" (no dot), the table has never seen it. The engine
   // must report it, and the Priya conflict disappears until the table is
   // fixed. That lost conflict is why an unresolved name is surfaced, not ignored.
-  const b = rebuiltWith("wasla_mart", "commitments.csv", { owner: "P. Nair" }, { owner: "P Nair" });
-  assert.ok(b.unresolvedOwners.some(([raw, unit]) => raw === "P Nair" && unit === "Wasla Mart"));
+  const b = rebuiltWith("tasks", { owner: "P. Nair" }, { owner: "P Nair" });
+  assert.ok(b.unresolvedOwners.some(([raw, area]) => raw === "P Nair" && area === "Wasla Mart"));
   assert.deepEqual(b.conflicts.map((p) => p.owner), ["Layla Haddad"]);
 });
 
@@ -110,8 +113,7 @@ test("items blocked by stockout are not stale", () => {
 
 test("blocked item goes stale once blocker closes", () => {
   // The exemption only holds while the blocker is open.
-  const b = rebuiltWith("wasla_mart", "commitments.csv",
-    { description: "Fix stockout alerting for Sharjah dark stores" }, { status: "Done" });
+  const b = rebuiltWith("tasks", { task: "Fix stockout alerting for Sharjah dark stores" }, { status: "Done" });
   const forecast = findCommitment(b, { descriptionContains: "forecast model" });
   assert.ok(b.stale.has(forecast));
 });
@@ -126,19 +128,10 @@ test("express mall retail stale despite hype", () => {
 });
 
 test("table no show fee resolved not stale", () => {
-  // No status column; description says "resolved, live since last week".
-  // Inferring done must suppress an item that looks overdue and stale.
+  // Status left blank; the task says "resolved, live since last week".
+  // Reading done from the text must suppress an item that looks overdue and stale.
   const item = findCommitment(briefing, { descriptionContains: "no-show fee" });
   assert.ok(item.statusInferred && item.status === "done");
-  assert.ok(!briefing.stale.has(item));
-  assert.ok(!briefing.classified.has(item));
-});
-
-test("mart complete status drops out", () => {
-  // Lowercase "complete", Mart's non-standard vocabulary. Misread as open it
-  // would be overdue, stale and Flagship.
-  const item = findCommitment(briefing, { descriptionContains: "picker-shift rota" });
-  assert.ok(item.status === "done" && !item.statusInferred);
   assert.ok(!briefing.stale.has(item));
   assert.ok(!briefing.classified.has(item));
 });
@@ -177,8 +170,8 @@ test("roadmap workshop needs a deadline", () => {
 
 // --- Customer health -----------------------------------------------------------------
 
-function health(b, unit) {
-  return b.customerHealth.find((r) => r.unitName === unit);
+function health(b, area) {
+  return b.customerHealth.find((r) => r.area === area);
 }
 
 test("mart blended rating miss triggers", () => {
@@ -187,8 +180,8 @@ test("mart blended rating miss triggers", () => {
 });
 
 test("eats and pay small misses do not trigger", () => {
-  for (const unit of ["Wasla Eats", "Wasla Pay"]) {
-    const r = health(briefing, unit);
+  for (const area of ["Wasla Eats", "Wasla Pay"]) {
+    const r = health(briefing, area);
     assert.ok(r.miss.toFixed(2) === "0.10" && !r.triggered);
   }
 });
@@ -199,7 +192,7 @@ test("express big miss suppressed by sample floor", () => {
 });
 
 test("central has no customer metric", () => {
-  assert.ok(!briefing.customerHealth.some((r) => r.unitName === "Wasla Central"));
+  assert.ok(!briefing.customerHealth.some((r) => r.area === "Wasla Central"));
 });
 
 test("rating miss lifts importance", () => {
@@ -209,37 +202,52 @@ test("rating miss lifts importance", () => {
   assert.ok(reasons.some((r) => r.includes("customer-rating")));
 });
 
-test("rating miss changes quadrant for non flagship unit", () => {
+test("rating miss changes quadrant for non flagship area", () => {
   // In the shipped snapshot only Mart misses, and Mart is already Flagship,
   // so the signal moves nothing. Make Table miss (4.0 vs 4.5 on 1,150
   // ratings): Layla's lease renewal must move up from flag-don't-escalate.
-  const before = findCommitment(briefing, { owner: "Layla Haddad", unit: "Wasla Table" });
+  const before = findCommitment(briefing, { owner: "Layla Haddad", area: "Wasla Table" });
   assert.equal(briefing.classified.get(before).quadrant, QUADRANT_FLAG_DONT_ESCALATE);
 
-  const b = rebuiltWith("wasla_table", "kpi_export.csv", {}, { diner_rating_avg: "4.0" });
-  const after = findCommitment(b, { owner: "Layla Haddad", unit: "Wasla Table" });
+  const b = rebuiltWith("metrics", { area: "Wasla Table" }, { value: "4.0" });
+  const after = findCommitment(b, { owner: "Layla Haddad", area: "Wasla Table" });
   assert.equal(b.classified.get(after).quadrant, QUADRANT_NEEDS_DECISION_NOW);
 });
 
-// --- Format and schema messiness ------------------------------------------------------
+// --- The template ------------------------------------------------------------------
 
-test("mart kpi from multi tab excel", () => {
-  const mart = briefing.units.wasla_mart;
-  assert.deepEqual(new Set(Object.keys(mart.kpiBreakdown)), new Set(["Dubai", "Abu Dhabi", "Sharjah"]));
-  assert.equal(mart.kpiBreakdown.Sharjah.order_rating_avg, 3.7);
+test("every area sends the same template", async () => {
+  const manifest = JSON.parse(await readFile(path.join(DATA_ROOT, "manifest.json"), "utf8"));
+  const headers = new Set();
+  for (const [w, areas] of Object.entries(manifest.weeks)) {
+    for (const [folder, names] of Object.entries(areas)) {
+      for (const name of names) {
+        const text = await readFile(path.join(DATA_ROOT, "weeks", w, folder, name), "utf8");
+        headers.add(`${name}: ${csvRecords(text).fields.join(",")}`);
+      }
+    }
+  }
+  assert.deepEqual([...headers].sort(), [
+    "metrics.csv: area,metric,segment,value,target,count",
+    "tasks.csv: area,task,owner,due_date,status,waiting_on,blocked_by,decision_type,last_updated",
+  ]);
 });
 
-test("express missing gmv is none not zero", () => {
-  assert.equal(briefing.units.wasla_express.kpi.gmv_aed ?? null, null);
+test("a decision names who it waits on", () => {
+  // Zayd's waits on the CEO, Nadia Osman's on Central Legal. The waiting_on
+  // column says so; only the CEO's counts as waiting on the principal.
+  assert.equal(findCommitment(briefing, { owner: "Zayd" }).waitingOn, "CEO");
+  assert.equal(findCommitment(briefing, { owner: "Nadia Osman" }).waitingOn, "Central Legal");
 });
 
-test("table status always inferred", () => {
-  const table = briefing.allCommitments.filter((c) => c.unit === "Wasla Table");
-  assert.ok(table.length === 3 && table.every((c) => c.statusInferred));
+test("mart reports its rating per city", () => {
+  const r = briefing.customerHealth.find((x) => x.area === "Wasla Mart");
+  assert.deepEqual(r.segments.map((x) => x.segment), ["Dubai", "Abu Dhabi", "Sharjah"]);
+  assert.equal(r.segments[2].rating, 3.7);
 });
 
-test("pay regulatory deadline loaded but unscored", () => {
-  assert.equal(findCommitment(briefing, { owner: "Layla Haddad", unit: "Wasla Pay" }).regulatoryDeadline, true);
+test("every area in the files is in the setup", () => {
+  assert.deepEqual(briefing.unknownAreas, []);
 });
 
 test("week ending read from data", () => {

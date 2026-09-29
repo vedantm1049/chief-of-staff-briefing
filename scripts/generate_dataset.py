@@ -6,8 +6,13 @@ Monday after it (09-28, 10-05, 10-12, 10-19).
 Every row is hand-designed to exercise a specific rule, not randomized.
 docs/dataset_key.md says which row proves which rule, week by week.
 
+Every area reports on the same template (docs/data_contract.md section 3):
+tasks.csv and, for areas with a customer rating, metrics.csv. The rows keep
+the quirks people type even into a clean template: "P. Nair" for Priya Nair,
+first names only, "next Tuesday" as a due date, a blank status.
+
 Run from anywhere: python scripts/generate_dataset.py
-Writes data/weeks/<week_ending>/<unit>/, data/alias_table.csv and
+Writes data/weeks/<week_ending>/<area>/, data/alias_table.csv and
 data/manifest.json, the file list the browser app reads (a web page can't
 list a folder, so it needs to be told what is there).
 """
@@ -16,14 +21,14 @@ import json
 import os
 import shutil
 
-import pandas as pd
-
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
 
+# The per-area rows below are written in the shape each area used to send.
+# write_unit turns them into the shared template.
 STATUS_COLS = ["owner", "description", "due_date", "status", "last_updated", "blocked_by", "decision_type"]
 PAY_COLS = ["owner", "description", "due_date", "status", "regulatory_deadline", "last_updated",
             "blocked_by", "decision_type"]
-TABLE_COLS = ["owner", "description", "due_date", "last_updated"]   # no status column, by design
+TABLE_COLS = ["owner", "description", "due_date", "status", "last_updated"]
 
 EATS_KPI = ["week_ending", "orders", "gmv_aed", "on_time_delivery_pct", "active_restaurant_partners",
             "marketplace_take_rate_pct", "order_rating_avg", "order_rating_target", "rated_orders_count"]
@@ -37,6 +42,61 @@ PAY_KPI = ["week_ending", "transactions_processed", "take_rate_bps", "wallet_sig
            "compliance_flags_open", "transaction_csat_avg", "transaction_csat_target", "rated_transactions_count"]
 CENTRAL_KPI = ["open_legal_matters", "pending_design_requests", "investor_meetings_this_month",
                "product_roadmap_items_shipped"]
+
+AREA_NAMES = {
+    "wasla_eats": "Wasla Eats", "wasla_mart": "Wasla Mart", "wasla_table": "Wasla Table",
+    "wasla_express": "Wasla Express", "wasla_pay": "Wasla Pay", "wasla_central": "Wasla Central",
+}
+
+# The template (docs/data_contract.md section 3).
+TASK_COLS = ["area", "task", "owner", "due_date", "status", "waiting_on", "blocked_by",
+             "decision_type", "last_updated"]
+METRIC_COLS = ["area", "metric", "segment", "value", "target", "count"]
+
+STATUS_WORDS = {"open": "Open", "in progress": "In progress", "done": "Done", "complete": "Done",
+                "pending decision": "Waiting on decision", "": ""}
+DECISION_WORDS = {"confirm/reject": "Yes or no", "select-option": "Pick an option",
+                  "open-ended": "Open question", "": ""}
+
+
+def task_row(area, header, row):
+    r = dict(zip(header, row))
+    status = STATUS_WORDS[r.get("status", "").strip().lower()]
+    blocked_by, waiting_on = r.get("blocked_by", ""), ""
+    if r.get("decision_type"):
+        # A decision names who it waits on. "Central Legal review" is not a
+        # tracked task, so it moves from blocked_by to waiting_on.
+        waiting_on = "CEO" if "CEO" in r["description"] else blocked_by.replace(" review", "")
+        blocked_by = ""
+    return [area, r["description"], r["owner"], r["due_date"], status, waiting_on, blocked_by,
+            DECISION_WORDS[r.get("decision_type", "")], r["last_updated"]]
+
+
+def rating_rows(area, header, row, segment=""):
+    r = dict(zip(header, row))
+    rating = next(k for k in header if k.endswith("_rating_avg") or k.endswith("_csat_avg"))
+    target = rating.replace("_avg", "_target")
+    count = next(k for k in header if k.startswith("rated_") and k.endswith("_count"))
+    return [[area, "Customer rating", segment, r[rating], r[target], r[count]]]
+
+
+def write_unit(week, unit, kpi, status, commitments):
+    """status (the unit's free-text update) is no longer written: the template
+    has no place for prose, and the rules never read it."""
+    area = AREA_NAMES[unit]
+    d = os.path.join(ROOT, "weeks", week, unit)
+    os.makedirs(d, exist_ok=True)
+    if unit == "wasla_mart":
+        metrics = [m for tab, vals in kpi.items() for m in rating_rows(area, MART_KPI, vals, tab)]
+    elif unit == "wasla_central":
+        metrics = []   # no customer-facing metric
+    else:
+        metrics = rating_rows(area, *kpi)
+    if metrics:
+        write_csv(os.path.join(d, "metrics.csv"), METRIC_COLS, metrics)
+    header, rows = commitments
+    write_csv(os.path.join(d, "tasks.csv"), TASK_COLS, [task_row(area, header, r) for r in rows])
+
 
 STOCKOUT = "Fix stockout alerting for Sharjah dark stores"
 LEASE = "Review and countersign Downtown Dubai flagship lease renewal"
@@ -54,28 +114,8 @@ def write_csv(path, header, rows):
         w.writerows(rows)
 
 
-def write_text(path, text):
-    with open(path, "w") as f:
-        f.write(text.strip() + "\n")
-
-
-def write_unit(week, unit, kpi, status, commitments):
-    d = os.path.join(ROOT, "weeks", week, unit)
-    os.makedirs(d, exist_ok=True)
-    if unit == "wasla_mart":
-        with pd.ExcelWriter(os.path.join(d, "kpi_export.xlsx")) as xl:
-            for tab, vals in kpi.items():
-                pd.DataFrame([vals], columns=MART_KPI).to_excel(xl, sheet_name=tab, index=False)
-    else:
-        header, row = kpi
-        write_csv(os.path.join(d, "kpi_export.csv"), header, [row])
-    write_text(os.path.join(d, "status_update.txt"), status)
-    header, rows = commitments
-    write_csv(os.path.join(d, "commitments.csv"), header, rows)
-
-
 # ======================================================================
-# Week 1, ending 2026-09-27 (scored 2026-09-28). Unchanged from v1.
+# Week 1, ending 2026-09-27 (scored 2026-09-28).
 # ======================================================================
 W = "2026-09-27"
 write_unit(W, "wasla_eats",
@@ -107,8 +147,6 @@ worth watching closely if it continues into next week.
         ["Ahmed El-Sayed", STOCKOUT, "2026-09-19", "In Progress", "2026-09-20", "", ""],
         ["Ahmed El-Sayed", "Sharjah replenishment SOP rewrite", "2026-10-10", "Open", "2026-09-21", STOCKOUT, ""],
         ["Nadia Farouk", "Q4 inventory forecast model", "2026-10-12", "Open", "2026-09-18", STOCKOUT, ""],
-        # Mart's non-standard vocabulary: lowercase "complete". Read as open,
-        # this row would be overdue, stale and Flagship, a top-quadrant item.
         ["Nadia Farouk", "Dubai cluster picker-shift rota", "2026-09-24", "complete", "2026-09-19", "", ""],
     ]))
 
@@ -119,13 +157,15 @@ Steady week, nothing major. No-shows ticked up slightly, lease renewal redlines 
 pending with the landlord's side.
 """,
     (TABLE_COLS, [
-        ["Layla Haddad", f"{LEASE}, still waiting on redlines from landlord's counsel", "2026-09-29", "2026-09-27"],
-        ["Reem Qassim", NPS, "2026-10-15", "2026-09-19"],
-        ["Reem Qassim", "Reservation no-show fee rollout, resolved, live since last week", "2026-09-20", "2026-09-21"],
+        ["Layla Haddad", f"{LEASE}, still waiting on redlines from landlord's counsel", "2026-09-29", "In Progress", "2026-09-27"],
+        ["Reem Qassim", NPS, "2026-10-15", "In Progress", "2026-09-19"],
+        # Status left blank, "resolved" written in the task instead. Read as
+        # open it would be overdue and stale; the text says it is done.
+        ["Reem Qassim", "Reservation no-show fee rollout, resolved, live since last week", "2026-09-20", "", "2026-09-21"],
     ]))
 
 write_unit(W, "wasla_express",
-    (EXPRESS_KPI, [1240, 52, 38, "", 3.2, 4.3, 6]),   # gmv_aed blank: the missing-field week
+    (EXPRESS_KPI, [1240, 52, 38, "", 3.2, 4.3, 6]),
     """
 Huge momentum this week on the mall-retail integration, partner interest is off the
 charts and we think we're on the verge of a big unlock once testing wraps. Also still
@@ -200,18 +240,17 @@ Sharjah, which tracks with the stockouts.
         ["P. Nair", "Loyalty-points pilot data integration (Mart side)", "2026-10-02", "Done", "2026-10-02", "", ""],
         # Touched on 1 Oct, so no longer stale, but 16 days overdue.
         ["Ahmed El-Sayed", STOCKOUT, "2026-09-19", "In Progress", "2026-10-01", "", ""],
-        # Blank status: Mart's vocabulary includes leaving it empty.
+        # Status left blank. Read from the task text: open.
         ["Ahmed El-Sayed", "Sharjah replenishment SOP rewrite", "2026-10-10", "", "2026-09-21", STOCKOUT, ""],
         ["Nadia Farouk", "Q4 inventory forecast model", "2026-10-12", "Open", "2026-09-18", STOCKOUT, ""],
     ]))
 
 write_unit(W, "wasla_table",
-    # covers_seated left blank: Table's reporting is the least mature.
     (TABLE_KPI, ["2026-10-04", 4150, 7.1, "", 880000, 4.6, 4.5, 1180]),
     "Quiet week. Lease still stuck on the landlord's redlines.",
     (TABLE_COLS, [
-        ["Layla Haddad", f"{LEASE}, still waiting on redlines from landlord's counsel", "2026-09-29", "2026-10-01"],
-        ["Reem Qassim", NPS, "2026-10-15", "2026-09-19"],
+        ["Layla Haddad", f"{LEASE}, still waiting on redlines from landlord's counsel", "2026-09-29", "In Progress", "2026-10-01"],
+        ["Reem Qassim", NPS, "2026-10-15", "In Progress", "2026-09-19"],
     ]))
 
 write_unit(W, "wasla_express",
@@ -291,12 +330,11 @@ write_unit(W, "wasla_table",
     (TABLE_KPI, ["2026-10-11", 4280, 6.5, 11650, 905000, 4.5, 4.5, 1210]),
     "Redlines arrived, landlord wants an 8% uplift. Negotiating.",
     (TABLE_COLS, [
-        ["Layla Haddad", f"{LEASE}, redlines received, still negotiating 8% rent uplift", "2026-09-29", "2026-10-09"],
-        ["Reem Qassim", NPS, "2026-10-15", "2026-09-19"],
+        ["Layla Haddad", f"{LEASE}, redlines received, still negotiating 8% rent uplift", "2026-09-29", "In Progress", "2026-10-09"],
+        ["Reem Qassim", NPS, "2026-10-15", "In Progress", "2026-09-19"],
     ]))
 
 write_unit(W, "wasla_express",
-    # avg_delivery_time_min dropped entirely this week: Express's columns vary.
     (["orders", "partner_store_count", "gmv_aed", "delivery_rating_avg",
       "delivery_rating_target", "rated_deliveries_count"],
      [1420, 41, 104500, 3.6, 4.3, 9]),
@@ -371,9 +409,9 @@ write_unit(W, "wasla_table",
     (TABLE_KPI, ["2026-10-18", 4390, 6.2, 11900, 921000, 4.6, 4.5, 1195]),
     "Lease countersigned on 14 Oct. Brunch campaign in planning.",
     (TABLE_COLS, [
-        ["Layla Haddad", f"{LEASE}, countersigned 14 Oct, resolved", "2026-09-29", "2026-10-14"],
+        ["Layla Haddad", f"{LEASE}, countersigned 14 Oct, resolved", "2026-09-29", "Done", "2026-10-14"],
         # The NPS survey row is gone: deleted from the tracker, never marked done.
-        ["Reem Qassim", "Weekend brunch covers campaign", "2026-10-25", "2026-10-16"],
+        ["Reem Qassim", "Weekend brunch covers campaign", "2026-10-25", "Open", "2026-10-16"],
     ]))
 
 write_unit(W, "wasla_express",
@@ -421,7 +459,7 @@ day as the workshop. Tech/Product: no major updates. Growth: rollout plan in dra
 # ======================================================================
 write_csv(
     os.path.join(ROOT, "alias_table.csv"),
-    ["raw_name", "unit", "normalized_owner", "review_note", "email"],
+    ["raw_name", "area", "normalized_owner", "review_note", "email"],
     [
         ["Priya Nair", "Wasla Eats", "Priya Nair",
          "canonical form; Central growth/loyalty lead, listed against an Eats-side task on the joint loyalty pilot", "priya.nair@wasla.example"],

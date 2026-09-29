@@ -1,0 +1,5 @@
+area,task,owner,due_date,status,waiting_on,blocked_by,decision_type,last_updated
+Wasla Mart,Loyalty-points pilot data integration (Mart side),P. Nair,2026-10-02,Done,,,,2026-10-02
+Wasla Mart,Fix stockout alerting for Sharjah dark stores,Ahmed El-Sayed,2026-09-19,In progress,,,,2026-10-01
+Wasla Mart,Sharjah replenishment SOP rewrite,Ahmed El-Sayed,2026-10-10,,,Fix stockout alerting for Sharjah dark stores,,2026-09-21
+Wasla Mart,Q4 inventory forecast model,Nadia Farouk,2026-10-12,Open,,Fix stockout alerting for Sharjah dark stores,,2026-09-18

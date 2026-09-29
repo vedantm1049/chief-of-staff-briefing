@@ -6,7 +6,7 @@ import {
   DONE_TEXT_HINTS,
   OPEN_TEXT_HINTS,
   CLOSED_TRIGGER_PATTERNS,
-  PRINCIPAL_PATTERNS,
+  DECISION_STATUS_VALUES,
 } from "./config.js";
 import { csvRecords } from "./parse.js";
 import { parseIsoDate, weekday } from "./dates.js";
@@ -21,41 +21,41 @@ The engine only reads it. It never fuzzy-matches names on its own, so a
 name the table has never seen is reported, not guessed at.
 */
 export class AliasTable {
-  /** rows: [{ raw_name, unit, normalized_owner, email }]. email is optional. */
+  /** rows: [{ raw_name, area, normalized_owner, email }]. email is optional. */
   constructor(rows) {
-    this.byNameAndUnit = new Map();
+    this.byNameAndArea = new Map();
     this.emails = new Map();   // canonical owner -> email, the first one listed
     const byName = new Map();
     for (const row of rows) {
       const raw = (row.raw_name ?? "").trim();
-      const unit = (row.unit ?? "").trim();
+      const area = (row.area ?? row.unit ?? "").trim();
       const canonical = (row.normalized_owner ?? "").trim();
       const email = (row.email ?? "").trim();
       if (email && !this.emails.has(canonical)) this.emails.set(canonical, email);
-      this.byNameAndUnit.set(`${raw}\u0000${unit}`, canonical);
+      this.byNameAndArea.set(`${raw}\u0000${area}`, canonical);
       if (!byName.has(raw)) byName.set(raw, new Set());
       byName.get(raw).add(canonical);
     }
     // A raw name alone is only usable when every row for it agrees.
     this.byName = new Map();
     for (const [raw, set] of byName) if (set.size === 1) this.byName.set(raw, [...set][0]);
-    this.unresolvedKeys = new Map();   // "raw\0unit" -> [raw, unit], seen but not in the table
+    this.unresolvedKeys = new Map();   // "raw\0area" -> [raw, area], seen but not in the table
   }
 
   static fromCsv(text) {
     return new AliasTable(csvRecords(text).rows);
   }
 
-  resolve(rawName, unit) {
+  resolve(rawName, area) {
     const raw = (rawName ?? "").trim();
-    const key = `${raw}\u0000${unit}`;
-    if (this.byNameAndUnit.has(key)) return this.byNameAndUnit.get(key);
+    const key = `${raw}\u0000${area}`;
+    if (this.byNameAndArea.has(key)) return this.byNameAndArea.get(key);
     if (this.byName.has(raw)) return this.byName.get(raw);
-    this.unresolvedKeys.set(key, [raw, unit]);
+    this.unresolvedKeys.set(key, [raw, area]);
     return raw;
   }
 
-  /** [[raw name, unit]], sorted. */
+  /** [[raw name, area]], sorted. */
   get unresolved() {
     return [...this.unresolvedKeys.values()].sort((a, b) => cmp(a[0], b[0]) || cmp(a[1], b[1]));
   }
@@ -65,21 +65,21 @@ function cmp(a, b) {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-/** Map a unit's status vocabulary onto "open", "done" or "pending_decision".
-Handles Mart's inconsistent values ("done", "Done", "complete", blank).
-Returns null when blank, so the caller can fall back to reading the
-description. */
+/** Map a status onto "open", "done" or "pending_decision". Takes the
+template's words and the ones people type anyway ("complete", "done",
+"Done"). Returns null when blank, so the caller can fall back to reading
+the task text. */
 export function normalizeStatus(rawStatus) {
   if (rawStatus == null) return null;
   const s = String(rawStatus).trim().toLowerCase();
   if (s === "" || s === "nan") return null;
   if (DONE_STATUS_VALUES.has(s)) return "done";
-  if (s === "pending decision") return "pending_decision";
+  if (DECISION_STATUS_VALUES.has(s)) return "pending_decision";
   return "open";
 }
 
-/** Wasla Table has no status column, by design. Read status out of the
-description. Done hints win over open hints. */
+/** A blank status is read from the task text. Done hints win over open
+hints. */
 export function inferStatusFromText(description) {
   const low = (description ?? "").toLowerCase();
   if (DONE_TEXT_HINTS.some((h) => low.includes(h))) return "done";
@@ -94,9 +94,14 @@ export function isDecisionPending(status, description) {
   return CLOSED_TRIGGER_PATTERNS.some((p) => p.test(low));
 }
 
-export function isBlockedOnPrincipal(description, blockedBy) {
-  const text = `${description} ${blockedBy}`.toLowerCase();
-  return PRINCIPAL_PATTERNS.some((p) => p.test(text));
+/** Is this decision waiting on the boss (the principal)? The waiting_on
+column first, then the task text. The boss's title is matched as whole
+words, so "proceeds" or a loan's "principal" never count for a CEO. */
+export function isBlockedOnPrincipal(description, waitingOn, boss = "CEO") {
+  const words = String(boss).trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+  if (!words) return false;
+  const pattern = new RegExp(`(^|[^a-z0-9])${words}($|[^a-z0-9])`);
+  return pattern.test(String(waitingOn ?? "").toLowerCase()) || pattern.test(String(description ?? "").toLowerCase());
 }
 
 /** Return [day number or null, isApproximate].

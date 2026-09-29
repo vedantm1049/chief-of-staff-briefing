@@ -1,12 +1,11 @@
 /* Wires load, normalize, detect and classify into one briefing for a single
 week. history.js compares several of these week to week.
 */
-import { WASLA_UNITS } from "./config.js";
+import { WASLA_SETUP } from "./config.js";
 import { AliasTable } from "./normalize.js";
-import { loadUnit, detectWeekEnding } from "./loaders.js";
+import { loadTasks, loadRatings } from "./loaders.js";
 import {
   itemKey,
-  allCommitments,
   isStale,
   isOverdue,
   needsDeadlineSet,
@@ -25,24 +24,24 @@ export function flaggedCommitments(b) {
 
 /** Score one week.
 
-week: { weekEnding: "YYYY-MM-DD" or null, files: { unit key: { file name: contents } } }
-options.aliasText: the alias table CSV.
+week: { weekEnding: "YYYY-MM-DD", tasks: [row], metrics: [row] }, rows in
+  the template's columns (loaders.js).
+options.setup: { boss, areas: [{ name, tier }] }. Defaults to the Wasla sample.
+options.aliasText: the owner table as CSV, or options.aliases: its rows.
 options.today: a day number. Defaults to the day after weekEnding, the Monday
   the briefing is read.
-options.units: the unit setup, defaults to the six Wasla units.
 options.edits: the reader's own changes for this week, see applyEdits. */
-export function buildBriefing(week, { aliasText, today = null, units: specs = WASLA_UNITS, edits = [] } = {}) {
-  const aliases = AliasTable.fromCsv(aliasText ?? "");
-  const folderDate = parseIsoDate(week.weekEnding);
+export function buildBriefing(week, { setup = WASLA_SETUP, aliasText, aliases: aliasRows, today = null, edits = [] } = {}) {
+  const aliases = aliasRows ? new AliasTable(aliasRows) : AliasTable.fromCsv(aliasText ?? "");
+  const weekEnding = parseIsoDate(week.weekEnding);
   if (today == null) {
-    if (folderDate == null) throw new Error("A week needs a week-ending date or an explicit today.");
-    today = folderDate + 1;   // the Monday after
+    if (weekEnding == null) throw new Error("A week needs a week-ending date or an explicit today.");
+    today = weekEnding + 1;   // the Monday after
   }
 
-  const units = {};
-  for (const spec of specs) units[spec.key] = loadUnit(spec, week.files[spec.key] ?? {}, aliases, today);
-  const tiers = Object.fromEntries(specs.map((s) => [s.name, s.tier]));
-  const commitments = allCommitments(units);
+  const areaNames = setup.areas.map((a) => a.name);
+  const tiers = Object.fromEntries(setup.areas.map((a) => [a.name, a.tier]));
+  const { commitments, unknownAreas } = loadTasks(week.tasks ?? [], { areaNames, aliases, today, boss: setup.boss });
   applyEdits(commitments, edits);
 
   const stale = new Set(commitments.filter((c) => isStale(c, today, commitments)));
@@ -61,8 +60,8 @@ export function buildBriefing(week, { aliasText, today = null, units: specs = WA
   const needsDeadlineItems = commitments.filter(needsDeadlineSet);
   const needsDeadline = new Set(needsDeadlineItems);
 
-  const customerHealth = evaluateCustomerHealth(units);
-  const ratingMissed = new Set(customerHealth.filter((r) => r.triggered).map((r) => r.unitName));
+  const customerHealth = evaluateCustomerHealth(loadRatings(week.metrics ?? [], { areaNames }));
+  const ratingMissed = new Set(customerHealth.filter((r) => r.triggered).map((r) => r.area));
 
   const classified = new Map();
   const quadrants = Object.fromEntries(QUADRANT_ORDER.map((q) => [q, []]));
@@ -83,8 +82,9 @@ export function buildBriefing(week, { aliasText, today = null, units: specs = WA
 
   return {
     today,
-    weekEnding: folderDate ?? detectWeekEnding(units),
-    units,
+    weekEnding,
+    setup,
+    tiers,
     allCommitments: commitments,
     conflicts,
     conflictPartnerMap: partners,   // commitment -> [partner commitments]
@@ -95,20 +95,21 @@ export function buildBriefing(week, { aliasText, today = null, units: specs = WA
     classified,                     // commitment -> classified item
     quadrants,                      // group name -> [classified item], sorted
     customerHealth,
-    unresolvedOwners: aliases.unresolved,   // [[raw name, unit]] not in the alias table
-    ownerEmails: aliases.emails,            // canonical owner -> email, from the alias table
+    unresolvedOwners: aliases.unresolved,   // [[raw name, area]] not in the owner table
+    unknownAreas,                           // area names in the files but not in the setup
+    ownerEmails: aliases.emails,            // canonical owner -> email
     comparison: null,               // set by history.js
   };
 }
 
 /** The reader's own changes, made on the page: an item ticked done, or a due
-date changed. Each edit is { unit, title, done, due } where title is the
+date changed. Each edit is { area, title, done, due } where title is the
 item's title (rules.js: itemTitle) and due is "YYYY-MM-DD". An edit belongs
 to one week only. Next week's files from the teams replace it: new data
 wins. The item keeps a note of what was changed, so the page can say so. */
 export function applyEdits(commitments, edits) {
   if (!edits.length) return;
-  const byKey = new Map(edits.map((e) => [`${e.unit}\u0000${e.title}`, e]));
+  const byKey = new Map(edits.map((e) => [`${e.area}\u0000${e.title}`, e]));
   for (const c of commitments) {
     const e = byKey.get(itemKey(c));
     if (!e) continue;

@@ -11,7 +11,7 @@ import { loadSample, history, findCommitment, W2, W3, W4 } from "./helpers.js";
 const sample = await loadSample();
 const weeks = history(sample);
 
-const LEASE = { unit: "Wasla Table", title: "review and countersign downtown dubai flagship lease renewal",
+const LEASE = { area: "Wasla Table", title: "review and countersign downtown dubai flagship lease renewal",
   label: "Review and countersign Downtown Dubai flagship lease renewal", owner: "Layla Haddad" };
 
 test("owner emails come from the alias table", () => {
@@ -27,17 +27,17 @@ test("a name missing from the alias table has no email", () => {
 
 test("a note stays with its item from the week it was written", () => {
   const note = newNote({ ...LEASE, from: "CEO", text: "Who is chasing the landlord?", week: W2 });
-  assert.deepEqual(notesFor([note], LEASE.unit, LEASE.title, W2), [note]);
-  assert.deepEqual(notesFor([note], LEASE.unit, LEASE.title, W3), [note]);
-  assert.deepEqual(notesFor([note], LEASE.unit, LEASE.title, "2026-09-27"), []);
+  assert.deepEqual(notesFor([note], LEASE.area, LEASE.title, W2), [note]);
+  assert.deepEqual(notesFor([note], LEASE.area, LEASE.title, W3), [note]);
+  assert.deepEqual(notesFor([note], LEASE.area, LEASE.title, "2026-09-27"), []);
 });
 
 test("the email draft carries the note and the card's facts, nothing more", () => {
   const b = weeks[W2];
-  const item = findCommitment(b, { owner: "Layla Haddad", unit: "Wasla Table" });
+  const item = findCommitment(b, { owner: "Layla Haddad", area: "Wasla Table" });
   const note = newNote({ ...LEASE, from: "CEO", text: "Who is chasing the landlord?", week: W2 });
   const href = emailDraft({ to: "layla.haddad@wasla.example", owner: "Layla Haddad", item, note,
-    weekEnding: W2, flags: ["Overdue"] });
+    weekEnding: W2, flags: ["Overdue"], areaKind: "business" });
   const url = new URL(href);
   assert.equal(url.protocol, "mailto:");
   assert.equal(decodeURIComponent(url.pathname), "layla.haddad@wasla.example");
@@ -49,7 +49,7 @@ test("the email draft carries the note and the card's facts, nothing more", () =
     "From the CEO: Who is chasing the landlord?",
     "",
     "Item: Review and countersign Downtown Dubai flagship lease renewal, still waiting on redlines from landlord's counsel",
-    "Unit: Wasla Table",
+    "Business: Wasla Table",
     "Due: Tue 29 Sep 2026",
     "Flagged: Overdue",
     "",
@@ -59,7 +59,7 @@ test("the email draft carries the note and the card's facts, nothing more", () =
 
 test("the chief of staff is copied on every draft", () => {
   const b = weeks[W2];
-  const item = findCommitment(b, { owner: "Layla Haddad", unit: "Wasla Table" });
+  const item = findCommitment(b, { owner: "Layla Haddad", area: "Wasla Table" });
   const note = newNote({ ...LEASE, from: "CEO", text: "Status?", week: W2 });
   const draft = (to, cc) => new URL(emailDraft({ to, cc, owner: "Layla Haddad", item, note, weekEnding: W2, flags: [] }));
   assert.equal(draft("layla.haddad@wasla.example", "chief.of.staff@wasla.example").searchParams.get("cc"),
@@ -72,13 +72,14 @@ test("the chief of staff is copied on every draft", () => {
 test("notes and replies survive a backup and import", async () => {
   const note = { ...newNote({ ...LEASE, from: "Chief of Staff", text: "Chased twice", week: W3 }),
     emailed: true, reply: { text: "Redlines due Monday", at: "2026-10-12T09:00:00Z" } };
-  const back = parseBackup(await backupBlob([], [note], { cosEmail: "cos@example.com" }).text());
-  assert.deepEqual(back.notes, [note]);
-  assert.equal(back.settings.cosEmail, "cos@example.com");
+  const back = parseBackup(await backupBlob("example", { edits: [], notes: [note], settings: { cosEmail: "cos@example.com" } }).text());
+  assert.equal(back.id, "example");
+  assert.deepEqual(back.state.notes, [note]);
+  assert.equal(back.state.settings.cosEmail, "cos@example.com");
 });
 
 test("a damaged note is dropped, not trusted", () => {
   const good = newNote({ ...LEASE, from: "CEO", text: "ok", week: W3 });
-  const kept = cleanNotes([good, { id: "x", text: "no unit" }, null, { ...good, id: "y", week: "soon", from: "Board" }]);
+  const kept = cleanNotes([good, { id: "x", text: "no area" }, null, { ...good, id: "y", week: "soon", from: "Board" }]);
   assert.deepEqual(kept.map((n) => n.id), [good.id]);
 });

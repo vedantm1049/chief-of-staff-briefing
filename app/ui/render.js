@@ -57,8 +57,8 @@ function ordinal(n) {
   return `${n}${suffix}`;
 }
 
-function unitTag(unit, tiers) {
-  return `<span class="unit-tag">${esc(unit)} · ${esc(tiers[unit] ?? "")}</span>`;
+function areaTag(area, tiers) {
+  return `<span class="area-tag">${esc(area)} · ${esc(tiers[area] ?? "not in setup")}</span>`;
 }
 
 function hist(b, c) {
@@ -94,7 +94,7 @@ function dueText(c) {
 /** The two things a reader can change: tick it done, or set its due date. */
 function editControls(c) {
   const label = c.description.split(",", 1)[0].trim();
-  const attrs = `data-unit="${esc(c.unit)}" data-title="${esc(itemTitle(c.description))}" data-label="${esc(label)}"`;
+  const attrs = `data-area="${esc(c.area)}" data-title="${esc(itemTitle(c.description))}" data-label="${esc(label)}"`;
   const value = c.dueDate != null ? toIso(c.dueDate) : "";
   return `
         <div class="edit">
@@ -109,7 +109,7 @@ function noteEntry(n, ctx, item, flags) {
   if (!item) {
     action = "";
   } else if (email) {
-    const href = emailDraft({ to: email, cc: ctx.cosEmail, owner: n.owner, item, note: n, weekEnding: ctx.week, flags });
+    const href = emailDraft({ to: email, cc: ctx.cosEmail, owner: n.owner, item, note: n, weekEnding: ctx.week, flags, areaKind: ctx.areaKind });
     const copied = ctx.cosEmail && ctx.cosEmail.toLowerCase() !== email.toLowerCase()
       ? `<span class="meta">copies ${esc(ctx.cosEmail)}</span>` : "";
     action = `<a class="button-link" href="${esc(href)}" data-act="email" data-id="${esc(n.id)}">Draft email to ${esc(n.owner)}</a>${copied}`
@@ -139,14 +139,14 @@ function noteEntry(n, ctx, item, flags) {
 function notesBlock(c, flags, ctx) {
   const title = itemTitle(c.description);
   const label = c.description.split(",", 1)[0].trim();
-  const list = notesFor(ctx.notes, c.unit, title, ctx.week);
+  const list = notesFor(ctx.notes, c.area, title, ctx.week);
   const entries = list.length ? `<ul class="note-list">${list.map((n) => noteEntry(n, ctx, c, flags)).join("")}</ul>` : "";
   const options = NOTE_FROM.map((f) => `<option>${esc(f)}</option>`).join("");
   return `
         <div class="notes">
           ${entries}
           <details class="add-note"><summary>Add a note or question</summary>
-            <form data-form="note" data-unit="${esc(c.unit)}" data-title="${esc(title)}" data-label="${esc(label)}" data-owner="${esc(c.owner)}">
+            <form data-form="note" data-area="${esc(c.area)}" data-title="${esc(title)}" data-label="${esc(label)}" data-owner="${esc(c.owner)}">
               <label>From <select name="from">${options}</select></label>
               <textarea name="text" rows="2" required placeholder="A question, a decision, or a note for the record"></textarea>
               <button type="submit">Save note</button>
@@ -170,12 +170,12 @@ function itemCard(b, item, showEffort, tiers, ctx) {
   }
   if (item.conflictPartners.length) {
     extra += `<div class="note note-conflict">Same owner also has: ${item.conflictPartners
-      .map((p) => `${esc(p.unit)}: ${esc(short(p.description))}, due ${fmtLong(p.dueDate)}`).join("; ")}</div>`;
+      .map((p) => `${esc(p.area)}: ${esc(short(p.description))}, due ${fmtLong(p.dueDate)}`).join("; ")}</div>`;
   }
 
   return `
       <li class="item">
-        <div class="item-head">${unitTag(c.unit, tiers)}<span class="owner">${esc(c.owner)}</span>${badges}</div>
+        <div class="item-head">${areaTag(c.area, tiers)}<span class="owner">${esc(c.owner)}</span>${badges}</div>
         <div class="desc">${esc(c.description)}</div>
         <div class="meta">Due ${dueText(c)} · last touched ${fmtLong(c.lastUpdated)}</div>
         ${reasons ? `<ul class="reasons">${reasons}</ul>` : ""}
@@ -209,7 +209,7 @@ function quadrant(b, name, tiers, ctx) {
 
 function summary(b) {
   const top = b.quadrants[QUADRANT_NEEDS_DECISION_NOW].length;
-  const misses = b.customerHealth.filter((r) => r.triggered).map((r) => r.unitName);
+  const misses = b.customerHealth.filter((r) => r.triggered).map((r) => r.area);
   const parts = [`<strong>${plural(top, "item")}</strong> need${top === 1 ? "s" : ""} you now`];
   if (b.conflicts.length) parts.push(`<strong>${plural(b.conflicts.length, "owner conflict")}</strong>`);
   if (misses.length) {
@@ -228,11 +228,15 @@ function summary(b) {
   return `<div class="summary">${line}</div>`;
 }
 
-function dataCheck(b) {
+function dataCheck(b, mode) {
   const notes = [];
   if (b.unresolvedOwners.length) {
-    const names = b.unresolvedOwners.map(([n, u]) => `${esc(n)} (${esc(u)})`).join(", ");
-    notes.push(`Owner names not in the alias table: <strong>${names}</strong>. A conflict involving them can't be seen until someone adds them to the table.`);
+    const names = b.unresolvedOwners.map(([n, a]) => `${esc(n)} (${esc(a)})`).join(", ");
+    const where = mode === "example" ? "the reviewed owner table" : "your owner list";
+    notes.push(`Owner names not in ${where}: <strong>${names}</strong>. A conflict involving them can't be seen until someone says who they are.`);
+  }
+  if (b.unknownAreas.length) {
+    notes.push(`Areas in the files but not in setup: <strong>${esc(b.unknownAreas.join(", "))}</strong>. Their items are scored as Core.`);
   }
   if (b.comparison?.duplicateTitles.length) {
     const dupes = b.comparison.duplicateTitles.map(([u, t]) => `${esc(t)} (${esc(u)})`).join(", ");
@@ -265,7 +269,7 @@ function closedSection(b, tiers) {
       const ran = x.weeksFlagged === 1 ? "Flagged last week." : `Flagged ${x.weeksFlagged} weeks running before this.`;
       return `
       <li class="item closed-${cls}">
-        <div class="item-head"><span class="chip chip-${cls}">${label}</span>${unitTag(c.unit, tiers)}<span class="owner">${esc(c.owner)}</span></div>
+        <div class="item-head"><span class="chip chip-${cls}">${label}</span>${areaTag(c.area, tiers)}<span class="owner">${esc(c.owner)}</span></div>
         <div class="desc">${esc(c.description)}</div>
         <div class="meta">${esc(x.detail)} ${ran}</div>
       </li>`;
@@ -275,7 +279,7 @@ function closedSection(b, tiers) {
   <section>
     <h2>Closed since ${fmtShort(comp.previousWeek)}</h2>
     <p class="section-note">Flagged last week, not flagged this week. "Removed, not done" means the item
-    disappeared from its unit's tracker without ever being marked done.</p>
+    disappeared from its area's tracker without ever being marked done.</p>
     ${body}
   </section>`;
 }
@@ -287,8 +291,8 @@ function conflictsSection(b, tiers) {
     return `
       <li class="conflict-pair">
         <div class="conflict-owner">${esc(p.owner)} <span class="meta">${gap}</span></div>
-        <div class="conflict-side">${unitTag(p.a.unit, tiers)} ${esc(p.a.description)} <span class="meta">due ${fmtLong(p.a.dueDate)}</span></div>
-        <div class="conflict-side">${unitTag(p.b.unit, tiers)} ${esc(p.b.description)} <span class="meta">due ${fmtLong(p.b.dueDate)}</span></div>
+        <div class="conflict-side">${areaTag(p.a.area, tiers)} ${esc(p.a.description)} <span class="meta">due ${fmtLong(p.a.dueDate)}</span></div>
+        <div class="conflict-side">${areaTag(p.b.area, tiers)} ${esc(p.b.description)} <span class="meta">due ${fmtLong(p.b.dueDate)}</span></div>
       </li>`;
   }).join("");
   return `
@@ -313,21 +317,21 @@ function num(v, digits) {
     : v.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
-function healthSection(b) {
+function healthSection(b, kindTitle) {
   const prev = b.comparison?.prevHealth ?? {};
   const hasPrev = Object.keys(prev).length > 0;
   const rows = b.customerHealth.map((r) => {
     const [label, status] = healthLabel(r);
     let last = "";
     if (hasPrev) {
-      const p = prev[r.unitName];
+      const p = prev[r.area];
       const [pLabel, pStatus] = healthLabel(p);
       const pRating = p?.rating != null ? p.rating.toFixed(2) : "";
       last = `<td class="last">${pRating} <span class="last-${pStatus}">${pLabel}</span></td>`;
     }
     return `
         <tr>
-          <td>${esc(r.unitName)}</td>
+          <td>${esc(r.area)}</td>
           <td>${num(r.rating, 2)}</td>
           <td>${num(r.target, 2)}</td>
           <td>${num(r.count, 0)}</td>
@@ -336,14 +340,15 @@ function healthSection(b) {
           <td class="why">${esc(r.reason)}</td>
         </tr>`;
   }).join("");
+  if (!b.customerHealth.length) return "";
   return `
   <section>
     <h2>Customer ratings vs. target</h2>
-    <p class="section-note">Judged on this week alone. A unit counts as a miss when it is more than
-    ${RATING_MISS_MARGIN} below its own target and logged at least ${MIN_RATED_SAMPLE} rated interactions.
-    A miss raises the priority of that unit's items above. Wasla Central has no customer rating.</p>
+    <p class="section-note">Judged on this week alone. An area counts as a miss when it is more than
+    ${RATING_MISS_MARGIN} below its own target and logged at least ${MIN_RATED_SAMPLE} ratings.
+    A miss raises the priority of that area's items above. Areas that report no customer rating are left out.</p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Unit</th><th>Rating</th><th>Target</th><th>Rated</th><th></th>${hasPrev ? "<th>Last week</th>" : ""}<th>Why</th></tr></thead>
+      <thead><tr><th>${esc(kindTitle)}</th><th>Rating</th><th>Target</th><th>Rated</th><th></th>${hasPrev ? "<th>Last week</th>" : ""}<th>Why</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
   </section>`;
@@ -353,7 +358,7 @@ function needsDeadlineSection(b, tiers, ctx) {
   if (!b.needsDeadlineItems.length) return "";
   const rows = b.needsDeadlineItems.map((c) => `
       <li class="item">
-        <div class="item-head">${unitTag(c.unit, tiers)}<span class="owner">${esc(c.owner)}</span>${historyBadge(hist(b, c))}</div>
+        <div class="item-head">${areaTag(c.area, tiers)}<span class="owner">${esc(c.owner)}</span>${historyBadge(hist(b, c))}</div>
         <div class="desc">${esc(c.description)}</div>
         <div class="meta">Due ${dueText(c)} · last touched ${fmtLong(c.lastUpdated)}</div>
         ${editControls(c)}
@@ -371,22 +376,22 @@ function needsDeadlineSection(b, tiers, ctx) {
 /** Notes whose item has no card this week: closed, cleared, or not flagged.
 The item is looked up in this week's files so the email draft has facts. */
 function otherNotesSection(b, shown, ctx) {
-  const shownKeys = new Set(shown.map((c) => `${c.unit}\u0000${itemTitle(c.description)}`));
-  const rest = ctx.notes.filter((n) => n.week <= ctx.week && !shownKeys.has(`${n.unit}\u0000${n.title}`));
+  const shownKeys = new Set(shown.map((c) => `${c.area}\u0000${itemTitle(c.description)}`));
+  const rest = ctx.notes.filter((n) => n.week <= ctx.week && !shownKeys.has(`${n.area}\u0000${n.title}`));
   if (!rest.length) return "";
   const groups = new Map();
   for (const n of rest) {
-    const k = `${n.unit}\u0000${n.title}`;
+    const k = `${n.area}\u0000${n.title}`;
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push(n);
   }
   const rows = [...groups.values()].map((list) => {
     const n0 = list[0];
-    const item = b.allCommitments.find((c) => c.unit === n0.unit && itemTitle(c.description) === n0.title) ?? null;
+    const item = b.allCommitments.find((c) => c.area === n0.area && itemTitle(c.description) === n0.title) ?? null;
     const state = item ? (item.status === "done" ? "Done" : "Open, not flagged this week") : "Not in this week's files";
     return `
       <li class="item">
-        <div class="item-head"><span class="unit-tag">${esc(n0.unit)}</span><span class="owner">${esc(n0.label)}</span>
+        <div class="item-head"><span class="area-tag">${esc(n0.area)}</span><span class="owner">${esc(n0.label)}</span>
           <span class="meta">${state}</span></div>
         <ul class="note-list">${list.map((n) => noteEntry(n, ctx, item, [])).join("")}</ul>
       </li>`;
@@ -408,8 +413,8 @@ function yourChanges(weekEdits) {
       .filter(Boolean).join(", ");
     return `
       <li class="change">
-        <span><strong>${esc(e.unit)}</strong>, ${esc(e.label ?? e.title)}: ${what}.</span>
-        <button type="button" class="link" data-act="undo" data-unit="${esc(e.unit)}" data-title="${esc(e.title)}">Undo</button>
+        <span><strong>${esc(e.area)}</strong>, ${esc(e.label ?? e.title)}: ${what}.</span>
+        <button type="button" class="link" data-act="undo" data-area="${esc(e.area)}" data-title="${esc(e.title)}">Undo</button>
       </li>`;
   }).join("");
   return `
@@ -422,20 +427,22 @@ function yourChanges(weekEdits) {
 }
 
 function storageBar(state) {
-  const count = state.edits.length + state.notes.length;
+  const count = state.edits.length + state.notes.length + (state.mode === "own" ? state.weekCount : 0);
+  const what = state.mode === "own" ? "Your setup, weekly files, changes and notes are" : "Your changes and notes are";
   const status = state.saved
-    ? `Your changes and notes are saved in this browser only. There is no server: nothing you do here
-       leaves your computer. They stay in this one browser until you export a backup. An email draft opens
-       in your own email app and is sent only if you send it.`
-    : `This browser is blocking storage, so your changes will be lost when you close the page. Export a
-       backup to keep them. Nothing you do here leaves your computer.`;
+    ? `${what} saved in this browser only. There is no server: nothing you do here leaves your computer.
+       It stays in this one browser until you export a backup. An email draft opens in your own email app
+       and is sent only if you send it.`
+    : `This browser is blocking storage, so your work will be lost when you close the page. Export a
+       backup to keep it. Nothing you do here leaves your computer.`;
+  const clear = state.mode === "own" ? "Delete everything for this company" : "Clear all changes and notes";
   return `
     <div class="storage" id="your-data">
       <p>${status}</p>
       <div class="storage-actions">
         <button type="button" data-act="export"${count ? "" : " disabled"}>Export backup</button>
         <button type="button" data-act="import">Import backup</button>
-        ${count ? `<button type="button" class="link" data-act="reset">Clear all changes and notes</button>` : ""}
+        ${count ? `<button type="button" class="link" data-act="reset">${clear}</button>` : ""}
         <input type="file" accept="application/json,.json" data-act="import-file" hidden>
       </div>
       <form class="cos-email" data-form="cos-email">
@@ -447,25 +454,49 @@ function storageBar(state) {
     </div>`;
 }
 
-/** state: { briefings, current, tiers, edits, notes, cosEmail, weekEdits, saved, message } */
+function capital(s) {
+  return s ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
+/** The bar above an example or a company's briefing: where else to go. */
+function topBar(state) {
+  if (state.mode === "example") {
+    return `
+    <div class="example-bar">
+      <span>This is an example: a made-up company with four weeks of made-up reports.</span>
+      <a class="primary" href="#/setup">Set up for your company</a>
+    </div>`;
+  }
+  return `
+    <nav class="toolbar" aria-label="Your company">
+      <a class="primary" href="#/add">Add a week</a>
+      <a href="#/setup">Setup</a>
+      <a href="#/example">See the example</a>
+    </nav>`;
+}
+
+/** state: { mode, setup, briefings, current, edits, notes, cosEmail, weekEdits, weekCount, saved, message } */
 export function renderPage(state) {
-  const { briefings, current: b, tiers } = state;
-  const ctx = { notes: state.notes, week: toIso(b.weekEnding), emails: b.ownerEmails, cosEmail: state.cosEmail };
+  const { briefings, current: b, setup } = state;
+  const tiers = b.tiers;
+  const kindTitle = capital(setup.areaKind || "area");
+  const ctx = { notes: state.notes, week: toIso(b.weekEnding), emails: b.ownerEmails, cosEmail: state.cosEmail, areaKind: setup.areaKind };
   const shown = [...[...b.classified.values()].map((i) => i.commitment), ...b.needsDeadlineItems];
   const week = fmtLong(b.weekEnding);
-  const aliasLine = b.unresolvedOwners.length ? "" : "<p>Every owner name this week matched the reviewed alias table.</p>";
+  const removeWeek = state.mode === "own"
+    ? `<button type="button" class="link" data-act="remove-week" data-target="${toIso(b.weekEnding)}">Remove this week</button>` : "";
   return `
+  ${topBar(state)}
   <header>
     <div class="eyebrow">Chief of Staff · Weekly briefing</div>
-    <h1>Wasla Group</h1>
-    <div class="header-meta">For the Group CEO · week ending ${week} · scored as of ${fmtLong(b.today)}</div>
+    <h1>${esc(setup.company || "Your company")}</h1>
+    <div class="header-meta">For the ${esc(setup.boss)} · week ending ${week} · scored as of ${fmtLong(b.today)}</div>
     ${weekNav(briefings, b)}
-    <div class="fiction">Fictional company and data, built to show a rules-based briefing. Not a production tool.</div>
     <p class="privacy">You can mark items done, change due dates, and add notes and replies. All of it is
     saved in this browser only and never leaves your computer. <a href="#your-data">Backup and import</a>
     are at the bottom.</p>
     ${summary(b)}
-    ${dataCheck(b)}
+    ${dataCheck(b, state.mode)}
   </header>
 
   <section>
@@ -478,16 +509,15 @@ export function renderPage(state) {
   ${yourChanges(state.weekEdits)}
   ${closedSection(b, tiers)}
   ${conflictsSection(b, tiers)}
-  ${healthSection(b)}
+  ${healthSection(b, kindTitle)}
   ${needsDeadlineSection(b, tiers, ctx)}
   ${otherNotesSection(b, shown, ctx)}
 
   <footer>
     ${storageBar(state)}
-    <p>Rules only, no AI model. Status-update prose is never scored: an item's last-updated date is
-    trusted over how it is described. Items are matched from week to week by unit and title (the text
-    before the first comma).</p>
-    ${aliasLine}
+    <p>Rules only, no AI model. How a task is worded is never scored: its last-updated date is trusted
+    over how it is described. Items are matched from week to week by ${esc(setup.areaKind || "area")} and
+    title (the text before the first comma). ${removeWeek}</p>
     <p><a href="https://github.com/vedantm1049/chief-of-staff-briefing">Source and rules on GitHub</a></p>
   </footer>`;
 }

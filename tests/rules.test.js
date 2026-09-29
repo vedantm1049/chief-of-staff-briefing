@@ -19,15 +19,16 @@ import { day } from "../app/engine/dates.js";
 const TODAY = day(2026, 9, 28);   // a Monday
 
 function make(fields) {
-  return makeCommitment({ unit: "Wasla Pay", rawOwner: "X", owner: "X", statusRaw: "Open", lastUpdated: TODAY, ...fields });
+  return makeCommitment({ area: "Wasla Pay", rawOwner: "X", owner: "X", statusRaw: "Open", lastUpdated: TODAY, ...fields });
 }
 
 for (const [raw, expected] of [
   ["done", "done"], ["Done", "done"], ["complete", "done"], [" Completed ", "done"],
-  ["Pending Decision", "pending_decision"], ["in progress", "open"], ["Open", "open"],
+  ["Pending Decision", "pending_decision"], ["Waiting on decision", "pending_decision"],
+  ["in progress", "open"], ["In progress", "open"], ["Open", "open"],
   ["", null], [null, null],
 ]) {
-  test(`mart status vocabulary [${JSON.stringify(raw)}]`, () => {
+  test(`status words [${JSON.stringify(raw)}]`, () => {
     assert.equal(normalizeStatus(raw), expected);
   });
 }
@@ -66,7 +67,7 @@ test("unreadable due date needs a deadline", () => {
 });
 
 test("decision trigger phrases in description", () => {
-  // Closed vocabulary catches a decision in a unit with no status column.
+  // Closed vocabulary catches a decision written in the task text.
   assert.ok(isDecisionPending("open", "Waiting on CEO sign-off for the rate card"));
   assert.ok(isDecisionPending("open", "Awaiting decision from Group Finance"));
   assert.ok(!isDecisionPending("open", "Got sign-off last week, rolling out"));
@@ -79,10 +80,31 @@ test("principal match is whole word", () => {
   assert.ok(!isBlockedOnPrincipal("Awaiting decision on sale proceeds", "Treasury"));
 });
 
+test("waiting on column names the principal", () => {
+  // The template's waiting_on column is enough, even when the text never
+  // says who the decision waits on.
+  assert.ok(isBlockedOnPrincipal("Q1 hiring plan", "CEO"));
+  assert.ok(!isBlockedOnPrincipal("Q1 hiring plan", "Central Legal"));
+});
+
+test("the principal's title comes from setup", () => {
+  assert.ok(isBlockedOnPrincipal("Budget", "Managing Director", "Managing Director"));
+  assert.ok(isBlockedOnPrincipal("Waiting on the managing  director", "", "Managing Director"));
+  assert.ok(!isBlockedOnPrincipal("Budget", "CEO", "Managing Director"));
+});
+
+test("decision types in the template's words set effort", () => {
+  for (const [type, effort] of [["Yes or no", "Low"], ["Pick an option", "Medium"], ["Open question", "High"],
+    ["confirm/reject", "Low"], ["", "Unknown"]]) {
+    const item = make({ status: "pending_decision", decisionPending: true, decisionType: type });
+    assert.equal(classifyCommitment(item, TODAY, [], new Set()).effort, effort, type);
+  }
+});
+
 test("overdue decision is urgent even if recently pending", () => {
   // Urgency signals are OR'd for every item. A decision 4 days overdue that
   // entered Pending Decision only 2 days ago is still urgent.
-  const item = make({ unit: "Wasla Eats", status: "pending_decision", decisionPending: true,
+  const item = make({ area: "Wasla Eats", status: "pending_decision", decisionPending: true,
     dueDate: TODAY - 4, lastUpdated: TODAY - 2 });
   const classified = classifyCommitment(item, TODAY, [], new Set());
   assert.ok(classified.urgency);
@@ -92,8 +114,8 @@ test("overdue decision is urgent even if recently pending", () => {
 test("core and experimental tiers score the same", () => {
   // Only Flagship lifts importance. Core ranks above Experimental only in
   // the order inside a group.
-  for (const unit of ["Wasla Pay", "Wasla Express"]) {
-    const c = classifyCommitment(make({ unit }), TODAY, [], new Set());
+  for (const area of ["Wasla Pay", "Wasla Express"]) {
+    const c = classifyCommitment(make({ area }), TODAY, [], new Set());
     assert.ok(!c.importance);
   }
 });
@@ -107,7 +129,7 @@ test("stale threshold is seven days inclusive", () => {
 test("blocking two open items lifts importance", () => {
   // In the shipped data the only item with fan-out is Flagship, so the
   // fan-out rule never changes a score on its own.
-  const blocker = make({ unit: "Wasla Pay" });
+  const blocker = make({ area: "Wasla Pay" });
   const one = classifyCommitment(blocker, TODAY, [make({})], new Set());
   const two = classifyCommitment(blocker, TODAY, [make({}), make({})], new Set());
   assert.ok(!one.importance);

@@ -1,24 +1,43 @@
 # Chief of Staff Briefing
 
-A rules engine that turns messy weekly reporting from several business units into one prioritized briefing for a CEO, and keeps track from week to week. It flags what is overdue, stale, in conflict, or waiting on a decision. It never resolves or decides anything itself.
-
-The company, units, people and numbers are fictional. Every row in the dataset was written by hand to test one rule. This is a portfolio piece, not a production tool, same posture as `scan`.
+A weekly briefing for a Chief of Staff to run for their own company. Each week the teams send their task lists; the page reads them and puts in front of the CEO only what needs them: work that is overdue, stalled, clashing for one person, or waiting on a decision. It keeps the history from week to week. It flags. It never resolves, reassigns, decides or suggests.
 
 **Open it: https://vedantm1049.github.io/chief-of-staff-briefing/**
 
-It opens on the latest week of the sample, with the earlier weeks one click away. It is one static page. The rules run in your browser, and there is no server. You can tick an item done or change a due date, and add notes: the CEO's questions and decisions, or the Chief of Staff's own. "Draft email" opens a draft to the item's owner in your own email app, with the Chief of Staff copied, and their answer can be pasted back as a reply. All of it is saved in your own browser only, and can be exported as a backup file and imported again. Notes never change how an item is scored.
+It runs in your browser. There is no server and no account, and nothing you load leaves your computer.
 
-## Why it exists
+## Use it for your company
 
-The other repos in this portfolio (`cafe-qc`, `cafe-picture-generator`, `scan`) are operator tools: one business, its own numbers. This one is a Chief of Staff tool. The job is to read inconsistent reporting from several units and decide what belongs in front of someone else, and what doesn't.
+1. **Set up once.** Your company's name, who the briefing is for (CEO, Managing Director, whatever the title), what you call the parts of the company you report on (departments, businesses, brands, markets), each one and how much it matters, and your own email. Owners and their emails can be added now or as they appear.
+2. **Send the teams the template**, or don't. The page has a tasks template and an optional metrics template to download, with your areas filled in. Teams that won't change their own tracker can keep it: drop in their Excel or CSV, match its columns once, and the page remembers the match for next time. A table pasted from Excel or Google Sheets works too.
+3. **Add each week.** Pick the week-ending date and drop in the files. A name the page hasn't seen gets a question, "is P. Nair the same person as Priya Nair?", never a guess. An area it doesn't know gets the same.
+4. **Read the briefing.** Flagged items sorted into four groups, with the reasons on each card, and what changed since last week. Tick an item done, change a due date, add a note from the CEO, draft an email to the owner (the Chief of Staff is copied), and paste their reply back.
 
-The judgment underneath (flag, don't resolve; score importance and urgency separately; don't trust a metric without enough volume behind it; notice what keeps coming back) comes from the chief-of-staff skill in my personal Claude Code agent. The rules here were designed fresh for this problem rather than copied over.
+Everything is kept in the browser you use, until you export a backup. That is the price of nothing leaving your computer: to move to another laptop, export a backup and import it there.
 
-## The scenario
+### The template
 
-Wasla Group is a fictional Dubai holding company, modeled on the business-line mix of regional aggregators such as Talabat, noon and Careem, not on any one company's internals. Six units report to a Group CEO each week:
+Tasks, one row per task:
 
-| Unit | Business | Tier |
+| Column | What goes in it |
+|---|---|
+| `area` | which area the task belongs to, as named in setup |
+| `task` | the task. Its title is the text before the first comma; the rest can change week to week |
+| `owner` | who owns it |
+| `due_date` | YYYY-MM-DD. "next Tuesday" and "end of next week" also work, and are shown as read |
+| `status` | Open, In progress, Waiting on decision, or Done |
+| `waiting_on` | for a decision, who it waits on. The boss's title here makes it waiting on the boss |
+| `blocked_by` | the title of another task this one can't move without |
+| `decision_type` | for a decision: Yes or no, Pick an option, or Open question |
+| `last_updated` | YYYY-MM-DD, when someone last touched it |
+
+Metrics, optional: `area`, `metric` (Customer rating), `segment` (a city or store, if an area reports several), `value`, `target`, `count` (how many ratings).
+
+## See it on an example first
+
+The example is Wasla Group, a made-up Dubai holding company with six businesses, modeled on the mix of regional aggregators such as Talabat, noon and Careem, not on any one company's internals. Four weeks of reports, ending 27 Sep to 18 Oct 2026, all on the template. Every row was written by hand to test one rule. Over the four weeks decisions get made, work gets done, one item quietly disappears from a tracker, and one untouched item climbs to the top while its owner describes it as having "huge momentum". [`docs/dataset_key.md`](docs/dataset_key.md) walks through every case. Full spec: [`docs/data_contract.md`](docs/data_contract.md).
+
+| Business | What it does | Tier |
 |---|---|---|
 | Wasla Eats | Food delivery marketplace | Flagship |
 | Wasla Mart | Dark-store grocery delivery | Flagship |
@@ -27,71 +46,55 @@ Wasla Group is a fictional Dubai holding company, modeled on the business-line m
 | Wasla Pay | Payments and wallet | Core |
 | Wasla Central | Shared legal, design, investor relations, tech and growth | Core |
 
-Each unit sends a KPI export, a free-text status update, and a list of open tasks, each in its own format. Mart sends a three-tab Excel file; the rest send CSVs with different columns. Table has no status column at all. Mart's status values are inconsistent ("in progress", "complete", "done", blank). Owners appear as full names, "P. Nair", or first names only. Due dates are ISO dates, free text ("next Tuesday"), or blank. Columns go missing from one week to the next.
-
-There are four weeks of data, ending 27 Sep to 18 Oct 2026. Over those weeks decisions get made, work gets done, one item quietly disappears from a tracker, and one untouched item climbs to the top while its unit's updates stay upbeat. [`docs/dataset_key.md`](docs/dataset_key.md) walks through every case week by week. Full spec: [`docs/data_contract.md`](docs/data_contract.md).
-
-## How it works
-
-```
-index.html                 the page
-data/weeks/<week>/         six units' files for each week
-data/alias_table.csv       hand-reviewed owner-name matches and owner emails, shared across weeks
-data/manifest.json         the list of files the page loads
-app/engine/parse.js        read CSV and Excel (SheetJS, stored in app/vendor)
-app/engine/loaders.js      read each unit's format into one common record
-app/engine/normalize.js    resolve owner names, read status and dates from free text
-app/engine/rules.js        overdue, stale, conflict, blocked items, no deadline, customer ratings
-app/engine/classify.js     importance x urgency, effort and tier order inside a group
-app/engine/briefing.js     score one week, apply the reader's own edits
-app/engine/history.js      line the weeks up: new, still open, closed
-app/ui/                    draw the page, week switcher, edits, notes, email drafts, backup and import
-```
-
-Plain JavaScript modules, no build step and no packages to install. The page loads its data files from the site it is served from, so it runs on GitHub Pages or any local web server, not from a double-clicked file.
-
-```
-npm test                              # Node 20 or later, no install needed
-python scripts/generate_dataset.py   # rebuild data/ (needs pandas and openpyxl)
-```
-
-### What gets flagged
+## What gets flagged
 
 - **Overdue**: an open item past its due date.
-- **Stale**: an open item untouched for 7 days or more. Only the last-updated date counts. Express describes an item as having "huge momentum" week after week while it sits untouched; the engine flags it anyway.
-- **Conflict**: one person with two open items due within a day of each other. This depends on owner names resolving correctly. "P. Nair" must merge into "Priya Nair" for her conflict to appear; "Rahul Mehta" and "Raj Mehta" must stay apart.
-- **Decision pending**: status says so, or the description uses one of a fixed list of phrases ("waiting on ... sign-off", "awaiting decision"). Split by whether it is waiting on the CEO or on someone else. A decision's wait is measured by its own clock and never called stale.
-- **No deadline**: no usable due date, blank or unreadable. Listed separately so a date gets set, not scored as "not urgent" and dropped.
-- **Customer-rating miss**: a unit's rating this week is more than 0.2 below its own target, with at least 10 rated interactions (the same floor `cafe-qc` uses).
+- **Stale**: an open item untouched for 7 days or more. Only the last-updated date counts, never how the task is worded.
+- **Conflict**: one person with two open items due within a day of each other, after their name spellings are matched.
+- **Decision pending**: status says so, or the task uses one of a fixed list of phrases ("waiting on ... sign-off", "awaiting decision"). Split by whether it waits on the boss or on someone else. A decision's wait is measured by its own clock and never called stale.
+- **No deadline**: no usable due date, blank or unreadable. Listed so a date gets set, not scored as "not urgent" and dropped.
+- **Customer-rating miss**: an area's rating this week is more than 0.2 below its own target, with at least 10 ratings.
 
 An item waiting on another open item is neither stale nor overdue in its own right. It is listed on its blocker's card, so the briefing points at one root cause rather than several symptoms.
 
-### How flagged items are ranked
+## How flagged items are ranked
 
-Importance is high if the unit is Flagship, the item waits on the CEO, it blocks two or more open items, or its unit missed its customer-rating target. Urgency is high if the item is overdue, due within 3 days, or a decision that has waited 5 days or more. That gives four groups: needs decision now, on your radar, flag but don't escalate, and omit. Inside the top group, decisions come first, quickest (confirm or reject) before hardest. Inside every group, Flagship items come before Core, and Core before Experimental.
+Importance is high if the area is Flagship, the item waits on the boss, it blocks two or more open items, or its area missed its customer-rating target. Urgency is high if the item is overdue, due within 3 days, or a decision that has waited 5 days or more. That gives four groups: needs decision now, on your radar, flag but don't escalate, and omit. Inside the top group, decisions come first, quickest (yes or no) before hardest. Inside every group, Flagship comes before Core, and Core before Experimental.
 
-### Week over week
+## Week over week
 
-Each flagged item is marked **new**, **back** after a gap, or its **Nth week running**. Anything flagged last week but not this week is listed as **done**, **cleared** (with the reason: deadline set, date moved, updated) or **removed, not done**, meaning it vanished from its unit's tracker without ever being marked done. Due dates that keep moving are shown on the card, which is how a free-text "next Tuesday" that rolls forward every week gets caught.
+Each flagged item is marked **new**, **back** after a gap, or its **Nth week running**. Anything flagged last week but not this week is listed as **done**, **cleared** (with the reason: deadline set, date moved, updated) or **removed, not done**, meaning it vanished from its tracker without ever being marked done. Due dates that keep moving are shown on the card, which is how a free-text "next Tuesday" that rolls forward every week gets caught.
 
-An item is recognised across weeks by its unit and its title, the text before the first comma. Owner changes don't break the link. Renaming an item does.
+An item is recognised across weeks by its area and its title. Owner changes don't break the link. Renaming an item does.
 
-The owner-name alias table is built once, offline, by hand. The engine only reads it. A name it has never seen is reported at the top of the page rather than guessed at, since a new spelling can hide a conflict. Week 4 has one.
+## How it is built
 
-## Tests
+```
+index.html                 the page
+app/engine/                the rules: parse, loaders, normalize, rules, classify, briefing, history
+app/ui/                    intro, setup, adding a week, the briefing, notes, email drafts, backup
+app/vendor/                SheetJS, for reading Excel
+data/                      the example: four weeks of template files, owner table, file list
+scripts/generate_dataset.py  rebuilds data/ (plain Python, no packages)
+```
 
-`tests/scenarios.test.js` covers week 1 and `tests/history.test.js` covers weeks 2 to 4, one test per row of [`docs/dataset_key.md`](docs/dataset_key.md). `tests/rules.test.js` covers cases the contract requires but the data doesn't contain, such as "TBD" as a due date, "done" versus "Done" versus "complete", and an overdue decision that has only been pending two days. `tests/parse.test.js` covers the CSV reader, `tests/edits.test.js` the reader's own changes, and `tests/notes.test.js` notes, owner emails and email drafts.
+Plain JavaScript modules, no build step and no packages to install. No AI model anywhere: scoring is plain rules against stated fields.
+
+```
+npm test          # Node 20 or later, no install needed
+```
+
+`tests/scenarios.test.js` covers the example's week 1 and `tests/history.test.js` weeks 2 to 4, one test per row of [`docs/dataset_key.md`](docs/dataset_key.md). `tests/rules.test.js` covers cases the example doesn't contain. `tests/intake.test.js` covers reading and matching a team's own files, `tests/parse.test.js` the CSV reader, `tests/edits.test.js` ticks and date changes, and `tests/notes.test.js` notes, owner emails and email drafts.
 
 ## Known limits
 
+- Your data lives in one browser until you export a backup. Two people can't work on the same briefing at once.
+- A reply to an email draft only shows on the page once someone pastes it in.
+- Only the customer rating is scored among metrics. Other health numbers need their own rule (which direction is good, how far off is a miss) and aren't in yet.
 - Only the Flagship tier changes which group an item lands in. Core and Experimental differ only in the order inside a group.
-- Status-update prose is loaded but never scored. That is deliberate (prose is where stalled work hides), but it means the engine can't catch something that only appears in prose.
-- Renaming an item breaks its history: it shows as one item closing and a new one opening. Two items with the same title in the same unit can't be told apart, and the page says so when it happens.
+- Renaming an item breaks its history: it shows as one item closing and a new one opening.
 - "Next Tuesday" is read as the nearest coming Tuesday. The page shows the original text beside every date it had to interpret.
-- Ratings are judged one week at a time. Last week's rating is shown for context, not scored.
 
-## Out of scope
+## Why it exists
 
-Suggested fixes or next steps. A chat layer. Any output other than the static page.
-
-`scripts/generate_dataset.py` rebuilds everything in `data/` and is included for transparency.
+A portfolio piece and a use case to copy. The judgment underneath (flag, don't resolve; score importance and urgency separately; don't trust a metric without enough volume behind it; notice what keeps coming back) comes from the chief-of-staff skill in my personal Claude Code agent. The rules here were designed fresh for this problem.

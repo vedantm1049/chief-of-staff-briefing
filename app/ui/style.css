@@ -48,7 +48,7 @@ details.quadrant[open] summary .quadrant-head::before { content: "▾"; }
 ul.items, ul.conflicts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .item { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: #fffefc; }
 .item-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
-.unit-tag { font-size: 11px; font-weight: 600; color: var(--muted); background: var(--bg);
+.area-tag { font-size: 11px; font-weight: 600; color: var(--muted); background: var(--bg);
   border: 1px solid var(--border); border-radius: 4px; padding: 0 6px; white-space: nowrap; }
 .owner { font-weight: 600; font-size: 14px; }
 .desc { font-size: 14px; margin-bottom: 2px; overflow-wrap: anywhere; }
@@ -149,3 +149,74 @@ a.button-link { color: var(--flag); font-weight: 600; }
   border-radius: 6px; background: var(--panel); color: var(--ink); min-width: 0; flex: 1 1 220px; max-width: 320px; }
 .cos-email button { font-size: 13px; padding: 4px 12px; border: 1px solid var(--ink); border-radius: 6px;
   background: var(--panel); color: var(--ink); cursor: pointer; }
+
+/* Buttons and links that act like buttons */
+a.primary, button.primary, a.secondary { display: inline-block; font-size: 14px; font-weight: 600; padding: 8px 16px;
+  border-radius: 8px; text-decoration: none; cursor: pointer; border: 1px solid var(--ink); }
+a.primary, button.primary { background: var(--ink); color: #fff; }
+a.secondary { background: var(--panel); color: var(--ink); }
+button.primary:disabled { opacity: .4; cursor: default; }
+a.big { font-size: 16px; padding: 12px 20px; }
+
+/* Intro */
+.intro { max-width: 680px; padding: 48px 0 24px; }
+.intro h1 { font-size: 34px; line-height: 1.2; margin: 8px 0 16px; }
+.lede { font-size: 16px; color: var(--ink); max-width: 68ch; margin: 0 0 16px; }
+.points { padding-left: 20px; color: var(--muted); margin: 0 0 24px; }
+.points li { margin-bottom: 6px; }
+.intro-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+
+/* Bars above a briefing */
+.example-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 10px 14px; margin-bottom: 20px; background: #eeeae0; border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 14px; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-bottom: 20px; font-size: 14px; }
+.toolbar a:not(.primary) { color: var(--flag); }
+
+/* Setup */
+.setup fieldset { border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel);
+  padding: 14px 16px; margin: 0 0 18px; }
+.setup legend { font-weight: 700; padding: 0 6px; }
+.setup label { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; font-size: 14px; }
+.setup input, .setup select, .add-week select, .add-week input[type="date"], .add-week input[type="email"], .add-week textarea {
+  font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--panel); color: var(--ink); max-width: 100%; }
+.setup label input { max-width: 420px; }
+.hint { font-size: 12px; color: var(--muted); }
+.tier-help { margin: 0 0 10px; padding-left: 18px; font-size: 13px; color: var(--muted); }
+ul.rows { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+ul.rows .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+ul.rows .row input { flex: 1 1 160px; min-width: 0; }
+.setup fieldset > button, .add-week .templates button, .add-week .drop button, .table-card .table-head button:not(.link) {
+  font-size: 13px; padding: 5px 12px; border: 1px solid var(--ink); border-radius: 6px; background: var(--panel);
+  color: var(--ink); cursor: pointer; }
+.form-actions { margin: 20px 0; }
+.message { color: var(--needs); font-weight: 600; }
+
+/* Add a week */
+.add-week h2 { font-size: 17px; margin: 24px 0 4px; }
+.templates { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; margin-bottom: 18px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+.templates details { flex-basis: 100%; font-size: 13px; color: var(--muted); }
+.templates summary { cursor: pointer; color: var(--flag); }
+.week-pick { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 14px; margin-bottom: 14px; max-width: 220px; }
+.drop { border: 2px dashed var(--border); border-radius: var(--radius); padding: 18px; text-align: center;
+  background: var(--panel); font-size: 14px; }
+.drop details { margin-top: 8px; text-align: left; }
+.drop summary { cursor: pointer; color: var(--flag); text-align: center; }
+.drop textarea { width: 100%; margin: 8px 0; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.file-pick { color: var(--flag); text-decoration: underline; cursor: pointer; }
+.file-pick input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+ul.tables, ul.questions { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.table-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.table-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 8px; font-size: 14px; }
+.table-head label { display: flex; align-items: center; gap: 6px; }
+.ok { color: var(--ok); font-weight: 600; font-size: 13px; margin: 0 0 8px; }
+.match-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin: 8px 0 12px; }
+.match-grid label, .whole-file { display: flex; flex-direction: column; gap: 3px; font-size: 13px; font-weight: 600; }
+.whole-file { margin-bottom: 10px; max-width: 320px; }
+ul.problems { margin: 8px 0; padding-left: 18px; color: var(--needs); font-size: 13px; }
+table.preview td { white-space: normal; max-width: 220px; overflow-wrap: anywhere; }
+.question { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 14px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+@media (max-width: 480px) { .intro h1 { font-size: 27px; } }

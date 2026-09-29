@@ -3,130 +3,102 @@
   "weeks": {
     "2026-09-27": {
       "wasla_central": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "tasks.csv"
       ],
       "wasla_eats": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_express": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_mart": [
-        "commitments.csv",
-        "kpi_export.xlsx",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_pay": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_table": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ]
     },
     "2026-10-04": {
       "wasla_central": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "tasks.csv"
       ],
       "wasla_eats": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_express": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_mart": [
-        "commitments.csv",
-        "kpi_export.xlsx",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_pay": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_table": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ]
     },
     "2026-10-11": {
       "wasla_central": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "tasks.csv"
       ],
       "wasla_eats": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_express": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_mart": [
-        "commitments.csv",
-        "kpi_export.xlsx",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_pay": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_table": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ]
     },
     "2026-10-18": {
       "wasla_central": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "tasks.csv"
       ],
       "wasla_eats": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_express": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_mart": [
-        "commitments.csv",
-        "kpi_export.xlsx",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_pay": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ],
       "wasla_table": [
-        "commitments.csv",
-        "kpi_export.csv",
-        "status_update.txt"
+        "metrics.csv",
+        "tasks.csv"
       ]
     }
   }

@@ -54,9 +54,9 @@ export function csvRecords(text, delimiter = ",") {
 }
 
 /** Excel bytes to { tab name: [row objects] }, tabs in workbook order. Blank
-cells become null. */
+cells become null, dates become Date objects. */
 export function readWorkbook(bytes) {
-  const wb = XLSX.read(bytes, { type: "array" });
+  const wb = XLSX.read(bytes, { type: "array", cellDates: true });
   const out = {};
   for (const name of wb.SheetNames) {
     out[name] = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: null });

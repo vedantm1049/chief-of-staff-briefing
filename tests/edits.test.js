@@ -17,7 +17,7 @@ function withEdits(edits) {
     .map((b) => [toIso(b.weekEnding), b]));
 }
 
-const RAJ = { unit: "Wasla Pay", title: "waiting on ceo sign-off to extend acquiring-bank contract by 12 months" };
+const RAJ = { area: "Wasla Pay", title: "waiting on ceo sign-off to extend acquiring-bank contract by 12 months" };
 
 test("ticking an item done takes it off the briefing and closes it as done", () => {
   const b = withEdits({ [W4]: [{ ...RAJ, done: true }] })[W4];
@@ -40,7 +40,7 @@ test("an edit applies to its own week only", () => {
 test("a changed due date is rescored and noted", () => {
   // Mina's item, due "next Tuesday" (20 Oct) in week 4. Moved to 1 Nov it is
   // no longer due within 3 days, but the rating miss keeps it important.
-  const edits = { [W4]: [{ unit: "Wasla Express", title: "mall-retail partner integration testing", due: "2026-11-01" }] };
+  const edits = { [W4]: [{ area: "Wasla Express", title: "mall-retail partner integration testing", due: "2026-11-01" }] };
   const b = withEdits(edits)[W4];
   const mina = findCommitment(b, { owner: "Mina" });
   assert.equal(mina.dueDate, day(2026, 11, 1));
@@ -50,6 +50,6 @@ test("a changed due date is rescored and noted", () => {
 });
 
 test("an edit naming no item changes nothing", () => {
-  const b = withEdits({ [W4]: [{ unit: "Wasla Pay", title: "no such item", done: true }] })[W4];
+  const b = withEdits({ [W4]: [{ area: "Wasla Pay", title: "no such item", done: true }] })[W4];
   assert.ok(b.allCommitments.every((c) => c.edited == null));
 });

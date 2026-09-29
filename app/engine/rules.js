@@ -10,26 +10,22 @@ import {
   MIN_RATED_SAMPLE,
 } from "./config.js";
 
-export function allCommitments(units) {
-  return Object.values(units).flatMap((u) => u.commitments);
-}
-
 function key(text) {
   return (text ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-/** The part of a description before its first comma. Units that keep
-status in the description (Wasla Table) change the tail every week, not
-the title: "Lease renewal, still waiting" becomes "Lease renewal, resolved". */
+/** The part of a task before its first comma. People change the tail every
+week, not the title: "Lease renewal, still waiting" becomes "Lease renewal,
+resolved". */
 export function itemTitle(description) {
   return key((description ?? "").split(",", 1)[0]);
 }
 
-/** Identity of an item across weeks: its unit plus its title. Owner is left
+/** Identity of an item across weeks: its area plus its title. Owner is left
 out so a reassigned item stays the same item. A renamed item does not: it
 shows as one item closing and a new one opening. */
 export function itemKey(commitment) {
-  return `${commitment.unit}\u0000${itemTitle(commitment.description)}`;
+  return `${commitment.area}\u0000${itemTitle(commitment.description)}`;
 }
 
 function names(commitment) {
@@ -55,8 +51,8 @@ export function blockedItems(commitment, commitments) {
 }
 
 /** Open item untouched for STALE_THRESHOLD_DAYS or more. Reads only
-lastUpdated, never the unit's status-update prose, so upbeat writing can't
-hide a stalled item.
+lastUpdated, never how the task is worded, so upbeat writing ("huge
+momentum") can't hide a stalled item.
 
 Two kinds of waiting are not staleness. An item waiting on another open
 tracked item is blocked: it shows up on its blocker's card, so the briefing
@@ -71,7 +67,7 @@ export function isStale(commitment, today, commitments) {
 }
 
 /** Open item past its due date. Added after week 2 of the sample data
-showed the gap: the stockout fix, 16 days late on a Flagship unit, was
+showed the gap: the stockout fix, 16 days late in a Flagship area, was
 touched once and dropped out of the briefing, because touching it cleared
 the staleness flag and lateness alone flagged nothing. Blocked items are
 exempt for the same reason as staleness. */
@@ -112,32 +108,25 @@ export function findConflicts(commitments) {
   return pairs;
 }
 
-/** This week's rating vs the unit's own target, single week, behind a
-minimum-sample floor. A triggered unit lifts importance for its items (see
-classify.js). Central has no customer metric and is skipped. */
-export function evaluateCustomerHealth(units) {
-  const results = [];
-  for (const unit of Object.values(units)) {
-    const cm = unit.customerMetric;
-    if (cm == null) continue;
-    const { rating, target, count } = cm;
-    const base = { unitName: unit.name, rating, target, count };
+/** This week's rating vs the area's own target, single week, behind a
+minimum-sample floor. A triggered area lifts importance for its items (see
+classify.js). ratings: from loaders.js loadRatings. */
+export function evaluateCustomerHealth(ratings) {
+  return ratings.map(({ area, rating, target, count, segments }) => {
+    const base = { area, rating, target, count, segments };
     if (rating == null || target == null || count == null) {
-      results.push({ ...base, miss: null, triggered: false, lowSample: false,
-        reason: "rating, target or count missing this week" });
-      continue;
+      return { ...base, miss: null, triggered: false, lowSample: false,
+        reason: "rating, target or count missing this week" };
     }
     const miss = Math.round((target - rating) * 10000) / 10000;
     if (count < MIN_RATED_SAMPLE) {
-      results.push({ ...base, miss, triggered: false, lowSample: true,
-        reason: `only ${count.toFixed(0)} rated this week, below the floor of ${MIN_RATED_SAMPLE}` });
-    } else if (miss > RATING_MISS_MARGIN) {
-      results.push({ ...base, miss, triggered: true, lowSample: false,
-        reason: `${miss.toFixed(2)} below target, more than the ${RATING_MISS_MARGIN} margin` });
-    } else {
-      results.push({ ...base, miss, triggered: false, lowSample: false,
-        reason: `within ${RATING_MISS_MARGIN} of target` });
+      return { ...base, miss, triggered: false, lowSample: true,
+        reason: `only ${count.toFixed(0)} rated this week, below the floor of ${MIN_RATED_SAMPLE}` };
     }
-  }
-  return results;
+    if (miss > RATING_MISS_MARGIN) {
+      return { ...base, miss, triggered: true, lowSample: false,
+        reason: `${miss.toFixed(2)} below target, more than the ${RATING_MISS_MARGIN} margin` };
+    }
+    return { ...base, miss, triggered: false, lowSample: false, reason: `within ${RATING_MISS_MARGIN} of target` };
+  });
 }

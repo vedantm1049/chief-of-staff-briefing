@@ -10,7 +10,7 @@ import {
   QUADRANT_FLAG_DONT_ESCALATE,
 } from "../app/engine/classify.js";
 import { day, toIso } from "../app/engine/dates.js";
-import { loadSample, copySample, week, history, editCsv, findCommitment, W1, W2, W3, W4 } from "./helpers.js";
+import { loadSample, copySample, week, history, editRows, findCommitment, W1, W2, W3, W4 } from "./helpers.js";
 
 const sample = await loadSample();
 const weeks = history(sample);
@@ -32,13 +32,6 @@ test("four weeks scored the monday after", () => {
   for (const [w, b] of Object.entries(weeks)) {
     assert.equal(toIso(b.weekEnding), w);
     assert.equal(b.today - b.weekEnding, 1);
-  }
-});
-
-test("kpi week ending matches folder", () => {
-  for (const [w, b] of Object.entries(weeks)) {
-    const stamped = new Set(Object.values(b.units).filter((u) => u.kpi.week_ending).map((u) => String(u.kpi.week_ending)));
-    assert.deepEqual(stamped, new Set([w]));
   }
 });
 
@@ -80,7 +73,7 @@ test("w2 carry over follows the item not the flag", () => {
   // Layla's lease was a conflict in week 1 and is overdue in week 2. Same
   // item, so it reads as 2nd week running, not new.
   const b = weeks[W2];
-  const lease = findCommitment(b, { owner: "Layla Haddad", unit: "Wasla Table" });
+  const lease = findCommitment(b, { owner: "Layla Haddad", area: "Wasla Table" });
   assert.deepEqual(b.classified.get(lease).flags, ["overdue"]);
   assert.equal(hist(b, lease).weeksRunning, 2);
 });
@@ -119,7 +112,7 @@ test("w2 core items sit above experimental in a group", () => {
   assert.deepEqual(order, ["Layla Haddad", "Nadia Osman", "Mina"]);
 });
 
-test("w2 blank mart status read from text", () => {
+test("w2 blank status read from text", () => {
   const b = weeks[W2];
   const sop = findCommitment(b, { descriptionContains: "SOP rewrite" });
   assert.ok(sop.statusRaw === "" && sop.statusInferred && sop.status === "open");
@@ -136,7 +129,7 @@ test("w2 touched item clears", () => {
 test("w3 stockout fix closes after two weeks", () => {
   const x = closed(weeks[W3], "Fix stockout alerting");
   assert.ok(x.outcome === "done" && x.weeksFlagged === 2);
-  assert.equal(x.now.statusRaw, "done");   // Mart's lowercase vocabulary
+  assert.equal(x.now.status, "done");
 });
 
 test("w3 blocker done exposes stalled item", () => {
@@ -152,12 +145,6 @@ test("w3 blocker done exposes stalled item", () => {
 test("w3 deadline set clears the workshop", () => {
   const x = closed(weeks[W3], "Q4 product roadmap");
   assert.ok(x.outcome === "cleared" && x.detail.includes("deadline set for 22 Oct"));
-});
-
-test("w3 missing kpi column is tolerated", () => {
-  const express = weeks[W3].units.wasla_express;
-  assert.ok(!("avg_delivery_time_min" in express.kpi));
-  assert.equal(express.customerMetric.rating, 3.6);
 });
 
 // --- Week 4, the landing page -------------------------------------------------------
@@ -176,12 +163,12 @@ test("w4 waiting on the ceo three weeks", () => {
   assert.ok(b.classified.get(item).flags.includes("overdue"));
 });
 
-test("w4 rating miss lifts an experimental unit", () => {
+test("w4 rating miss lifts an experimental area", () => {
   // Express clears the 10-rating floor for the first time (15 ratings) and
   // misses by 0.5. That lifts Mina's untouched item to the top group, in its
   // 4th week running, with its due date moved four times.
   const b = weeks[W4];
-  const express = b.customerHealth.find((r) => r.unitName === "Wasla Express");
+  const express = b.customerHealth.find((r) => r.area === "Wasla Express");
   assert.ok(express.triggered && express.count === 15);
   const mina = findCommitment(b, { owner: "Mina" });
   assert.equal(b.classified.get(mina).quadrant, QUADRANT_NEEDS_DECISION_NOW);
@@ -213,7 +200,7 @@ test("w4 workshop is back", () => {
 
 test("w4 mart rating recovered", () => {
   const b = weeks[W4];
-  const now = b.customerHealth.find((r) => r.unitName === "Wasla Mart");
+  const now = b.customerHealth.find((r) => r.area === "Wasla Mart");
   const before = b.comparison.prevHealth["Wasla Mart"];
   assert.ok(before.triggered && !now.triggered);
 });
@@ -227,7 +214,7 @@ test("w4 fixing the alias table reveals a hidden clash", () => {
   // agreement (due 21 Oct) and her board pack review (due 20 Oct). The Eats
   // item is Flagship and due in 2 days: it goes straight to the top.
   const copy = copySample(sample);
-  copy.aliasText += "L. Haddad,Wasla Eats,Layla Haddad,added after week 4 review\n";
+  copy.aliasText += "L. Haddad,Wasla Eats,Layla Haddad,added after week 4 review,layla.haddad@wasla.example\n";
   const b = Object.values(history(copy)).at(-1);
   assert.deepEqual(b.unresolvedOwners, []);
   assert.deepEqual(b.conflicts.map((p) => p.owner).sort(), ["Layla Haddad", "Omar Siddiqui"]);
@@ -236,11 +223,10 @@ test("w4 fixing the alias table reveals a hidden clash", () => {
 });
 
 test("reassigned item keeps its history", () => {
-  // Identity is unit plus title, not owner. Hand Layla's lease to Reem in
+  // Identity is area plus title, not owner. Hand Layla's lease to Reem in
   // week 3 and it is still the 3rd week running, not a new item.
   const copy = copySample(sample);
-  const files = week(copy, W3).files.wasla_table;
-  files["commitments.csv"] = editCsv(files["commitments.csv"], { owner: "Layla Haddad" }, { owner: "Reem Qassim" });
+  editRows(week(copy, W3).tasks, { area: "Wasla Table", owner: "Layla Haddad" }, { owner: "Reem Qassim" });
   const b = history(copy)[W3];
   const lease = findCommitment(b, { descriptionContains: "countersign" });
   assert.equal(lease.owner, "Reem Qassim");

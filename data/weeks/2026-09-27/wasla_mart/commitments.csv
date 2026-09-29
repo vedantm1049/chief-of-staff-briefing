@@ -1,6 +1,0 @@
-owner,description,due_date,status,last_updated,blocked_by,decision_type
-P. Nair,Loyalty-points pilot data integration (Mart side),2026-10-02,in progress,2026-09-24,,
-Ahmed El-Sayed,Fix stockout alerting for Sharjah dark stores,2026-09-19,In Progress,2026-09-20,,
-Ahmed El-Sayed,Sharjah replenishment SOP rewrite,2026-10-10,Open,2026-09-21,Fix stockout alerting for Sharjah dark stores,
-Nadia Farouk,Q4 inventory forecast model,2026-10-12,Open,2026-09-18,Fix stockout alerting for Sharjah dark stores,
-Nadia Farouk,Dubai cluster picker-shift rota,2026-09-24,complete,2026-09-19,,

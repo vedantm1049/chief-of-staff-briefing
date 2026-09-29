@@ -1,0 +1,4 @@
+area,task,owner,due_date,status,waiting_on,blocked_by,decision_type,last_updated
+Wasla Pay,Finalize compliance amendment for updated licensing terms,Layla Haddad,2026-09-29,Done,,,,2026-09-29
+Wasla Pay,Dispute-resolution SLA renegotiation with acquiring bank,Raj Mehta,2026-10-20,In progress,,,,2026-10-02
+Wasla Pay,"Wallet KYC flow, waiting on Central Legal review",Nadia Osman,2026-10-08,Waiting on decision,Central Legal,,Yes or no,2026-09-25

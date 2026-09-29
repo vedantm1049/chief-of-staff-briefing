@@ -2,10 +2,10 @@
 group (data contract section 5).
 
 Importance is high if any of these hold:
-  - the item's unit is Flagship tier
-  - it is a decision blocked on the principal (the Group CEO)
+  - the item's area is Flagship tier
+  - it is a decision waiting on the principal (the boss named in setup)
   - it blocks FAN_OUT_THRESHOLD or more other open items
-  - its unit missed its customer-rating target this week
+  - its area missed its customer-rating target this week
 
 Urgency is high if any of these hold:
   - it is overdue
@@ -40,16 +40,16 @@ function days(n) {
   return n === 1 ? `${n} day` : `${n} days`;
 }
 
-/** tiers: { unit name: tier }. ratingMissedUnits: Set of unit names. */
-export function classifyCommitment(commitment, today, blocks, ratingMissedUnits, tiers = WASLA_TIERS) {
+/** tiers: { area name: tier }. ratingMissedAreas: Set of area names. */
+export function classifyCommitment(commitment, today, blocks, ratingMissedAreas, tiers = WASLA_TIERS) {
   const c = commitment;
   const fanOut = blocks.length;
 
   const importanceReasons = [];
-  if (tiers[c.unit] === "Flagship") importanceReasons.push(`${c.unit} is Flagship tier`);
+  if (tiers[c.area] === "Flagship") importanceReasons.push(`${c.area} is Flagship tier`);
   if (c.principalBlocked) importanceReasons.push("waiting on you (the principal) specifically");
   if (fanOut >= FAN_OUT_THRESHOLD) importanceReasons.push(`blocks ${fanOut} other open items`);
-  if (ratingMissedUnits.has(c.unit)) importanceReasons.push(`${c.unit} missed its customer-rating target this week`);
+  if (ratingMissedAreas.has(c.area)) importanceReasons.push(`${c.area} missed its customer-rating target this week`);
 
   const urgencyReasons = [];
   if (c.dueDate != null) {
@@ -69,7 +69,7 @@ export function classifyCommitment(commitment, today, blocks, ratingMissedUnits,
     : urgency ? QUADRANT_FLAG_DONT_ESCALATE
     : QUADRANT_OMIT;
 
-  const effort = c.decisionPending ? (DECISION_TYPE_EFFORT[c.decisionType] ?? "Unknown") : null;
+  const effort = c.decisionPending ? (DECISION_TYPE_EFFORT[c.decisionType.trim().toLowerCase()] ?? "Unknown") : null;
 
   return {
     commitment: c,
@@ -95,7 +95,7 @@ before High, so a quick confirm/reject sits above anything that needs real
 thought. Everything else, in every group, is ordered by tier (Flagship,
 Core, Experimental), then most overdue first. */
 export function sortQuadrant(quadrant, items, today, tiers = WASLA_TIERS) {
-  const tierRank = (i) => TIER_ORDER[tiers[i.commitment.unit]] ?? 99;
+  const tierRank = (i) => TIER_ORDER[tiers[i.commitment.area]] ?? 99;
   const byDue = (i) => (i.commitment.dueDate != null ? today - i.commitment.dueDate : -1e6);
   // Owner as the last tie-break keeps one person's same-day items side by side.
   const byTierThenOverdue = (x, y) => tierRank(x) - tierRank(y) || byDue(y) - byDue(x)
