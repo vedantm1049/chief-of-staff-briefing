@@ -118,7 +118,7 @@ Rebuilt for use on a real company:
 Rebuilt so the Chief of Staff sets everything up in the browser:
 
 - **Every area has a leader** (name and email) and **its own metrics**, chosen on the page from a fixed list of common ones or typed in, each with a weekly target, a direction and a margin.
-- **One metric rule for every metric** replaces the customer-rating rule. The rating keeps its old behaviour as a metric with a 0.2-point margin and a floor of 10 ratings. The example's six businesses now report their real numbers (orders, revenue, reservations, transactions, dispute rate, roadmap items shipped) with targets they meet every week, so the dataset key's stories are unchanged.
+- **One metric rule for every metric** replaces the customer-rating rule. The rating keeps its old behaviour as a metric with a 0.2-point margin and a floor of 10 ratings. The example's six businesses now report their real numbers (orders, sales, reservations, transactions, dispute rate, roadmap items shipped) with targets they meet every week, so the dataset key's stories are unchanged.
 - **Tasks are kept on the page**, per person, not in files. Each task has an id, which becomes its identity across weeks, so it can be renamed or reassigned without losing its history. The example, which has no ids, still uses area plus title.
 - **Weekly sheets and requests.** Each leader gets a metrics sheet and each person a tasks sheet (Excel), with an email draft each, due Wednesday, and a recurring Monday calendar reminder for all of them. Returned sheets are uploaded together and checked before they change anything. The page sends nothing itself.
 - **Weeks.** Starting a new week freezes the week before as it stood, and drops tasks already done from the live list.

@@ -8,7 +8,7 @@ It runs in your browser. There is no server and no account, and nothing you ente
 
 ## Use it for your company
 
-1. **Setup.** Your company, who the briefing is for (CEO, Managing Director, any title), what you call the parts of the company (departments, businesses, brands, markets), your own email, and each area: its leader and their email, how much it matters (Flagship, Core, Experimental), and the metrics it reports every week. Metrics come from a list of common ones (sales, revenue, orders, customer rating, on-time delivery, costs, churn and more) or your own, each with a weekly target, whether higher or lower is better, and how far off counts as a miss.
+1. **Setup.** Your company, who the briefing is for (CEO, Managing Director, any title), what you call the parts of the company (departments, businesses, brands, markets), your own email, and each area: its leader and their email, how much it matters (Flagship, Core, Experimental), and the metrics it reports every week. Metrics come from a list of common ones (sales, orders, customer rating, on-time delivery, costs, churn and more) or your own, each with a weekly target, whether higher or lower is better, and how far off counts as a miss.
 2. **People and tasks.** Everyone who owns work, their email and area, and their open tasks: due date, status, whether it waits on a decision and on whom, and what it is blocked by. All on the page, no spreadsheet. A name like one you already have gets "is this the same person as...?", never a guess.
 3. **Every Monday, on This week.** Start the week. The page makes each leader's metrics sheet (their metrics, a column to fill) and each person's tasks sheet (their open tasks, to update), both Excel, and a ready email draft for each, due Wednesday, opened in your own email app. A recurring Monday calendar reminder, set up once, invites everyone automatically.
 4. **When sheets come back,** drop them all on the page. Each is checked and shown before anything changes: which numbers came in, which tasks were updated, added or removed. You can also change tasks yourself at any time.
@@ -23,7 +23,7 @@ The example is Wasla Group, a made-up Dubai holding company with six businesses,
 | Business | What it does | Tier | Metrics |
 |---|---|---|---|
 | Wasla Eats | Food delivery marketplace | Flagship | Orders, on-time delivery, customer rating |
-| Wasla Mart | Dark-store grocery delivery | Flagship | Revenue, customer rating (per city) |
+| Wasla Mart | Dark-store grocery delivery | Flagship | Sales, customer rating (per city) |
 | Wasla Table | Dine-out reservations and payments | Core | Reservations, customer rating |
 | Wasla Express | 1 to 2 hour delivery from partner stores | Experimental | Orders, customer rating |
 | Wasla Pay | Payments and wallet | Core | Transactions, dispute rate, customer rating |

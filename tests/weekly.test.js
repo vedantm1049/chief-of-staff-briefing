@@ -156,3 +156,19 @@ test("your company's backup carries setup, people, tasks and weeks", async () =>
   assert.equal(back.id, "own");
   assert.deepEqual(back.state, own);
 });
+
+test("each leader is also a person who can own tasks", () => {
+  const own = company();
+  own.people = [{ name: "Priya Nair", email: "", area: "", spellings: [] }];
+  weekly.syncLeaders(own);
+  assert.deepEqual(own.people.map((p) => [p.name, p.email, p.area]), [
+    ["Priya Nair", "priya@acme.example", "Sales"],
+    ["Omar Ali", "omar@acme.example", "Finance"],
+  ]);
+});
+
+test("targets can be typed with commas or spaces", () => {
+  const own = cleanWorkspace("own", { setup: { areas: [{ name: "Sales", metrics: [
+    { name: "Sales", target: "1,200,000", margin: " 5 " }, { name: "Costs", target: "50 000" }] }] } });
+  assert.deepEqual(own.setup.areas[0].metrics.map((m) => [m.target, m.margin]), [[1200000, 5], [50000, 5]]);
+});

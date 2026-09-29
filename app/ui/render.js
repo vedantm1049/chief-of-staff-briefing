@@ -479,6 +479,20 @@ function topBar(state) {
   return ownNav("briefing");
 }
 
+/** Backup and import, at the foot of every screen of the reader's own company. */
+export function backupBar({ hasData }) {
+  return `
+    <div class="storage backup-bar" id="your-data">
+      <p>Everything here is saved in this browser only and never leaves your computer. Export a backup to keep
+      a copy or move to another computer.</p>
+      <div class="storage-actions">
+        ${hasData ? '<button type="button" data-act="export">Export backup</button>' : ""}
+        <button type="button" data-act="import">Import backup</button>
+        <input type="file" accept="application/json,.json" data-act="import-file" hidden>
+      </div>
+    </div>`;
+}
+
 /** Navigation between the reader's own screens. */
 export function ownNav(current) {
   const links = [["briefing", "#/briefing", "CEO view"], ["week", "#/week", "This week"], ["tasks", "#/tasks", "Tasks"],

@@ -41,6 +41,22 @@ export function startWeek(own, weekEnding) {
   return own;
 }
 
+/** Every area leader is also a person who can own tasks. A leader not yet on
+the people list is added; one already there gets any missing email or area. */
+export function syncLeaders(own) {
+  for (const a of own.setup.areas) {
+    const { name, email } = a.leader;
+    if (!name) continue;
+    const p = own.people.find((x) => x.name === name || x.spellings.includes(name));
+    if (!p) own.people.push({ name, email, area: a.name, spellings: [] });
+    else {
+      if (!p.email && email) p.email = email;
+      if (!p.area) p.area = a.name;
+    }
+  }
+  return own;
+}
+
 /** The people list as rows for the engine's owner table. */
 export function peopleRows(people) {
   const rows = [];

@@ -35,7 +35,7 @@ Reference "today" for all day-counts in this section: 2026-09-28.
 
 ### Metrics (against the targets in setup, single week)
 
-- **Every business reports the metrics set for it**: Eats orders, on-time delivery and rating; Mart revenue (per city, added up) and rating (per city, averaged by count); Table reservations and rating; Express orders and rating; Pay transactions, dispute rate and rating; Central roadmap items shipped. Every metric other than the ratings below is met every week, so only the ratings move a quadrant.
+- **Every business reports the metrics set for it**: Eats orders, on-time delivery and rating; Mart sales (per city, added up) and rating (per city, averaged by count); Table reservations and rating; Express orders and rating; Pay transactions, dispute rate and rating; Central roadmap items shipped. Every metric other than the ratings below is met every week, so only the ratings move a quadrant.
 
 ### Customer rating (0.2-point margin, floor of 10 ratings)
 

@@ -2,7 +2,7 @@
 routine. Everything here is HTML built from state; main.js owns the state
 and the events.
 */
-import { esc, ownNav } from "./render.js";
+import { esc, ownNav, backupBar } from "./render.js";
 import { METRIC_SUGGESTIONS } from "../engine/config.js";
 import { fmtLong, parseIsoDate } from "../engine/dates.js";
 import { openTasksOf } from "./weekly.js";
@@ -39,7 +39,8 @@ export function intro({ hasOwn }) {
       <a class="secondary big" href="#/example">See an example</a>
     </div>
     <p class="meta">The example is a made-up company, Wasla Group, with four weeks of reports.</p>
-  </section>`;
+  </section>
+  ${backupBar({ hasData: false })}`;
 }
 
 // --- Setup ------------------------------------------------------------------------
@@ -112,7 +113,8 @@ export function setupScreen(draft, { firstTime, message }) {
     ${message ? `<p class="message" role="alert">${esc(message)}</p>` : ""}
     <div class="form-actions"><button type="submit" class="primary">Save setup</button>
       ${firstTime ? '<span class="meta">Next: the people who own work, and their tasks.</span>' : ""}</div>
-  </form>`;
+  </form>
+  ${backupBar({ hasData: !firstTime })}`;
 }
 
 // --- Tasks ------------------------------------------------------------------------
@@ -131,7 +133,9 @@ function taskRow(t, areas, people, titles) {
             <label>Owner <select ${a("owner")}>${opts(people.map((p) => p.name), t.owner)}</select></label>
             ${waiting ? `<label>Waiting on <input ${a("waiting_on")} value="${esc(t.waiting_on)}" placeholder="e.g. CEO"></label>
             <label>Decision <select ${a("decision_type")}>${opts(DECISIONS, t.decision_type, (v) => v || "(type)")}</select></label>` : ""}
-            <label>Blocked by <select ${a("blocked_by")}>${opts(["", ...others], t.blocked_by, (v) => v || "(nothing)")}</select></label>
+            <label>Blocked by ${others.length || t.blocked_by
+              ? `<select ${a("blocked_by")}>${opts(["", ...others, ...(t.blocked_by && !others.includes(t.blocked_by) ? [t.blocked_by] : [])], t.blocked_by, (v) => v || "(nothing)")}</select>`
+              : '<span class="hint">no other tasks yet</span>'}</label>
             <span class="meta">last touched ${t.last_updated ? fmtLong(parseIsoDate(t.last_updated)) : "never"}</span>
             <button type="button" class="link" data-act="delete-task" data-id="${esc(t.id)}">Delete</button>
           </div>
@@ -175,7 +179,8 @@ export function tasksScreen(own, { message, matchQuestion }) {
       ${matchQuestion ?? ""}
     </form>
     <div class="form-actions"><a class="primary" href="#/week">Next: this week</a></div>
-  </section>`;
+  </section>
+  ${backupBar({ hasData: true })}`;
 }
 
 /** "Is X the same person as Y?", asked before a similar name is added. */
@@ -210,7 +215,8 @@ export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, goo
     and each person for their task updates, due Wednesday. Upload what comes back. Then open the CEO view.</p>
     ${message ? `<p class="message" role="alert">${esc(message)}</p>` : ""}
     ${start}
-  </section>`;
+  </section>
+  ${backupBar({ hasData: true })}`;
   }
   const w = week.weekEnding;
   const due = fmtLong(parseIsoDate(w) + 3);
@@ -281,5 +287,6 @@ export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, goo
     <div class="form-actions"><a class="primary" href="#/briefing">Open the CEO view</a></div>
 
     <details class="next-week"><summary>Start the next week</summary>${start}</details>
-  </section>`;
+  </section>
+  ${backupBar({ hasData: true })}`;
 }

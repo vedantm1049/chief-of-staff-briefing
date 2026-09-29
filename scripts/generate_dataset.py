@@ -77,7 +77,7 @@ def task_row(area, header, row):
 # customer rating, whose target and count travel with each row.
 METRICS = {
     "wasla_eats": [("Orders", "orders"), ("On-time delivery", "on_time_delivery_pct")],
-    "wasla_mart": [("Revenue", "revenue_aed")],
+    "wasla_mart": [("Sales", "revenue_aed")],
     "wasla_table": [("Reservations", "reservations_confirmed")],
     "wasla_express": [("Orders", "orders")],
     "wasla_pay": [("Transactions", "transactions_processed"), ("Dispute rate", "dispute_rate_pct")],
@@ -102,7 +102,7 @@ def write_unit(week, unit, kpi, status, commitments):
     d = os.path.join(ROOT, "weeks", week, unit)
     os.makedirs(d, exist_ok=True)
     if unit == "wasla_mart":
-        # One row per city: revenue adds up, the rating is averaged by count.
+        # One row per city: sales add up, the rating is averaged by count.
         metrics = [m for tab, vals in kpi.items() for m in metric_rows(unit, area, MART_KPI, vals, tab)]
     else:
         metrics = metric_rows(unit, area, *kpi)

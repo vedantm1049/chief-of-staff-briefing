@@ -103,7 +103,14 @@ export function cleanSettings(s) {
   return { cosEmail: isEmail(s?.cosEmail) ? s.cosEmail.trim() : null };
 }
 
-const num = (v) => (v === "" || v == null || Number.isNaN(Number(v)) ? null : Number(v));
+/** A number as typed: "100,000", "1 200" and " 4.5 " all read. */
+export function readNumber(v) {
+  if (v == null) return null;
+  if (typeof v === "number") return Number.isNaN(v) ? null : v;
+  const t = String(v).replace(/[,\s]/g, "");
+  return t === "" || Number.isNaN(Number(t)) ? null : Number(t);
+}
+const num = readNumber;
 
 export function cleanMetric(m) {
   return {

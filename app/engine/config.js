@@ -87,7 +87,6 @@ export const RATING_DEFAULTS = { unit: "out of 5", better: "higher", margin: RAT
 // their own. A fixed list, never generated.
 export const METRIC_SUGGESTIONS = [
   { name: "Sales", unit: "", better: "higher", margin: 5, marginKind: "percent" },
-  { name: "Revenue", unit: "", better: "higher", margin: 5, marginKind: "percent" },
   { name: "Orders", unit: "", better: "higher", margin: 5, marginKind: "percent" },
   { name: "Customer rating", ...RATING_DEFAULTS },
   { name: "Net promoter score", unit: "points", better: "higher", margin: 5, marginKind: "points" },
@@ -120,7 +119,7 @@ export const WASLA_SETUP = {
     { name: "Wasla Eats", tier: "Flagship", leader: { name: "Farah Al Mansoori", email: "farah.almansoori@wasla.example" },
       metrics: [metric("Orders", { target: 80000 }), metric("On-time delivery", { target: 92 }), rating(4.5)] },
     { name: "Wasla Mart", tier: "Flagship", leader: { name: "Ahmed El-Sayed", email: "ahmed.elsayed@wasla.example" },
-      metrics: [metric("Revenue", { unit: "AED", target: 6000000 }), rating(4.5)] },
+      metrics: [metric("Sales", { unit: "AED", target: 6000000 }), rating(4.5)] },
     { name: "Wasla Table", tier: "Core", leader: { name: "Reem Qassim", email: "reem.qassim@wasla.example" },
       metrics: [metric("Reservations", { unit: "", better: "higher", margin: 5, marginKind: "percent", target: 4000 }), rating(4.5)] },
     { name: "Wasla Express", tier: "Experimental", leader: { name: "Rahul Mehta", email: "rahul.mehta@wasla.example" },

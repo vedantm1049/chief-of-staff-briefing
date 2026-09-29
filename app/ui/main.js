@@ -183,8 +183,8 @@ function saveSetup() {
   for (const a of areas) {
     if (a.leader.email.trim() && !isEmail(a.leader.email.trim())) return drawSetup(`${a.name}'s leader's email doesn't look like an email address.`);
     for (const m of a.metrics.filter((x) => x.name.trim())) {
-      if (String(m.target ?? "").trim() && Number.isNaN(Number(m.target))) return drawSetup(`${a.name}: ${m.name}'s target should be a number.`);
-      if (Number.isNaN(Number(m.margin))) return drawSetup(`${a.name}: ${m.name}'s margin should be a number.`);
+      if (String(m.target ?? "").trim() && store.readNumber(m.target) == null) return drawSetup(`${a.name}: ${m.name}'s target should be a number.`);
+      if (String(m.margin ?? "").trim() && store.readNumber(m.margin) == null) return drawSetup(`${a.name}: ${m.name}'s margin should be a number.`);
     }
   }
   // A renamed area keeps its tasks, people and numbers.
@@ -203,6 +203,7 @@ function saveSetup() {
   const first = !hasOwnSetup();
   o.setup = store.cleanSetup({ company: d.company, areaKind: d.areaKind, boss: d.boss, areas });
   o.settings = store.cleanSettings({ cosEmail: d.cosEmail });
+  weekly.syncLeaders(o);
   saveOwn("Setup saved.");
   go(first || !o.people.length ? "#/tasks" : hasOwnWeek() ? "#/briefing" : "#/week");
 }
@@ -428,6 +429,7 @@ root.addEventListener("input", (ev) => {
 
 root.addEventListener("change", (ev) => {
   const el = ev.target;
+  if (!mode && el.dataset.act === "import-file" && el.files[0]) return importBackup(el.files[0]);
   if (route.screen === "setup") return setupInput(el);
   if (route.screen === "tasks") return taskChange(el);
   if (route.screen === "week") {
@@ -517,6 +519,10 @@ root.addEventListener("click", (ev) => {
   }
   const el = ev.target.closest("button, a[data-act]");
   if (!el) return;
+  if (!mode && el.dataset.act === "export") {
+    return download(`briefing-backup-${todayIso()}.json`, store.backupBlob("own", own()));
+  }
+  if (!mode && el.dataset.act === "import") return root.querySelector('[data-act="import-file"]').click();
   if (route.screen === "setup") return setupClick(el);
   if (route.screen === "tasks") return tasksClick(el);
   if (route.screen === "week") return weekClick(el, ev);
@@ -574,13 +580,15 @@ async function importBackup(file) {
     incoming = store.parseBackup(await file.text());
   } catch (err) {
     message = err.message;
-    return draw();
+    if (mode) return draw();
+    alert(err.message);
+    return;
   }
   const where = incoming.id === "own" ? "your company's data" : "your changes and notes on the example";
   if (!confirm(`Replace ${where} in this browser with the backup?`)) return;
   ws[incoming.id] = incoming.state;
   store.saveWorkspace(incoming.id, incoming.state);
-  go(incoming.id === "own" ? "#/briefing" : "#/example");
+  go(incoming.id === "own" ? (hasOwnWeek() ? "#/briefing" : "#/tasks") : "#/example");
 }
 
 // Returned sheets dropped on This week.
