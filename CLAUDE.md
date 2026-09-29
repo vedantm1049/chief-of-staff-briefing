@@ -52,4 +52,4 @@ Built, as agreed with Vedant:
 - A metric miss raises that area's priority (Vedant's choice), like the old rating rule.
 - The page never sends email itself; that would need a server. Vedant chose drafts plus the calendar reminder.
 
-- Google Sheets by link: a leader's or person's sheet published to the web as CSV, linked in setup or Tasks, fetched from This week and checked like an upload. Verified against Google's headers; waiting on a real published test sheet from Vedant to confirm end to end.
+- Google Sheets by link: a leader's or person's sheet published to the web as CSV, linked in setup or Tasks, fetched from This week and checked like an upload. Verified end to end with a real published sheet (made-up numbers).
