@@ -39,6 +39,8 @@ export const CLOSED_TRIGGER_PATTERNS = [
 export const DUE_SOON_DAYS = 3;
 
 // --- Importance: dependency fan-out ------------------------------------------------
+// Holding up this many open items, counting the whole chain behind it (what
+// it holds up, and what those hold up), makes an item important.
 export const FAN_OUT_THRESHOLD = 2;
 
 // --- Customer-health signal ----------------------------------------------------------

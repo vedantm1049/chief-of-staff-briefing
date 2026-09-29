@@ -40,6 +40,22 @@ export function openBlocker(commitment, commitments) {
   return null;
 }
 
+/** Everything waiting behind these items, further down the chain: what they
+hold up, what that holds up, and so on. Each item once, nearest first, never
+the item itself, even if the chain loops back to it. */
+export function downstreamItems(direct, blocksMap, self = null) {
+  const seen = new Set([...direct, self]);
+  const out = [];
+  let frontier = direct;
+  while (frontier.length) {
+    const next = frontier.flatMap((x) => blocksMap.get(x) ?? []).filter((x) => !seen.has(x));
+    next.forEach((x) => seen.add(x));
+    out.push(...next);
+    frontier = next;
+  }
+  return out;
+}
+
 /** Open items whose blockedBy names this item. */
 export function blockedItems(commitment, commitments) {
   const own = names(commitment);

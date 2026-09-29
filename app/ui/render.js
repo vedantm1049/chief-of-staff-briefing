@@ -152,21 +152,6 @@ function notesBlock(c, flags, ctx) {
         </div>`;
 }
 
-/** What waits behind the items this one holds up, further down the chain.
-Shown on the card only; importance still counts the items held up directly. */
-function chainText(b, direct) {
-  const seen = new Set(direct);
-  const next = [];
-  let frontier = direct;
-  while (frontier.length) {
-    const more = frontier.flatMap((x) => b.blocksMap.get(x) ?? []).filter((x) => !seen.has(x));
-    more.forEach((x) => seen.add(x));
-    next.push(...more);
-    frontier = more;
-  }
-  return next.length ? `, and through it: ${next.map((x) => `${esc(short(x.description))} (${esc(x.owner)})`).join(", then ")}` : "";
-}
-
 function itemCard(b, item, showEffort, tiers, ctx) {
   const c = item.commitment;
   const h = hist(b, c);
@@ -178,7 +163,8 @@ function itemCard(b, item, showEffort, tiers, ctx) {
   let extra = dueMoves(h);
   if (item.blocks.length) {
     extra += `<div class="note note-blocks">Holding up: ${item.blocks
-      .map((x) => `${esc(short(x.description))} (${esc(x.owner)})`).join("; ")}${chainText(b, item.blocks)}</div>`;
+      .map((x) => `${esc(short(x.description))} (${esc(x.owner)})`).join("; ")}${item.chain.length ? `, and through it: ${item.chain
+      .map((x) => `${esc(short(x.description))} (${esc(x.owner)})`).join(", then ")}` : ""}</div>`;
   }
   if (item.conflictPartners.length) {
     extra += `<div class="note note-conflict">Same owner also has: ${item.conflictPartners

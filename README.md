@@ -41,7 +41,7 @@ An item waiting on another open item is neither stale nor overdue in its own rig
 
 ## How flagged items are ranked
 
-Importance is high if the area is Flagship, the item waits on the boss, it blocks two or more open items, or its area missed a metric target. Urgency is high if the item is overdue, due within 3 days, or a decision that has waited 5 days or more. That gives four groups: needs decision now, on your radar, flag but don't escalate, and omit. Inside the top group, decisions come first, quickest (yes or no) before hardest. Inside every group, Flagship comes before Core, and Core before Experimental.
+Importance is high if the area is Flagship, the item waits on the boss, it holds up two or more open items (counting the whole chain behind it), or its area missed a metric target. Urgency is high if the item is overdue, due within 3 days, or a decision that has waited 5 days or more. That gives four groups: needs decision now, on your radar, flag but don't escalate, and omit. Inside the top group, decisions come first, quickest (yes or no) before hardest. Inside every group, Flagship comes before Core, and Core before Experimental.
 
 ## Week over week
 

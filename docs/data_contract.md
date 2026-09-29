@@ -64,7 +64,7 @@ Decisions already locked, restated here for one place to check them:
 
 - Detection rules: staleness, overdue, conflict (same normalized owner, overlapping date windows), decision-pending (closed trigger-phrase vocabulary), each a boolean rule against stated fields. An open item waiting on another open tracked item is blocked, neither stale nor overdue, and is listed on its blocker instead. A pending decision is never called stale: its wait is measured by its own pending clock
 - Items with no usable due date (blank, or free text the engine can't read, like "TBD") are flagged "needs a deadline set," not scored as zero urgency
-- Classification: importance x urgency 2x2 grid. Importance from area priority tier, decision-pending-on-principal flag, or dependency fan-out (2+ other open items blocked by this one). Urgency from overdue days, due-within-3-days, or pending-5+-days
+- Classification: importance x urgency 2x2 grid. Importance from area priority tier, decision-pending-on-principal flag, or dependency fan-out (2+ open items held up by this one, counting the whole chain behind it). Urgency from overdue days, due-within-3-days, or pending-5+-days
 - Effort sort (Low/Medium/High from the `decision_type` column) applies only inside the "needs your decision now" quadrant, only to decision-pending items
 - Tier order: only Flagship lifts importance, but inside every quadrant items are ordered Flagship, then Core, then Experimental, then most overdue first. In the top quadrant, decision-pending items still come first by effort, with tier breaking ties
 - Waiting on the principal: a decision whose `waiting_on` names the boss's title from setup (whole words, any case), or whose task text does. "CEO" in the example
@@ -128,3 +128,4 @@ The example rebuilt on a real setup:
 - **The file-based example's stories that depended on files** (a status word a unit invented, an unseen owner spelling in an upload) are gone from the example; the rules that handle them keep their tests in rules.test.js.
 - **Edits scoped to one week are gone.** Ticking a task done or changing its date changes the task itself, in the current week.
 - **The card of a blocking item shows the whole chain behind it.** Importance still counts only the items it holds up directly.
+- **Fan-out counts the whole chain.** An item that holds up another, which holds up a third, holds up two. Before, only the items waiting on it directly counted. A chain that loops back never counts the item itself. In the example this makes the Wasla Wash branding important in week 3, where it holds up the launch and, behind it, the Wasla Business prototype: it moves from "flag, don't escalate" to "needs decision now".

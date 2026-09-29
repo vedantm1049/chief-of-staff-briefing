@@ -10,6 +10,7 @@ import {
   needsDeadlineSet,
   findConflicts,
   blockedItems,
+  downstreamItems,
 } from "./rules.js";
 import { classifyCommitment, sortQuadrant, QUADRANT_ORDER } from "./classify.js";
 import { parseIsoDate } from "./dates.js";
@@ -72,7 +73,8 @@ export function buildBriefing(week, { setup, aliasText, aliases: aliasRows, toda
     if (stale.has(c)) flags.push("stale");
     if (partners.has(c)) flags.push("conflict");
     if (!flags.length || needsDeadline.has(c)) continue;
-    const item = classifyCommitment(c, today, blocksMap.get(c), missedMetrics, tiers);
+    const direct = blocksMap.get(c);
+    const item = classifyCommitment(c, today, direct, missedMetrics, tiers, downstreamItems(direct, blocksMap, c));
     item.flags = flags;
     item.conflictPartners = partners.get(c) ?? [];
     classified.set(c, item);

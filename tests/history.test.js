@@ -93,13 +93,15 @@ test("w3 the ice-cream campaign closes as done after two weeks", () => {
   assert.ok(x.outcome === "done" && x.weeksFlagged === 2);
 });
 
-test("w3 branding surfaces once its blocker is done", () => {
+test("w3 branding surfaces once its blocker is done, important for the chain behind it", () => {
   const b = weeks[W3];
   const i = item(b, "t-branding");
   assert.deepEqual(i.flags, ["overdue", "stale"]);
   assert.equal(hist(b, "t-branding").label, "new");
-  assert.equal(i.quadrant, QUADRANT_FLAG_DONT_ESCALATE);
   assert.deepEqual(i.blocks.map((c) => c.id), ["t-wash"]);
+  assert.deepEqual(i.chain.map((c) => c.id), ["t-b2b"]);
+  assert.equal(i.quadrant, QUADRANT_NEEDS_DECISION_NOW);
+  assert.deepEqual(b.quadrants[QUADRANT_NEEDS_DECISION_NOW].map((x) => x.commitment.id), ["t-sameday", "t-branding"]);
 });
 
 test("w3 office move and returns policy close as done", () => {

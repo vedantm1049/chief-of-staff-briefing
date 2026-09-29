@@ -13,7 +13,7 @@ import {
   isBlockedOnPrincipal,
   parseDueDate,
 } from "../app/engine/normalize.js";
-import { needsDeadlineSet, itemTitle, isStale, isOverdue } from "../app/engine/rules.js";
+import { needsDeadlineSet, itemTitle, isStale, isOverdue, blockedItems, downstreamItems } from "../app/engine/rules.js";
 import { day } from "../app/engine/dates.js";
 
 const TODAY = day(2026, 9, 28);   // a Monday
@@ -134,6 +134,30 @@ test("blocking two open items lifts importance", () => {
   const two = classifyCommitment(blocker, TODAY, [make({}), make({})], new Set());
   assert.ok(!one.importance);
   assert.ok(two.importance && two.importanceReasons.includes("blocks 2 other open items"));
+});
+
+test("the whole chain behind an item counts toward holding up two", () => {
+  // A holds up B directly, and B holds up C: A holds up two open items.
+  const a = make({ description: "Approve budget" });
+  const b = make({ description: "Hire agency", blockedBy: "Approve budget" });
+  const c = make({ description: "Launch campaign", blockedBy: "Hire agency" });
+  const all = [a, b, c];
+  const blocksMap = new Map(all.map((x) => [x, blockedItems(x, all)]));
+  const chain = downstreamItems(blocksMap.get(a), blocksMap);
+  assert.deepEqual(chain, [c]);
+  const classified = classifyCommitment(a, TODAY, blocksMap.get(a), new Set(), {}, chain);
+  assert.ok(classified.importance);
+  assert.deepEqual(classified.importanceReasons, ["holds up 2 open items, 1 directly and 1 down the chain"]);
+  assert.ok(!classifyCommitment(b, TODAY, blocksMap.get(b), new Set(), {}, []).importance);
+});
+
+test("a chain that loops back counts each item once", () => {
+  const a = make({ description: "A", blockedBy: "C" });
+  const b = make({ description: "B", blockedBy: "A" });
+  const c = make({ description: "C", blockedBy: "B" });
+  const all = [a, b, c];
+  const blocksMap = new Map(all.map((x) => [x, blockedItems(x, all)]));
+  assert.deepEqual(downstreamItems(blocksMap.get(a), blocksMap, a).map((x) => x.description), ["C"]);
 });
 
 test("item title is text before first comma", () => {

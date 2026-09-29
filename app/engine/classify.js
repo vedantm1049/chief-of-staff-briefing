@@ -4,7 +4,7 @@ group (data contract section 5).
 Importance is high if any of these hold:
   - the item's area is Flagship tier
   - it is a decision waiting on the principal (the boss named in setup)
-  - it blocks FAN_OUT_THRESHOLD or more other open items
+  - it holds up FAN_OUT_THRESHOLD or more open items, counting the whole chain
   - its area missed a metric target this week (metrics.js)
 
 Urgency is high if any of these hold:
@@ -41,14 +41,20 @@ function days(n) {
 
 /** tiers: { area name: tier }. missedMetrics: Map of area name to the metrics it
 missed this week. */
-export function classifyCommitment(commitment, today, blocks, missedMetrics, tiers = {}) {
+/** blocks: the open items waiting on this one directly. chain: everything
+further down behind them (rules.js: downstreamItems). */
+export function classifyCommitment(commitment, today, blocks, missedMetrics, tiers = {}, chain = []) {
   const c = commitment;
-  const fanOut = blocks.length;
+  const fanOut = blocks.length + chain.length;
 
   const importanceReasons = [];
   if (tiers[c.area] === "Flagship") importanceReasons.push(`${c.area} is Flagship tier`);
   if (c.principalBlocked) importanceReasons.push("waiting on you (the principal) specifically");
-  if (fanOut >= FAN_OUT_THRESHOLD) importanceReasons.push(`blocks ${fanOut} other open items`);
+  if (fanOut >= FAN_OUT_THRESHOLD) {
+    importanceReasons.push(chain.length
+      ? `holds up ${fanOut} open items, ${blocks.length} directly and ${chain.length} down the chain`
+      : `blocks ${fanOut} other open items`);
+  }
   const missed = missedMetrics.get?.(c.area);
   if (missed?.length) importanceReasons.push(`${c.area} missed its ${missed.join(" and ")} target this week`);
 
@@ -82,6 +88,7 @@ export function classifyCommitment(commitment, today, blocks, missedMetrics, tie
     effort,
     fanOut,
     blocks,
+    chain,
     flags: [],              // "decision-pending", "overdue", "stale", "conflict"
     conflictPartners: [],
   };

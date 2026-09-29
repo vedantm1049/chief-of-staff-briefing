@@ -34,6 +34,8 @@ test("ice-cream campaign: overdue, three options, second below the quicker decis
   assert.equal(i.effort, "Medium");
   assert.equal(top()[1], "t-icecream");
   assert.deepEqual(i.blocks.map((c) => c.id), ["t-branding"]);
+  assert.deepEqual(i.chain.map((c) => c.id), ["t-wash", "t-b2b"]);
+  assert.ok(i.importanceReasons.includes("holds up 3 open items, 1 directly and 2 down the chain"));
 });
 
 test("office move: waits on the CEO, not yet urgent, on your radar", () => {
