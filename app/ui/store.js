@@ -94,6 +94,35 @@ export function readNumber(v) {
 }
 const num = readNumber;
 
+/** A Google Sheet published to the web, as the link that returns CSV. Accepts
+the publish link in its usual forms. Throws with a plain reason otherwise. */
+export function sheetCsvLink(text) {
+  const t = String(text ?? "").trim();
+  let url;
+  try {
+    url = new URL(t);
+  } catch {
+    throw new Error("That isn't a web link.");
+  }
+  if (url.protocol !== "https:" || url.hostname !== "docs.google.com" || !url.pathname.startsWith("/spreadsheets/")) {
+    throw new Error("Use the link from Google Sheets: File, Share, Publish to web.");
+  }
+  if (!url.pathname.startsWith("/spreadsheets/d/e/")) {
+    throw new Error("That is the sheet's own link, which needs a sign-in. Use File, Share, Publish to web, and choose CSV.");
+  }
+  url.pathname = url.pathname.replace(/\/pub(html)?$/, "/pub");
+  url.searchParams.set("output", "csv");
+  return url.toString();
+}
+
+function sheetLinkOrBlank(v) {
+  try {
+    return v ? sheetCsvLink(v) : "";
+  } catch {
+    return "";
+  }
+}
+
 export function cleanMetric(m) {
   return {
     id: str(m?.id) || newId("m"),
@@ -113,6 +142,7 @@ export function cleanSetup(s) {
       name: str(a?.name),
       tier: TIERS.includes(a?.tier) ? a.tier : "Core",
       leader: { name: str(a?.leader?.name), email: isEmail(a?.leader?.email) ? a.leader.email.trim() : "" },
+      sheetLink: sheetLinkOrBlank(a?.sheetLink),
       metrics: list(a?.metrics).map(cleanMetric).filter((m) => m.name),
     }))
     .filter((a) => a.name);
@@ -136,6 +166,7 @@ export function cleanPeople(people) {
       email: isEmail(o?.email) ? o.email.trim() : "",
       area: str(o?.area),
       spellings: list(o?.spellings).map(str).filter(Boolean),
+      sheetLink: sheetLinkOrBlank(o?.sheetLink),
     }))
     .filter((o) => o.name);
 }

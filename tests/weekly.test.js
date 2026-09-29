@@ -172,3 +172,23 @@ test("targets can be typed with commas or spaces", () => {
     { name: "Sales", target: "1,200,000", margin: " 5 " }, { name: "Costs", target: "50 000" }] }] } });
   assert.deepEqual(own.setup.areas[0].metrics.map((m) => [m.target, m.margin]), [[1200000, 5], [50000, 5]]);
 });
+
+test("a Google Sheet publish link becomes its CSV link", async () => {
+  const { sheetCsvLink } = await import("../app/ui/store.js");
+  const base = "https://docs.google.com/spreadsheets/d/e/2PACX-abc";
+  assert.equal(sheetCsvLink(`${base}/pubhtml`), `${base}/pub?output=csv`);
+  assert.equal(sheetCsvLink(`${base}/pub?gid=0&single=true&output=csv`), `${base}/pub?gid=0&single=true&output=csv`);
+  assert.equal(sheetCsvLink(`${base}/pub?output=tsv`), `${base}/pub?output=csv`);
+  assert.throws(() => sheetCsvLink("https://docs.google.com/spreadsheets/d/1abc/edit#gid=0"), /needs a sign-in/);
+  assert.throws(() => sheetCsvLink("https://example.com/x.csv"), /Publish to web/);
+  assert.throws(() => sheetCsvLink("not a link"), /isn't a web link/);
+});
+
+test("a published sheet's CSV reads like the Excel sheet", () => {
+  const own = company();
+  const csv = "area,metric,unit,target,better,value,count\nSales,Sales,AED,100000,higher is better,93000,\nSales,Customer rating,out of 5,4.5,higher is better,4.6,40\n";
+  const table = readTables("Sales metrics (Google Sheet).csv", csv)[0];
+  assert.equal(weekly.sheetKind(table.headers), "metrics");
+  const { rows } = weekly.readMetricSheet(table, own.setup);
+  assert.deepEqual(rows.map((r) => [r.metric, r.value, r.count]), [["Sales", "93000", ""], ["Customer rating", "4.6", "40"]]);
+});

@@ -181,6 +181,13 @@ function saveSetup() {
   if (d.cosEmail.trim() && !isEmail(d.cosEmail.trim())) return drawSetup("Your email doesn't look like an email address.");
   for (const a of areas) {
     if (a.leader.email.trim() && !isEmail(a.leader.email.trim())) return drawSetup(`${a.name}'s leader's email doesn't look like an email address.`);
+    if (a.sheetLink?.trim()) {
+      try {
+        a.sheetLink = store.sheetCsvLink(a.sheetLink);
+      } catch (err) {
+        return drawSetup(`${a.name}'s Google Sheet link: ${err.message}`);
+      }
+    }
     for (const m of a.metrics.filter((x) => x.name.trim())) {
       if (String(m.target ?? "").trim() && store.readNumber(m.target) == null) return drawSetup(`${a.name}: ${m.name}'s target should be a number.`);
       if (String(m.margin ?? "").trim() && store.readNumber(m.margin) == null) return drawSetup(`${a.name}: ${m.name}'s margin should be a number.`);
@@ -211,7 +218,7 @@ function setupInput(el) {
   const d = setupDraft;
   let m;
   if (["company", "boss", "areaKind", "cosEmail"].includes(el.name)) d[el.name] = el.value;
-  else if ((m = /^a-(\d+)-(name|tier|leader|leaderEmail)$/.exec(el.name))) {
+  else if ((m = /^a-(\d+)-(name|tier|leader|leaderEmail|sheetLink)$/.exec(el.name))) {
     const a = d.areas[Number(m[1])];
     if (m[2] === "leader") a.leader.name = el.value;
     else if (m[2] === "leaderEmail") a.leader.email = el.value;
@@ -252,7 +259,7 @@ function taskChange(el) {
     if (!t) return;
     t[el.name] = el.value;
     t.last_updated = todayIso();
-  } else if ((m = /^p-(\d+)-(name|email|area)$/.exec(el.name))) {
+  } else if ((m = /^p-(\d+)-(name|email|area|sheetLink)$/.exec(el.name))) {
     const p = o.people[Number(m[1])];
     const value = el.value.trim();
     if (m[2] === "name") {
@@ -262,6 +269,13 @@ function taskChange(el) {
     } else if (m[2] === "email") {
       if (value && !isEmail(value)) { message = "That doesn't look like an email address."; return drawTasks(); }
       p.email = value;
+    } else if (m[2] === "sheetLink") {
+      try {
+        p.sheetLink = value ? store.sheetCsvLink(value) : "";
+      } catch (err) {
+        message = `${p.name}'s Google Sheet link: ${err.message}`;
+        return drawTasks();
+      }
     } else {
       p.area = value;
     }
@@ -331,12 +345,40 @@ function drawWeek() {
   document.title = "This week, Chief of Staff briefing";
 }
 
+/** Every linked Google Sheet, fetched now. Only the sheet is requested from
+Google; nothing from this page is sent. */
+async function fetchLinked() {
+  const o = cur();
+  const links = [
+    ...o.setup.areas.filter((a) => a.sheetLink).map((a) => ({ name: `${a.name} metrics (Google Sheet)`, url: a.sheetLink })),
+    ...o.people.filter((p) => p.sheetLink).map((p) => ({ name: `${p.name} tasks (Google Sheet)`, url: p.sheetLink })),
+  ];
+  message = "Fetching…";
+  drawWeek();
+  const got = [];
+  for (const l of links) {
+    try {
+      const res = await fetch(l.url, { cache: "no-store" });
+      if (!res.ok) throw new Error(String(res.status));
+      got.push({ name: l.name, text: await res.text() });
+    } catch {
+      uploads.push({ name: l.name, error: true,
+        summary: "couldn't be fetched. Check the sheet is still published to the web as CSV, and the link in setup." });
+    }
+  }
+  message = "";
+  return readUploads(got);
+}
+
+/** files: dropped File objects, or { name, text } already fetched. */
 async function readUploads(files) {
   const o = cur();
   for (const f of files) {
     let tables;
     try {
-      tables = readTables(f.name, /\.(xlsx|xls)$/i.test(f.name) ? new Uint8Array(await f.arrayBuffer()) : await f.text());
+      const content = f.text && typeof f.text === "string" ? f.text
+        : /\.(xlsx|xls)$/i.test(f.name) ? new Uint8Array(await f.arrayBuffer()) : await f.text();
+      tables = readTables(f.name.endsWith("(Google Sheet)") ? `${f.name}.csv` : f.name, content);
     } catch {
       uploads.push({ name: f.name, error: true, summary: "couldn't be read. Upload the .xlsx sheets this page made." });
       continue;
@@ -416,6 +458,8 @@ function weekClick(el, ev) {
       return download("weekly-reminder.ics", weekly.reminderIcs(o, cosEmail()), "text/calendar");
     case "apply-upload":
       return applyUpload(uploads[Number(el.dataset.i)]);
+    case "fetch-linked":
+      return fetchLinked();
     default:
   }
 }

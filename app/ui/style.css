@@ -285,3 +285,11 @@ table.metrics tr.row-miss td { background: #fbeee4; }
 .task-fields select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
 .task-fields label:has(select[name="blocked_by"]) { flex: 1 1 200px; }
 .task-fields label:has(select[name="blocked_by"]) select { flex: 1 1 auto; width: 0; }
+.hint.warn { display: block; color: var(--needs); margin-bottom: 10px; }
+.area-card label.sheet-link { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.area-card label.sheet-link input { width: 100%; }
+details.sheet-link { margin: 0 0 8px; font-size: 13px; }
+details.sheet-link summary { cursor: pointer; color: var(--flag); }
+details.sheet-link input { width: 100%; margin: 6px 0 4px; }
+.linked { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 8px 0 12px; font-size: 14px; }
+.linked button { font-size: 13px; padding: 5px 12px; border: 1px solid var(--ink); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; }

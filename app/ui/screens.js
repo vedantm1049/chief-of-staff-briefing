@@ -75,6 +75,8 @@ function areaCard(a, i, kind) {
         <input name="a-${i}-leader" value="${esc(a.leader.name)}" placeholder="Leader's name" aria-label="Leader's name">
         <input name="a-${i}-leaderEmail" type="email" value="${esc(a.leader.email)}" placeholder="Leader's email" aria-label="Leader's email">
       </div>
+      <label class="mini sheet-link">Or read their numbers from a Google Sheet (optional)
+        <input name="a-${i}-sheetLink" value="${esc(a.sheetLink ?? "")}" placeholder="Publish-to-web link, as CSV"></label>
       <p class="hint">Metrics the leader reports each week, each with a weekly target.</p>
       ${a.metrics.length ? `<ul class="metric-rows">${a.metrics.map((m, mi) => metricRow(i, mi, m)).join("")}</ul>` : ""}
       <div class="chips">${chips}<button type="button" class="chip-add" data-act="add-metric" data-a="${i}">+ Another metric</button></div>
@@ -104,6 +106,9 @@ export function setupScreen(draft, { firstTime, message, scope }) {
 
     <fieldset>
       <legend>Your ${esc(kind)}s: who leads each, how much it matters, what it reports</legend>
+      <p class="hint warn">A leader can keep their metrics sheet in Google Sheets instead of sending a file. To link
+      it, they publish it to the web (File, Share, Publish to web, CSV). Publishing makes the sheet readable by
+      anyone who has the link. For confidential numbers, have them send the Excel file instead.</p>
       <ul class="tier-help">${TIERS.map(([t, d]) => `<li><strong>${t}</strong>: ${d}</li>`).join("")}</ul>
       <datalist id="metric-names">${METRIC_SUGGESTIONS.map((m) => `<option value="${esc(m.name)}">`).join("")}</datalist>
       <ul class="area-cards">${draft.areas.map((a, i) => areaCard(a, i, kind)).join("")}</ul>
@@ -156,6 +161,11 @@ export function tasksScreen(own, { message, matchQuestion, scope }) {
         <select name="p-${i}-area" aria-label="Their ${esc(setup.areaKind)}">${opts(["", ...setup.areas.map((a) => a.name)], p.area, (v) => v || `(${setup.areaKind})`)}</select>
         <button type="button" class="link" data-act="remove-person" data-p="${i}">Remove</button>
       </div>
+      <details class="sheet-link"${p.sheetLink ? " open" : ""}><summary>${p.sheetLink ? "Tasks read from a Google Sheet" : "Read their tasks from a Google Sheet"}</summary>
+        <input name="p-${i}-sheetLink" value="${esc(p.sheetLink ?? "")}" placeholder="Publish-to-web link, as CSV" aria-label="Google Sheet link">
+        <span class="hint warn">Their tasks sheet, uploaded to Google Sheets and published to the web as CSV.
+        Anyone with the link can read it; for confidential work, use the Excel file.</span>
+      </details>
       ${mine.length ? `<ul class="task-rows">${mine.map((t) => taskRow(t, setup.areas, people, titles)).join("")}</ul>` : '<p class="meta">No tasks yet.</p>'}
       <button type="button" data-act="add-task" data-p="${i}">Add a task for ${esc(p.name.split(" ")[0])}</button>
     </li>`;
@@ -194,6 +204,10 @@ export function sameNameQuestion(name, matches) {
 }
 
 // --- This week --------------------------------------------------------------------
+
+function linkedCount(own) {
+  return own.setup.areas.filter((a) => a.sheetLink).length + own.people.filter((p) => p.sheetLink).length;
+}
 
 /** week: the current week or null. uploads: files dropped this visit, read and checked. */
 export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, googleLink, scope }) {
@@ -277,6 +291,10 @@ export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, goo
     </div>
 
     <h2>3. Upload what came back</h2>
+    ${linkedCount(own) ? `<div class="linked">
+      <span>${plural(linkedCount(own), "sheet")} ${linkedCount(own) === 1 ? "is" : "are"} linked from Google Sheets.</span>
+      <button type="button" data-act="fetch-linked">Fetch linked sheets</button>
+    </div>` : ""}
     <div class="drop" data-drop>
       <p><strong>Drop the returned sheets here</strong> or <label class="file-pick">choose files
         <input type="file" name="files" multiple accept=".xlsx,.xls,.csv"></label></p>
