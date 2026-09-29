@@ -34,6 +34,7 @@ The company (Wasla Group), people and numbers are fictional and hand-designed. I
 - Week over week: an item's identity is its task id when it has one (tasks kept on the page), otherwise its area plus its title (text before the first comma). Each flag is marked new, back after a gap, or Nth week running. Closed items are done, cleared (with the reason) or removed without being marked done. Due dates that keep moving are shown.
 - A name missing from the owner table is reported at the top of the page, never guessed. Adding a person whose name looks like someone's already there asks "same person as...?".
 - Ticking a task done or changing its date on the CEO view changes the task itself, on the current week. Past weeks are a record.
+- A decision waiting on the boss takes the boss's answer, recorded (never made) by the page: yes or a choice, the owner carries it out; no, it closes with the reason; a question, it waits on the owner until they answer. Closed as "Decided" in history. waiting_on, when filled in, settles who a decision waits on.
 - The CEO decides, the Chief of Staff maintains the page. Notes (from the CEO or the Chief of Staff) stay with an item across weeks. "Draft email" opens a mailto draft in the reader's own email app, always copying the Chief of Staff (address set on the page); the page never sends anything and the draft holds only the note and the card's facts. Replies are pasted in by hand. Notes never change a score.
 
 ## Open questions for Vedant

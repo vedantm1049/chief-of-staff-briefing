@@ -39,9 +39,15 @@ test("week one is a baseline", () => {
 
 // --- Week 2 ------------------------------------------------------------------------
 
-test("w2 closed as done: visa, rider contract, seller contract, board pack", () => {
+test("w2 the visa block is decided: the CEO said yes", () => {
+  const x = closed(weeks[W2], "t-visa");
+  assert.equal(x.outcome, "decided");
+  assert.equal(x.detail, "Yes, go ahead, 29 Sep.");
+});
+
+test("w2 closed as done: rider contract, seller contract, board pack", () => {
   const b = weeks[W2];
-  for (const id of ["t-visa", "t-riders", "t-seller", "t-board"]) assert.equal(closed(b, id).outcome, "done", id);
+  for (const id of ["t-riders", "t-seller", "t-board"]) assert.equal(closed(b, id).outcome, "done", id);
 });
 
 test("w2 hiring, unblocked and touched, is not flagged", () => {
@@ -88,9 +94,10 @@ test("w2 Minutes' delivery time misses again", () => {
 
 // --- Week 3 ------------------------------------------------------------------------
 
-test("w3 the ice-cream campaign closes as done after two weeks", () => {
+test("w3 the ice-cream campaign is decided after two weeks", () => {
   const x = closed(weeks[W3], "t-icecream");
-  assert.ok(x.outcome === "done" && x.weeksFlagged === 2);
+  assert.ok(x.outcome === "decided" && x.weeksFlagged === 2);
+  assert.equal(x.detail, "Chose: option two, the smaller launch, 6 Oct.");
 });
 
 test("w3 branding surfaces once its blocker is done, important for the chain behind it", () => {
@@ -104,8 +111,9 @@ test("w3 branding surfaces once its blocker is done, important for the chain beh
   assert.deepEqual(b.quadrants[QUADRANT_NEEDS_DECISION_NOW].map((x) => x.commitment.id), ["t-sameday", "t-branding"]);
 });
 
-test("w3 office move and returns policy close as done", () => {
-  for (const id of ["t-office", "t-returns"]) assert.equal(closed(weeks[W3], id).outcome, "done");
+test("w3 the office move is decided; the returns policy, decided by Legal, is done", () => {
+  assert.equal(closed(weeks[W3], "t-office").outcome, "decided");
+  assert.equal(closed(weeks[W3], "t-returns").outcome, "done");
 });
 
 test("w3 the laundry pilot is removed, not done", () => {

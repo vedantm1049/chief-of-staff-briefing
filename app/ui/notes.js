@@ -14,7 +14,7 @@ import { fmtLong, parseIsoDate } from "../engine/dates.js";
 
 export const NOTE_FROM = ["CEO", "Chief of Staff"];
 
-export function newNote({ taskId = "", area, title, label, owner, from, text, week }) {
+export function newNote({ taskId = "", area, title, label, owner, from, text, week, question = false }) {
   return {
     id: `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     taskId, area, title, label, owner,
@@ -23,6 +23,7 @@ export function newNote({ taskId = "", area, title, label, owner, from, text, we
     week,
     at: new Date().toISOString(),
     emailed: false,
+    question,               // the CEO sent it back to the owner as a question
     reply: null,
   };
 }
@@ -52,6 +53,7 @@ export function cleanNotes(list) {
       from: NOTE_FROM.includes(n.from) ? n.from : NOTE_FROM[0],
       text: n.text, week: n.week, at: str(n.at),
       emailed: n.emailed === true,
+      question: n.question === true,
       reply: n.reply && typeof n.reply.text === "string" ? { text: n.reply.text, at: str(n.reply.at) } : null,
     }));
 }

@@ -61,7 +61,8 @@ People who own work: the five leaders, plus Zayd (Minutes), Raj Mehta (Wasla.com
 
 ## Week 2, ending 2026-10-04 (scored 2026-10-05)
 
-- **Closed as done**: the visa block (the CEO approved the fines), the rider agency contract, the seller contract and the board pack.
+- **Decided**: the visa block. The CEO said yes on 29 Sep, recorded on the page, and the fines were paid. Closed as "Decided: Yes, go ahead".
+- **Closed as done**: the rider agency contract, the seller contract and the board pack.
 - **Hiring for Wasla Minutes**: unblocked and touched on 2 Oct, so not flagged.
 - **The office move**: waiting 10 days now, urgent. It moves up to "needs decision now", first as the quickest decision, 2nd week running.
 - **The ice-cream campaign**: still waiting on the CEO, 2nd week running, still holding up the branding.
@@ -72,9 +73,9 @@ People who own work: the five leaders, plus Zayd (Minutes), Raj Mehta (Wasla.com
 
 ## Week 3, ending 2026-10-11 (scored 2026-10-12)
 
-- **The ice-cream campaign**: the CEO chose option two on 7 Oct. Closed as done after 2 weeks flagged.
+- **The ice-cream campaign**: the CEO chose option two, the smaller launch, on 6 Oct. Closed as "Decided" after 2 weeks flagged.
 - **Branding for Wasla Wash**: with its blocker done, its 30 days untouched and 16 days overdue count. It holds up two open items, the Wasla Wash launch and, behind it, the Wasla Business prototype, which makes it important although Central is Core. New, "needs decision now", after the same-day delivery decision.
-- **The office move and the returns policy**: closed as done.
+- **The office move**: the CEO said yes. Closed as "Decided". **The returns policy**: Legal approved it, not the CEO, so it closes as done.
 - **The laundry pilot**: deleted from the tracker, never marked done. Closed as "removed, not done".
 - **The brand refresh workshop**: finally has a date, 22 Oct. Closed as cleared, "deadline set for 22 Oct".
 - **Same-day delivery**: waiting 10 days, "needs decision now", 2nd week running.

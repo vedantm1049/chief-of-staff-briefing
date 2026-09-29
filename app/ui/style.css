@@ -293,3 +293,17 @@ details.sheet-link summary { cursor: pointer; color: var(--flag); }
 details.sheet-link input { width: 100%; margin: 6px 0 4px; }
 .linked { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 8px 0 12px; font-size: 14px; }
 .linked button { font-size: 13px; padding: 5px 12px; border: 1px solid var(--ink); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; }
+
+/* The boss's answer on a decision card */
+.decide { align-items: center; }
+.decide-label { font-weight: 700; color: var(--ink); }
+button.decide-yes { font-size: 12px; padding: 4px 12px; border: 1px solid var(--ok); border-radius: 6px; background: var(--ok); color: #fff; cursor: pointer; }
+.decide-more summary { cursor: pointer; color: var(--flag); }
+.decide-more form, .decide-inline { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.decide-inline { margin-top: 0; }
+.decide input, .decide textarea { font: inherit; font-size: 12px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--ink); min-width: 0; }
+.decide textarea { width: 100%; }
+.decide form button { font-size: 12px; padding: 4px 10px; border: 1px solid var(--ink); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; }
+.decided { margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--ok); }
+.notice { margin-top: 10px; padding: 10px 14px; font-size: 14px; background: #eef5ef; border: 1px solid #c7dfcc; border-radius: var(--radius); display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.chip-decided { background: var(--flag); }

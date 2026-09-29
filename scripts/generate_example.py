@@ -77,7 +77,8 @@ RIDER_APP = "Roll out the new rider app in Sharjah, huge momentum, on the verge 
 
 def task(id, area, text, owner, due, status, updated, waiting_on="", blocked_by="", decision=""):
     return {"id": id, "area": area, "task": text, "owner": owner, "due_date": due, "status": status,
-            "waiting_on": waiting_on, "blocked_by": blocked_by, "decision_type": decision, "last_updated": updated}
+            "waiting_on": waiting_on, "blocked_by": blocked_by, "decision_type": decision, "last_updated": updated,
+            "decision": "", "decided_on": ""}
 
 
 def week1():
@@ -131,7 +132,9 @@ def drop(tasks, *ids):
 
 def week2():
     t = week1()
-    edit(t, "t-visa", task=f"{VISA}, fines paid", status="Done", last_updated="2026-09-30")
+    # The CEO's answers, as the Chief of Staff recorded them on the page.
+    edit(t, "t-visa", task=f"{VISA}, fines paid", status="Done", last_updated="2026-09-30",
+         waiting_on="", decision="Yes, go ahead", decided_on="2026-09-29")
     edit(t, "t-hiring", last_updated="2026-10-02")
     edit(t, "t-seller", status="Done", last_updated="2026-09-30")
     edit(t, "t-board", status="Done", last_updated="2026-10-01")
@@ -148,8 +151,9 @@ def week2():
 def week3():
     # Starting a week drops what was done the week before (weekly.startWeek).
     t = drop(week2(), "t-visa", "t-seller", "t-board", "t-books", "t-riders")
-    edit(t, "t-icecream", task=f"{ICE_CREAM}, CEO chose option two", status="Done", last_updated="2026-10-07")
-    edit(t, "t-office", status="Done", last_updated="2026-10-06")
+    edit(t, "t-icecream", task=f"{ICE_CREAM}, launched", status="Done", last_updated="2026-10-07",
+         waiting_on="", decision="Chose: option two, the smaller launch", decided_on="2026-10-06")
+    edit(t, "t-office", status="Done", last_updated="2026-10-06", waiting_on="", decision="Yes, go ahead", decided_on="2026-10-06")
     edit(t, "t-returns", task="Change the returns policy, Legal approved", status="Done", last_updated="2026-10-08")
     edit(t, "t-workshop", due_date="2026-10-22", last_updated="2026-10-09")
     edit(t, "t-hiring", last_updated="2026-10-09")

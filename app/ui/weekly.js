@@ -11,7 +11,8 @@ import { fmtLong, parseIsoDate, toIso } from "../engine/dates.js";
 import { cleanTasks, newId, TASK_COLUMNS } from "./store.js";
 
 export const METRIC_SHEET_COLUMNS = ["area", "metric", "unit", "target", "better", "value", "count"];
-export const TASK_SHEET_COLUMNS = TASK_COLUMNS;
+// A person's sheet: every task column except the CEO's recorded decision.
+export const TASK_SHEET_COLUMNS = TASK_COLUMNS.filter((c) => c !== "decision" && c !== "decided_on");
 const DONE = new Set(["done", "complete", "completed", "closed", "resolved"]);
 
 const firstName = (name) => String(name ?? "").trim().split(/\s+/)[0] || "there";
@@ -92,7 +93,7 @@ export function metricSheet(area) {
   return workbook(`Metrics`, METRIC_SHEET_COLUMNS, rows, [
     `${area.name}: last week's numbers.`,
     "Fill in the value column for each metric, for the week just ended. Leave the other columns as they are.",
-    "count is only needed where a number rests on responses, like a customer rating: how many ratings it is based on.",
+    "count: where a number rests on responses, like a customer rating, how many ratings it is based on. Without it, that number can't be judged.",
     "Send the file back to the Chief of Staff by Wednesday. The same file works every week.",
   ], [18, 26, 12, 12, 18, 12, 10]);
 }

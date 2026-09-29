@@ -12,9 +12,9 @@ Screens, by the address after #:
 */
 import { buildHistory } from "../engine/history.js";
 import { METRIC_SUGGESTIONS } from "../engine/config.js";
-import { toIso } from "../engine/dates.js";
+import { toIso, parseIsoDate } from "../engine/dates.js";
 import * as store from "./store.js";
-import { newNote, isEmail } from "./notes.js";
+import { newNote, isEmail, emailDraft } from "./notes.js";
 import { renderPage, esc, link } from "./render.js";
 import { intro, setupScreen, tasksScreen, sameNameQuestion, weekScreen } from "./screens.js";
 import { readTables, likelyMatches } from "./intake.js";
@@ -26,6 +26,7 @@ const ws = { example: null, own: store.loadWorkspace("own") ?? store.cleanWorksp
 
 let route = { scope: "own", screen: "", week: null };
 let briefings = [];
+let notice = null;           // after the boss answers: what was recorded, and a draft to the owner
 let message = "";
 let setupDraft = null;
 let matchQuestion = "";
@@ -37,7 +38,11 @@ const hasSetup = () => cur().setup.areas.length > 0;
 const hasWeek = () => cur().weeks.length > 0;
 const to = (screen, week) => link(route.scope, screen, week);
 
+/** Today, for stamping a change. The example lives in its own weeks, so there
+it is the Monday its current week is read; for a real company, today. */
 function todayIso() {
+  const current = route.scope === "example" ? ws.example?.weeks.at(-1) : null;
+  if (current) return toIso(parseIsoDate(current.weekEnding) + 1);
   const d = new Date();
   return toIso(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
 }
@@ -90,7 +95,7 @@ async function show() {
   route = parseRoute();
   const s = route.screen;
   if (s !== previous.screen || route.scope !== previous.scope) {
-    message = ""; matchQuestion = ""; uploads = [];
+    message = ""; matchQuestion = ""; uploads = []; notice = null;
     window.scrollTo(0, 0);
   }
   if (route.scope === "example" && !(await ensureExample())) return;
@@ -129,7 +134,7 @@ function draw() {
   const current = briefings.find((b) => toIso(b.weekEnding) === week);
   root.innerHTML = renderPage({
     scope: route.scope, setup: cur().setup, briefings, current,
-    notes: cur().notes, cosEmail: cosEmail(), saved, message,
+    notes: cur().notes, cosEmail: cosEmail(), saved, message, notice,
   });
   document.title = `${cur().setup.company || "Your company"} briefing, week ending ${week}`;
 }
@@ -397,7 +402,12 @@ async function readUploads(files) {
       const filled = read.rows.filter((r) => r.value !== "").length;
       uploads.push({ name: f.name, kind: "metrics", read,
         summary: `numbers for ${read.areas.join(", ")}: ${filled} of ${read.rows.length} filled in.`,
-        detail: read.rows.map((r) => `${r.metric}: ${r.value || "blank"}${r.count ? ` (from ${r.count})` : ""}`) });
+        detail: read.rows.map((r) => {
+          const def = o.setup.areas.find((a) => a.name === r.area)?.metrics.find((m) => m.name.toLowerCase() === r.metric.toLowerCase());
+          const missingCount = def?.minCount && r.value !== "" && !r.count;
+          return `${r.metric}: ${r.value || "blank"}${r.count ? ` (from ${r.count})` : ""}${missingCount
+            ? `. No count given: it needs at least ${def.minCount} to be judged, so it will show as too few to judge.` : ""}`;
+        }) });
     } else {
       const diff = weekly.diffTaskSheet(o, table, todayIso());
       if (!diff.person) {
@@ -528,6 +538,12 @@ root.addEventListener("submit", (ev) => {
     return drawWeek();
   }
   if (!onBriefing()) return;
+  if (kind.startsWith("decide-")) {
+    const words = String(f.get("text") ?? "").trim();
+    const answer = { "decide-no": words ? `No: ${words}` : "No", "decide-chose": `Chose: ${words}`,
+      "decide-decided": `Decided: ${words}`, "decide-ask": null }[kind];
+    return kind === "decide-ask" ? askQuestion(form.dataset, words) : recordDecision(form.dataset.id, answer);
+  }
   const text = String(f.get("text") ?? "").trim();
   if (!text) return;
   if (kind === "note") {
@@ -535,10 +551,59 @@ root.addEventListener("submit", (ev) => {
     cur().notes = [...cur().notes, newNote({ taskId, area, title, label, owner, from: String(f.get("from")), text, week: shownWeek() })];
     commit("", false);
   } else if (kind === "reply") {
-    cur().notes = cur().notes.map((n) => (n.id === form.dataset.id ? { ...n, reply: { text, at: new Date().toISOString() } } : n));
+    const note = cur().notes.find((n) => n.id === form.dataset.id);
+    cur().notes = cur().notes.map((n) => (n === note ? { ...n, reply: { text, at: new Date().toISOString() } } : n));
+    // The answer to the boss's question: the decision is back with the boss.
+    const t = note?.question && cur().tasks.find((x) => x.id === note.taskId);
+    if (t && t.waiting_on === t.owner) {
+      t.waiting_on = cur().setup.boss;
+      t.last_updated = todayIso();
+      return commit(`${t.owner.split(" ")[0]}'s answer is in: the decision is back with the ${cur().setup.boss}.`);
+    }
     commit("", false);
   }
 });
+
+/** A draft to the owner telling them what the boss said. */
+function draftToOwner(t, text) {
+  const email = cur().people.find((p) => p.name === t.owner)?.email;
+  const item = briefings.at(-1)?.allCommitments.find((c) => c.id === t.id);
+  if (!email || !item) return null;
+  return emailDraft({ to: email, cc: cosEmail(), owner: t.owner, item, note: { from: "CEO", text },
+    weekEnding: toIso(briefings.at(-1).weekEnding), flags: [], areaKind: cur().setup.areaKind });
+}
+
+/** The boss's answer, recorded. Yes or a choice: the owner carries it out.
+No: it closes, with the reason. */
+function recordDecision(id, answer) {
+  const t = cur().tasks.find((x) => x.id === id);
+  if (!t) return;
+  const href = draftToOwner(t, answer);
+  t.decision = answer;
+  t.decided_on = todayIso();
+  t.last_updated = todayIso();
+  t.waiting_on = "";
+  t.status = answer.startsWith("No") ? "Done" : "In progress";
+  const who = t.owner.split(" ")[0];
+  notice = { text: t.status === "Done" ? `Recorded: ${answer}. It closes.` : `Recorded: ${answer}. Now with ${who} to carry out.`,
+    href, label: `Draft email to ${who}` };
+  commit("");
+}
+
+/** The boss sends it back with a question: it waits on the owner until they answer. */
+function askQuestion(d, question) {
+  const t = cur().tasks.find((x) => x.id === d.id);
+  if (!t || !question) return;
+  cur().notes = [...cur().notes, newNote({ taskId: t.id, area: t.area, title: d.title, label: d.label, owner: t.owner,
+    from: "CEO", text: question, week: shownWeek(), question: true })];
+  const href = draftToOwner(t, question);
+  t.waiting_on = t.owner;
+  t.last_updated = todayIso();
+  const who = t.owner.split(" ")[0];
+  notice = { text: `Sent back to ${who}. It waits on them until their answer is added to the question below.`,
+    href, label: `Draft email to ${who}` };
+  commit("");
+}
 
 root.addEventListener("click", (ev) => {
   const draft = ev.target.closest('a[data-act="email"]');
@@ -566,6 +631,7 @@ root.addEventListener("click", (ev) => {
   if (route.screen === "week") return weekClick(el, ev);
   if (!onBriefing()) return;
 
+  if (act === "decide-yes") return recordDecision(el.dataset.id, "Yes, go ahead");
   if (el.dataset.week) {
     go(to("briefing", el.dataset.week));
     window.scrollTo(0, 0);

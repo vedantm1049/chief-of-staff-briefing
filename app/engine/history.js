@@ -93,6 +93,11 @@ export function buildHistory(weeks, options = {}) {
 }
 
 function closedItem(before, now, weeksFlagged) {
+  if (now?.decision && before.decisionPending) {
+    const when = now.decidedOn != null ? `, ${fmtShort(now.decidedOn)}` : "";
+    const next = now.status === "done" ? "" : ` Now with ${now.owner} to carry out.`;
+    return { before, now, outcome: "decided", detail: `${now.decision}${when}.${next}`, weeksFlagged };
+  }
   if (now == null) {
     return { before, now: null, outcome: "dropped",
       detail: "Removed from the tracker without being marked done.", weeksFlagged };

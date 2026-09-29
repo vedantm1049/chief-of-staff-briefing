@@ -94,14 +94,17 @@ export function isDecisionPending(status, description) {
   return CLOSED_TRIGGER_PATTERNS.some((p) => p.test(low));
 }
 
-/** Is this decision waiting on the boss (the principal)? The waiting_on
-column first, then the task text. The boss's title is matched as whole
-words, so "proceeds" or a loan's "principal" never count for a CEO. */
+/** Is this decision waiting on the boss (the principal)? When waiting_on
+says who it waits on, that settles it, whatever the task text says: a
+question the CEO sent back to the owner waits on the owner. Only when
+waiting_on is blank is the task text read. The boss's title is matched as
+whole words, so "proceeds" or a loan's "principal" never count for a CEO. */
 export function isBlockedOnPrincipal(description, waitingOn, boss = "CEO") {
   const words = String(boss).trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
   if (!words) return false;
   const pattern = new RegExp(`(^|[^a-z0-9])${words}($|[^a-z0-9])`);
-  return pattern.test(String(waitingOn ?? "").toLowerCase()) || pattern.test(String(description ?? "").toLowerCase());
+  const who = String(waitingOn ?? "").trim().toLowerCase();
+  return who ? pattern.test(who) : pattern.test(String(description ?? "").toLowerCase());
 }
 
 /** Return [day number or null, isApproximate].

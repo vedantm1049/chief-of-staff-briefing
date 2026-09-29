@@ -260,7 +260,9 @@
       "waiting_on": "",
       "blocked_by": "Clear the visa block with immigration",
       "decision_type": "",
-      "last_updated": "2026-10-16"
+      "last_updated": "2026-10-16",
+      "decision": "",
+      "decided_on": ""
     },
     {
       "id": "t-branding",
@@ -272,7 +274,9 @@
       "waiting_on": "",
       "blocked_by": "Finish and launch the ice-cream summer campaign",
       "decision_type": "",
-      "last_updated": "2026-10-14"
+      "last_updated": "2026-10-14",
+      "decision": "",
+      "decided_on": ""
     },
     {
       "id": "t-workshop",
@@ -284,7 +288,9 @@
       "waiting_on": "",
       "blocked_by": "",
       "decision_type": "",
-      "last_updated": "2026-10-09"
+      "last_updated": "2026-10-09",
+      "decision": "",
+      "decided_on": ""
     },
     {
       "id": "t-wash",
@@ -296,7 +302,9 @@
       "waiting_on": "",
       "blocked_by": "Finish branding for Wasla Wash",
       "decision_type": "",
-      "last_updated": "2026-10-16"
+      "last_updated": "2026-10-16",
+      "decision": "",
+      "decided_on": ""
     },
     {
       "id": "t-b2b",
@@ -308,7 +316,9 @@
       "waiting_on": "",
       "blocked_by": "Launch Wasla Wash",
       "decision_type": "",
-      "last_updated": "2026-09-22"
+      "last_updated": "2026-09-22",
+      "decision": "",
+      "decided_on": ""
     },
     {
       "id": "t-payments",
@@ -320,7 +330,9 @@
       "waiting_on": "",
       "blocked_by": "",
       "decision_type": "",
-      "last_updated": "2026-10-15"
+      "last_updated": "2026-10-15",
+      "decision": "",
+      "decided_on": ""
     },
     {
       "id": "t-riderapp",
@@ -332,7 +344,9 @@
       "waiting_on": "",
       "blocked_by": "",
       "decision_type": "",
-      "last_updated": "2026-09-12"
+      "last_updated": "2026-09-12",
+      "decision": "",
+      "decided_on": ""
     },
     {
       "id": "t-menu",
@@ -344,7 +358,9 @@
       "waiting_on": "",
       "blocked_by": "",
       "decision_type": "",
-      "last_updated": "2026-10-15"
+      "last_updated": "2026-10-15",
+      "decision": "",
+      "decided_on": ""
     },
     {
       "id": "t-sameday",
@@ -356,7 +372,9 @@
       "waiting_on": "CEO",
       "blocked_by": "",
       "decision_type": "Pick an option",
-      "last_updated": "2026-10-02"
+      "last_updated": "2026-10-02",
+      "decision": "",
+      "decided_on": ""
     },
     {
       "id": "t-provider",
@@ -368,7 +386,9 @@
       "waiting_on": "CEO",
       "blocked_by": "",
       "decision_type": "Yes or no",
-      "last_updated": "2026-10-08"
+      "last_updated": "2026-10-08",
+      "decision": "",
+      "decided_on": ""
     },
     {
       "id": "t-guidelines",
@@ -380,7 +400,9 @@
       "waiting_on": "",
       "blocked_by": "",
       "decision_type": "",
-      "last_updated": "2026-10-16"
+      "last_updated": "2026-10-16",
+      "decision": "",
+      "decided_on": ""
     }
   ],
   "weeks": [
@@ -397,7 +419,9 @@
           "waiting_on": "CEO",
           "blocked_by": "",
           "decision_type": "Yes or no",
-          "last_updated": "2026-09-21"
+          "last_updated": "2026-09-21",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-office",
@@ -409,7 +433,9 @@
           "waiting_on": "CEO",
           "blocked_by": "",
           "decision_type": "Yes or no",
-          "last_updated": "2026-09-25"
+          "last_updated": "2026-09-25",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-hiring",
@@ -421,7 +447,9 @@
           "waiting_on": "",
           "blocked_by": "Clear the visa block with immigration",
           "decision_type": "",
-          "last_updated": "2026-09-15"
+          "last_updated": "2026-09-15",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-icecream",
@@ -433,7 +461,9 @@
           "waiting_on": "CEO",
           "blocked_by": "",
           "decision_type": "Pick an option",
-          "last_updated": "2026-09-10"
+          "last_updated": "2026-09-10",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-branding",
@@ -445,7 +475,9 @@
           "waiting_on": "",
           "blocked_by": "Finish and launch the ice-cream summer campaign",
           "decision_type": "",
-          "last_updated": "2026-09-12"
+          "last_updated": "2026-09-12",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-workshop",
@@ -457,7 +489,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-20"
+          "last_updated": "2026-09-20",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-seller",
@@ -469,7 +503,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-24"
+          "last_updated": "2026-09-24",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-board",
@@ -481,7 +517,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-23"
+          "last_updated": "2026-09-23",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-books",
@@ -493,7 +531,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-26"
+          "last_updated": "2026-09-26",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-wash",
@@ -505,7 +545,9 @@
           "waiting_on": "",
           "blocked_by": "Finish branding for Wasla Wash",
           "decision_type": "",
-          "last_updated": "2026-09-22"
+          "last_updated": "2026-09-22",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-b2b",
@@ -517,7 +559,9 @@
           "waiting_on": "",
           "blocked_by": "Launch Wasla Wash",
           "decision_type": "",
-          "last_updated": "2026-09-22"
+          "last_updated": "2026-09-22",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-laundry",
@@ -529,7 +573,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-05"
+          "last_updated": "2026-09-05",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-stores",
@@ -541,7 +587,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-26"
+          "last_updated": "2026-09-26",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-riders",
@@ -553,7 +601,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-23"
+          "last_updated": "2026-09-23",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-returns",
@@ -565,7 +615,9 @@
           "waiting_on": "Legal",
           "blocked_by": "",
           "decision_type": "Yes or no",
-          "last_updated": "2026-09-25"
+          "last_updated": "2026-09-25",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-payments",
@@ -577,7 +629,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-26"
+          "last_updated": "2026-09-26",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-riderapp",
@@ -589,7 +643,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-12"
+          "last_updated": "2026-09-12",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-menu",
@@ -601,7 +657,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-25"
+          "last_updated": "2026-09-25",
+          "decision": "",
+          "decided_on": ""
         }
       ],
       "metrics": [
@@ -750,10 +808,12 @@
           "owner": "Reem Qassim",
           "due_date": "2026-10-01",
           "status": "Done",
-          "waiting_on": "CEO",
+          "waiting_on": "",
           "blocked_by": "",
           "decision_type": "Yes or no",
-          "last_updated": "2026-09-30"
+          "last_updated": "2026-09-30",
+          "decision": "Yes, go ahead",
+          "decided_on": "2026-09-29"
         },
         {
           "id": "t-office",
@@ -765,7 +825,9 @@
           "waiting_on": "CEO",
           "blocked_by": "",
           "decision_type": "Yes or no",
-          "last_updated": "2026-09-25"
+          "last_updated": "2026-09-25",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-hiring",
@@ -777,7 +839,9 @@
           "waiting_on": "",
           "blocked_by": "Clear the visa block with immigration",
           "decision_type": "",
-          "last_updated": "2026-10-02"
+          "last_updated": "2026-10-02",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-icecream",
@@ -789,7 +853,9 @@
           "waiting_on": "CEO",
           "blocked_by": "",
           "decision_type": "Pick an option",
-          "last_updated": "2026-09-10"
+          "last_updated": "2026-09-10",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-branding",
@@ -801,7 +867,9 @@
           "waiting_on": "",
           "blocked_by": "Finish and launch the ice-cream summer campaign",
           "decision_type": "",
-          "last_updated": "2026-09-12"
+          "last_updated": "2026-09-12",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-workshop",
@@ -813,7 +881,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-20"
+          "last_updated": "2026-09-20",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-seller",
@@ -825,7 +895,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-30"
+          "last_updated": "2026-09-30",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-board",
@@ -837,7 +909,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-10-01"
+          "last_updated": "2026-10-01",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-books",
@@ -849,7 +923,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-10-03"
+          "last_updated": "2026-10-03",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-wash",
@@ -861,7 +937,9 @@
           "waiting_on": "",
           "blocked_by": "Finish branding for Wasla Wash",
           "decision_type": "",
-          "last_updated": "2026-09-22"
+          "last_updated": "2026-09-22",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-b2b",
@@ -873,7 +951,9 @@
           "waiting_on": "",
           "blocked_by": "Launch Wasla Wash",
           "decision_type": "",
-          "last_updated": "2026-09-22"
+          "last_updated": "2026-09-22",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-laundry",
@@ -885,7 +965,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-05"
+          "last_updated": "2026-09-05",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-stores",
@@ -897,7 +979,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-10-02"
+          "last_updated": "2026-10-02",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-riders",
@@ -909,7 +993,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-10-01"
+          "last_updated": "2026-10-01",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-returns",
@@ -921,7 +1007,9 @@
           "waiting_on": "Legal",
           "blocked_by": "",
           "decision_type": "Yes or no",
-          "last_updated": "2026-09-25"
+          "last_updated": "2026-09-25",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-payments",
@@ -933,7 +1021,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-10-02"
+          "last_updated": "2026-10-02",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-riderapp",
@@ -945,7 +1035,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-12"
+          "last_updated": "2026-09-12",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-menu",
@@ -957,7 +1049,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-10-01"
+          "last_updated": "2026-10-01",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-sameday",
@@ -969,7 +1063,9 @@
           "waiting_on": "CEO",
           "blocked_by": "",
           "decision_type": "Pick an option",
-          "last_updated": "2026-10-02"
+          "last_updated": "2026-10-02",
+          "decision": "",
+          "decided_on": ""
         }
       ],
       "metrics": [
@@ -1118,10 +1214,12 @@
           "owner": "Reem Qassim",
           "due_date": "2026-10-09",
           "status": "Done",
-          "waiting_on": "CEO",
+          "waiting_on": "",
           "blocked_by": "",
           "decision_type": "Yes or no",
-          "last_updated": "2026-10-06"
+          "last_updated": "2026-10-06",
+          "decision": "Yes, go ahead",
+          "decided_on": "2026-10-06"
         },
         {
           "id": "t-hiring",
@@ -1133,19 +1231,23 @@
           "waiting_on": "",
           "blocked_by": "Clear the visa block with immigration",
           "decision_type": "",
-          "last_updated": "2026-10-09"
+          "last_updated": "2026-10-09",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-icecream",
           "area": "Wasla Central",
-          "task": "Finish and launch the ice-cream summer campaign, CEO chose option two",
+          "task": "Finish and launch the ice-cream summer campaign, launched",
           "owner": "Priya Nair",
           "due_date": "2026-09-15",
           "status": "Done",
-          "waiting_on": "CEO",
+          "waiting_on": "",
           "blocked_by": "",
           "decision_type": "Pick an option",
-          "last_updated": "2026-10-07"
+          "last_updated": "2026-10-07",
+          "decision": "Chose: option two, the smaller launch",
+          "decided_on": "2026-10-06"
         },
         {
           "id": "t-branding",
@@ -1157,7 +1259,9 @@
           "waiting_on": "",
           "blocked_by": "Finish and launch the ice-cream summer campaign",
           "decision_type": "",
-          "last_updated": "2026-09-12"
+          "last_updated": "2026-09-12",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-workshop",
@@ -1169,7 +1273,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-10-09"
+          "last_updated": "2026-10-09",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-wash",
@@ -1181,7 +1287,9 @@
           "waiting_on": "",
           "blocked_by": "Finish branding for Wasla Wash",
           "decision_type": "",
-          "last_updated": "2026-09-22"
+          "last_updated": "2026-09-22",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-b2b",
@@ -1193,7 +1301,9 @@
           "waiting_on": "",
           "blocked_by": "Launch Wasla Wash",
           "decision_type": "",
-          "last_updated": "2026-09-22"
+          "last_updated": "2026-09-22",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-stores",
@@ -1205,7 +1315,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-10-09"
+          "last_updated": "2026-10-09",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-returns",
@@ -1217,7 +1329,9 @@
           "waiting_on": "Legal",
           "blocked_by": "",
           "decision_type": "Yes or no",
-          "last_updated": "2026-10-08"
+          "last_updated": "2026-10-08",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-payments",
@@ -1229,7 +1343,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-10-09"
+          "last_updated": "2026-10-09",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-riderapp",
@@ -1241,7 +1357,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-09-12"
+          "last_updated": "2026-09-12",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-menu",
@@ -1253,7 +1371,9 @@
           "waiting_on": "",
           "blocked_by": "",
           "decision_type": "",
-          "last_updated": "2026-10-08"
+          "last_updated": "2026-10-08",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-sameday",
@@ -1265,7 +1385,9 @@
           "waiting_on": "CEO",
           "blocked_by": "",
           "decision_type": "Pick an option",
-          "last_updated": "2026-10-02"
+          "last_updated": "2026-10-02",
+          "decision": "",
+          "decided_on": ""
         },
         {
           "id": "t-provider",
@@ -1277,7 +1399,9 @@
           "waiting_on": "CEO",
           "blocked_by": "",
           "decision_type": "Yes or no",
-          "last_updated": "2026-10-08"
+          "last_updated": "2026-10-08",
+          "decision": "",
+          "decided_on": ""
         }
       ],
       "metrics": [

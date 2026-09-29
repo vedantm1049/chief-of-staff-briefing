@@ -87,6 +87,13 @@ test("waiting on column names the principal", () => {
   assert.ok(!isBlockedOnPrincipal("Q1 hiring plan", "Central Legal"));
 });
 
+test("waiting on says who, whatever the task's wording", () => {
+  // A decision the CEO sent back to the owner with a question waits on the
+  // owner, even though the task still says "for the CEO".
+  assert.ok(!isBlockedOnPrincipal("Pick a launch plan, three options for the CEO", "Rahul Mehta"));
+  assert.ok(isBlockedOnPrincipal("Pick a launch plan, three options for the CEO", ""));
+});
+
 test("the principal's title comes from setup", () => {
   assert.ok(isBlockedOnPrincipal("Budget", "Managing Director", "Managing Director"));
   assert.ok(isBlockedOnPrincipal("Waiting on the managing  director", "", "Managing Director"));

@@ -30,6 +30,7 @@ const FLAG_LABELS = {
 };
 
 const CLOSED_CHIPS = {
+  decided: ["decided", "Decided"],
   dropped: ["removed", "Removed, not done"],
   done: ["done", "Done"],
   cleared: ["cleared", "Cleared"],
@@ -86,12 +87,38 @@ function dueText(c) {
   return fmtLong(c.dueDate);
 }
 
+/** A decision waiting on the boss gets the boss's possible answers instead of
+"mark done". The answer is theirs; the page only records it. */
+function decisionControls(c, ctx, attrs) {
+  const owner = esc(c.owner.split(" ")[0]);
+  const type = c.decisionType.trim().toLowerCase();
+  const answer = type === "yes or no" || type === "confirm/reject"
+    ? `<button type="button" class="decide-yes" data-act="decide-yes" ${attrs}>Yes, go ahead</button>
+          <details class="decide-more"><summary>No</summary>
+            <form data-form="decide-no" ${attrs}><input name="text" placeholder="Reason, for ${owner} (optional)">
+            <button type="submit">Record no</button></form></details>`
+    : `<form data-form="${type === "pick an option" || type === "select-option" ? "decide-chose" : "decide-decided"}" class="decide-inline" ${attrs}>
+            <input name="text" required placeholder="${type === "pick an option" || type === "select-option" ? "Which option?" : "What was decided?"}">
+            <button type="submit">Record</button></form>`;
+  const value = c.dueDate != null ? toIso(c.dueDate) : "";
+  return `
+        <div class="edit decide">
+          <span class="decide-label">${esc(ctx.boss)}'s answer</span>
+          ${answer}
+          <details class="decide-more"><summary>Ask a question</summary>
+            <form data-form="decide-ask" ${attrs}><textarea name="text" rows="2" required placeholder="The question for ${owner}"></textarea>
+            <button type="submit">Send back to ${owner}</button></form></details>
+          <label>Due date <input type="date" data-act="due" value="${value}" ${attrs}></label>
+        </div>`;
+}
+
 /** The two things a reader can change on a card: tick it done, or set its
-due date. Not on a past week of the reader's own company: that is a record. */
+due date. Not on a past week: that is a record. */
 function editControls(c, ctx) {
   if (!ctx.editable) return "";
   const label = c.description.split(",", 1)[0].trim();
   const attrs = `data-id="${esc(c.id)}" data-area="${esc(c.area)}" data-title="${esc(itemTitle(c.description))}" data-label="${esc(label)}"`;
+  if (c.decisionPending && c.principalBlocked) return decisionControls(c, ctx, attrs);
   const value = c.dueDate != null ? toIso(c.dueDate) : "";
   return `
         <div class="edit">
@@ -176,6 +203,9 @@ function itemCard(b, item, showEffort, tiers, ctx) {
         <div class="item-head">${areaTag(c.area, tiers)}<span class="owner">${esc(c.owner)}</span>${badges}</div>
         <div class="desc">${esc(c.description)}</div>
         <div class="meta">Due ${dueText(c)} · last touched ${fmtLong(c.lastUpdated)}</div>
+        ${c.decision ? `<div class="decided">Decided: ${esc(c.decision)}${c.decidedOn != null ? `, ${fmtShort(c.decidedOn)}` : ""}</div>` : ""}
+        ${c.decisionPending && !c.principalBlocked && c.waitingOn && c.waitingOn === c.owner
+          ? `<div class="note note-slip">Waiting on ${esc(c.owner)} to answer a question.</div>` : ""}
         ${reasons ? `<ul class="reasons">${reasons}</ul>` : ""}
         ${extra}
         ${editControls(c, ctx)}
@@ -261,7 +291,7 @@ function closedSection(b, tiers) {
   if (!comp.closed.length) {
     body = '<p class="empty">Nothing flagged last week has closed.</p>';
   } else {
-    const order = { dropped: 0, done: 1, cleared: 2 };
+    const order = { dropped: 0, decided: 1, done: 2, cleared: 3 };
     body = `<ul class="items">${[...comp.closed].sort((x, y) => order[x.outcome] - order[y.outcome]).map((x) => {
       const [cls, label] = CLOSED_CHIPS[x.outcome];
       const c = x.now ?? x.before;
@@ -462,13 +492,13 @@ export function backupBar({ scope, hasData, saved = true, message = "" }) {
     </div>`;
 }
 
-/** state: { scope, setup, briefings, current, notes, cosEmail, saved, message } */
+/** state: { scope, setup, briefings, current, notes, cosEmail, saved, message, notice } */
 export function renderPage(state) {
   const { briefings, current: b, setup } = state;
   const tiers = b.tiers;
   const kindTitle = capital(setup.areaKind || "area");
   const ctx = { notes: state.notes, week: toIso(b.weekEnding), emails: b.ownerEmails, cosEmail: state.cosEmail,
-    areaKind: setup.areaKind, editable: b === briefings.at(-1) };
+    areaKind: setup.areaKind, boss: setup.boss, editable: b === briefings.at(-1) };
   const shown = [...[...b.classified.values()].map((i) => i.commitment), ...b.needsDeadlineItems];
   const week = fmtLong(b.weekEnding);
   const removeWeek = b === briefings.at(-1) && briefings.length > 1
@@ -485,6 +515,8 @@ export function renderPage(state) {
     are at the bottom.</p>
     ${summary(b)}
     ${dataCheck(b)}
+    ${state.notice ? `<div class="notice" role="status">${esc(state.notice.text)}
+      ${state.notice.href ? `<a class="button-link" href="${esc(state.notice.href)}">${esc(state.notice.label)}</a>` : ""}</div>` : ""}
   </header>
 
   <section>

@@ -57,6 +57,8 @@ export function makeCommitment(fields) {
     decisionType: "",
     decisionPending: false,
     principalBlocked: false,
+    decision: "",           // the boss's answer, as recorded on the page
+    decidedOn: null,
     ...fields,
   };
 }
@@ -109,6 +111,8 @@ export function loadTasks(rows, { areaNames, aliases, today, boss }) {
         decisionType: text(row.decision_type),
         decisionPending,
         principalBlocked: decisionPending && isBlockedOnPrincipal(description, waitingOn, boss),
+        decision: text(row.decision),
+        decidedOn: parseIsoDate(clean(row.decided_on)),
       });
     });
   const order = new Map(areaNames.map((n, i) => [n, i]));
