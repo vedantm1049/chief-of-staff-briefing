@@ -1,14 +1,9 @@
 /* Detection rules that need the whole dataset in view: staleness, overdue,
-conflict, needs-a-deadline-set, dependency fan-out, and the customer-health
-signal (data contract section 5). Decision pending is detected per item at
+conflict, needs-a-deadline-set and dependency fan-out (data contract section
+5). The metric rule is in metrics.js. Decision pending is detected per item at
 load time, in normalize.js.
 */
-import {
-  STALE_THRESHOLD_DAYS,
-  CONFLICT_WINDOW_DAYS,
-  RATING_MISS_MARGIN,
-  MIN_RATED_SAMPLE,
-} from "./config.js";
+import { STALE_THRESHOLD_DAYS, CONFLICT_WINDOW_DAYS } from "./config.js";
 
 function key(text) {
   return (text ?? "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -21,11 +16,12 @@ export function itemTitle(description) {
   return key((description ?? "").split(",", 1)[0]);
 }
 
-/** Identity of an item across weeks: its area plus its title. Owner is left
-out so a reassigned item stays the same item. A renamed item does not: it
-shows as one item closing and a new one opening. */
+/** Identity of an item across weeks. A task kept on the page has an id,
+which survives any edit. Otherwise it is its area plus its title: owner is
+left out so a reassigned item stays the same item, but a renamed item shows
+as one item closing and a new one opening. */
 export function itemKey(commitment) {
-  return `${commitment.area}\u0000${itemTitle(commitment.description)}`;
+  return commitment.id ? `id\u0000${commitment.id}` : `${commitment.area}\u0000${itemTitle(commitment.description)}`;
 }
 
 function names(commitment) {
@@ -106,27 +102,4 @@ export function findConflicts(commitments) {
     }
   }
   return pairs;
-}
-
-/** This week's rating vs the area's own target, single week, behind a
-minimum-sample floor. A triggered area lifts importance for its items (see
-classify.js). ratings: from loaders.js loadRatings. */
-export function evaluateCustomerHealth(ratings) {
-  return ratings.map(({ area, rating, target, count, segments }) => {
-    const base = { area, rating, target, count, segments };
-    if (rating == null || target == null || count == null) {
-      return { ...base, miss: null, triggered: false, lowSample: false,
-        reason: "rating, target or count missing this week" };
-    }
-    const miss = Math.round((target - rating) * 10000) / 10000;
-    if (count < MIN_RATED_SAMPLE) {
-      return { ...base, miss, triggered: false, lowSample: true,
-        reason: `only ${count.toFixed(0)} rated this week, below the floor of ${MIN_RATED_SAMPLE}` };
-    }
-    if (miss > RATING_MISS_MARGIN) {
-      return { ...base, miss, triggered: true, lowSample: false,
-        reason: `${miss.toFixed(2)} below target, more than the ${RATING_MISS_MARGIN} margin` };
-    }
-    return { ...base, miss, triggered: false, lowSample: false, reason: `within ${RATING_MISS_MARGIN} of target` };
-  });
 }

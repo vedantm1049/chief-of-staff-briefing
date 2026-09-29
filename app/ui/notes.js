@@ -2,21 +2,22 @@
 own notes, each with the owner's reply once it comes back. The words are
 the reader's. The page only stores them, shows them and drafts an email.
 
-A note belongs to an item by its area and title, the same identity the
-week-over-week history uses, so it stays with the item from week to week.
-It shows from the week it was written onward.
+A note belongs to an item, so it stays with the item from week to week: by
+its task id when the task is kept on the page, otherwise by its area and
+title, the identity the week-over-week history uses. It shows from the week
+it was written onward.
 
-A note: { id, area, title, label, owner, from, text, week, at, emailed, reply }
+A note: { id, taskId, area, title, label, owner, from, text, week, at, emailed, reply }
 reply: { text, at } or null.
 */
 import { fmtLong, parseIsoDate } from "../engine/dates.js";
 
 export const NOTE_FROM = ["CEO", "Chief of Staff"];
 
-export function newNote({ area, title, label, owner, from, text, week }) {
+export function newNote({ taskId = "", area, title, label, owner, from, text, week }) {
   return {
     id: `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
-    area, title, label, owner,
+    taskId, area, title, label, owner,
     from: NOTE_FROM.includes(from) ? from : NOTE_FROM[0],
     text: text.trim(),
     week,
@@ -26,9 +27,14 @@ export function newNote({ area, title, label, owner, from, text, week }) {
   };
 }
 
+/** Does this note belong to this item? item: { id, area, title }. */
+export function noteMatches(n, item) {
+  return n.taskId ? n.taskId === item.id : n.area === item.area && n.title === item.title;
+}
+
 /** Notes for one item, written in or before the week being shown, oldest first. */
-export function notesFor(notes, area, title, week) {
-  return notes.filter((n) => n.area === area && n.title === title && n.week <= week);
+export function notesFor(notes, item, week) {
+  return notes.filter((n) => noteMatches(n, item) && n.week <= week);
 }
 
 /** Keep only well-formed notes, so a damaged backup can't break the page. */
@@ -40,7 +46,7 @@ export function cleanNotes(list) {
     .filter((n) => n && typeof n.id === "string" && typeof n.area === "string"
       && typeof n.title === "string" && typeof n.text === "string" && /^\d{4}-\d{2}-\d{2}$/.test(n.week))
     .map((n) => ({
-      id: n.id, area: n.area, title: n.title,
+      id: n.id, taskId: str(n.taskId), area: n.area, title: n.title,
       label: str(n.label) || n.title,
       owner: str(n.owner),
       from: NOTE_FROM.includes(n.from) ? n.from : NOTE_FROM[0],

@@ -5,7 +5,7 @@ Importance is high if any of these hold:
   - the item's area is Flagship tier
   - it is a decision waiting on the principal (the boss named in setup)
   - it blocks FAN_OUT_THRESHOLD or more other open items
-  - its area missed its customer-rating target this week
+  - its area missed a metric target this week (metrics.js)
 
 Urgency is high if any of these hold:
   - it is overdue
@@ -40,8 +40,9 @@ function days(n) {
   return n === 1 ? `${n} day` : `${n} days`;
 }
 
-/** tiers: { area name: tier }. ratingMissedAreas: Set of area names. */
-export function classifyCommitment(commitment, today, blocks, ratingMissedAreas, tiers = WASLA_TIERS) {
+/** tiers: { area name: tier }. missedMetrics: Map of area name to the metrics it
+missed this week. */
+export function classifyCommitment(commitment, today, blocks, missedMetrics, tiers = WASLA_TIERS) {
   const c = commitment;
   const fanOut = blocks.length;
 
@@ -49,7 +50,8 @@ export function classifyCommitment(commitment, today, blocks, ratingMissedAreas,
   if (tiers[c.area] === "Flagship") importanceReasons.push(`${c.area} is Flagship tier`);
   if (c.principalBlocked) importanceReasons.push("waiting on you (the principal) specifically");
   if (fanOut >= FAN_OUT_THRESHOLD) importanceReasons.push(`blocks ${fanOut} other open items`);
-  if (ratingMissedAreas.has(c.area)) importanceReasons.push(`${c.area} missed its customer-rating target this week`);
+  const missed = missedMetrics.get?.(c.area);
+  if (missed?.length) importanceReasons.push(`${c.area} missed its ${missed.join(" and ")} target this week`);
 
   const urgencyReasons = [];
   if (c.dueDate != null) {

@@ -7,7 +7,7 @@ Every row is hand-designed to exercise a specific rule, not randomized.
 docs/dataset_key.md says which row proves which rule, week by week.
 
 Every area reports on the same template (docs/data_contract.md section 3):
-tasks.csv and, for areas with a customer rating, metrics.csv. The rows keep
+tasks.csv, and metrics.csv with the metrics set for it in setup. The rows keep
 the quirks people type even into a clean template: "P. Nair" for Priya Nair,
 first names only, "next Tuesday" as a due date, a blank status.
 
@@ -72,12 +72,27 @@ def task_row(area, header, row):
             DECISION_WORDS[r.get("decision_type", "")], r["last_updated"]]
 
 
-def rating_rows(area, header, row, segment=""):
+# The metrics each area reports, from its KPI columns: (metric name, column).
+# Targets live in the setup (app/engine/config.js, WASLA_SETUP), except the
+# customer rating, whose target and count travel with each row.
+METRICS = {
+    "wasla_eats": [("Orders", "orders"), ("On-time delivery", "on_time_delivery_pct")],
+    "wasla_mart": [("Revenue", "revenue_aed")],
+    "wasla_table": [("Reservations", "reservations_confirmed")],
+    "wasla_express": [("Orders", "orders")],
+    "wasla_pay": [("Transactions", "transactions_processed"), ("Dispute rate", "dispute_rate_pct")],
+    "wasla_central": [("Roadmap items shipped", "product_roadmap_items_shipped")],
+}
+
+
+def metric_rows(unit, area, header, row, segment=""):
     r = dict(zip(header, row))
-    rating = next(k for k in header if k.endswith("_rating_avg") or k.endswith("_csat_avg"))
-    target = rating.replace("_avg", "_target")
-    count = next(k for k in header if k.startswith("rated_") and k.endswith("_count"))
-    return [[area, "Customer rating", segment, r[rating], r[target], r[count]]]
+    out = [[area, name, segment, r[col], "", ""] for name, col in METRICS[unit]]
+    rating = next((k for k in header if k.endswith("_rating_avg") or k.endswith("_csat_avg")), None)
+    if rating:
+        count = next(k for k in header if k.startswith("rated_") and k.endswith("_count"))
+        out.append([area, "Customer rating", segment, r[rating], r[rating.replace("_avg", "_target")], r[count]])
+    return out
 
 
 def write_unit(week, unit, kpi, status, commitments):
@@ -87,13 +102,11 @@ def write_unit(week, unit, kpi, status, commitments):
     d = os.path.join(ROOT, "weeks", week, unit)
     os.makedirs(d, exist_ok=True)
     if unit == "wasla_mart":
-        metrics = [m for tab, vals in kpi.items() for m in rating_rows(area, MART_KPI, vals, tab)]
-    elif unit == "wasla_central":
-        metrics = []   # no customer-facing metric
+        # One row per city: revenue adds up, the rating is averaged by count.
+        metrics = [m for tab, vals in kpi.items() for m in metric_rows(unit, area, MART_KPI, vals, tab)]
     else:
-        metrics = rating_rows(area, *kpi)
-    if metrics:
-        write_csv(os.path.join(d, "metrics.csv"), METRIC_COLS, metrics)
+        metrics = metric_rows(unit, area, *kpi)
+    write_csv(os.path.join(d, "metrics.csv"), METRIC_COLS, metrics)
     header, rows = commitments
     write_csv(os.path.join(d, "tasks.csv"), TASK_COLS, [task_row(area, header, r) for r in rows])
 

@@ -25,17 +25,18 @@ The example calls its areas businesses. A user's own setup names its areas and w
 
 Wasla Central's staff show up as owners on other areas' items, because their job is to serve every area at once. The same legal counsel owns a Table contract review and a Pay compliance item due the same week; the same growth lead owns the Eats side and the Mart side of one loyalty pilot. Every cross-area owner in the example is Central staff for exactly this reason.
 
-## 3. The template
+## 3. Setup, tasks and metrics
 
-Every area reports on the same two files each week.
+**Setup**, made on the page: the company, the boss's title, what areas are called, and each area with its tier, its leader (name, email) and the metrics it reports. A metric is a name, a unit, a weekly target, whether higher or lower is better, a margin (percent of target, or points) and, for numbers that rest on responses, a minimum count. The example's setup is `WASLA_SETUP` in `app/engine/config.js`.
 
-**tasks.csv**, one row per task:
+**Tasks**, one row per task, in these columns wherever they come from (kept on the page, a person's returned sheet, or the example's `tasks.csv`):
 
 | Column | Meaning |
 |---|---|
+| `id` | set for tasks kept on the page; identifies the task across weeks through any edit |
 | `area` | the area, as named in setup (matched without regard to case) |
-| `task` | the task. The title is the text before the first comma; it identifies the item across weeks |
-| `owner` | who owns it, in any spelling; spellings are matched to people by the owner table |
+| `task` | the task. Without an id, its title (the text before the first comma) identifies it across weeks |
+| `owner` | who owns it; other spellings are matched to people by the owner table |
 | `due_date` | ISO date, or free text the engine can read ("next Tuesday", "end of next week", "in 2 weeks"), or blank |
 | `status` | Open, In progress, Waiting on decision, or Done. Blank is read from the task text |
 | `waiting_on` | for a decision, who it waits on. Matching the boss's title makes it waiting on the boss |
@@ -43,15 +44,15 @@ Every area reports on the same two files each week.
 | `decision_type` | Yes or no (Low effort), Pick an option (Medium), Open question (High) |
 | `last_updated` | ISO date of the last real change |
 
-**metrics.csv**, optional, one row per area, or per segment (city, store) when an area reports several: `area`, `metric`, `segment`, `value`, `target`, `count`. The rules read the metric named Customer rating, on a 1 to 5 scale. Several rows for one area are blended, weighted by count. An area with no rating row (Wasla Central) is left out of the rating rule.
+**Metrics**, one row per metric per week: `area`, `metric`, `segment`, `value`, `target`, `count`. Several rows for one metric (cities, stores) are averaged by count when every row has one, otherwise added up. A target on a row is used over the setup target; a leader's returned sheet never supplies one.
 
-A team that won't use the template keeps its own file. On the page, its columns are matched to the template once and the match is remembered by the file's set of column names. The engine only ever sees template rows.
+**The weekly sheets.** Each area leader gets an Excel sheet listing their area's metrics with a value column to fill; the same sheet serves every week. Each person gets an Excel sheet of their open tasks, made fresh each week. A returned person's sheet is compared with the page before anything changes: a changed row counts as touched on the day it is uploaded, unless it gives a later last-updated date; a new row is a new task; a missing row is removed, and if it was flagged it shows as removed, not done.
 
-**The owner table** (`data/alias_table.csv` in the example; the owner list in a user's setup): each spelling of a name, the person it belongs to, and their email.
+**The owner table** (`data/alias_table.csv` in the example; the people list in a user's setup): each spelling of a name, the person it belongs to, and their email.
 
-## 4. What the template doesn't clean up
+## 4. What a fixed format doesn't clean up
 
-A template fixes the shape of the files, not what people type into them. The example keeps the quirks that survive any template:
+A fixed format fixes the shape of the files, not what people type into them. The example keeps the quirks that survive any template:
 
 - Owner names written differently: "P. Nair" for Priya Nair, first names only at Express, and in week 4 a spelling ("L. Haddad") the owner table has never seen
 - Two similar names that are different people ("Rahul Mehta", "Raj Mehta")
@@ -70,7 +71,7 @@ Decisions already locked, restated here for one place to check them:
 - Effort sort (Low/Medium/High from the `decision_type` column) applies only inside the "needs your decision now" quadrant, only to decision-pending items
 - Tier order: only Flagship lifts importance, but inside every quadrant items are ordered Flagship, then Core, then Experimental, then most overdue first. In the top quadrant, decision-pending items still come first by effort, with tier breaking ties
 - Waiting on the principal: a decision whose `waiting_on` names the boss's title from setup (whole words, any case), or whose task text does. "CEO" in the example
-- A third importance signal: an area's Customer rating (1-5 scale, from metrics.csv) misses its own stated target by more than a set margin this week. Ratings, not retention, deliberately, retention is a lagging metric and moves too slowly to earn a place in a weekly briefing, a rating reflects this week's actual customer experience. Single week only, not a trend. Subject to a minimum-sample floor of 10 ratings this week (the `count` column), same number cafe-qc uses for its rated-order threshold, so a low-volume week for a small area like Wasla Express doesn't falsely trigger on noise. An area with no rating row, like Wasla Central, is excluded from this rule
+- A third importance signal: any metric an area tracks misses its own target by more than its margin this week, in the direction that counts as good. Single week only, not a trend. A metric with a minimum count is only judged on at least that many responses, so a low-volume week doesn't trigger on noise. In the example, customer ratings use 0.2 points and 10 ratings, the floor cafe-qc uses; the other metrics use margins of a few percent and are always met, so only the ratings move a quadrant
 - Owner names are matched only by a person. In the example, the owner table was reviewed by hand while building the dataset. In a user's own setup, each new spelling in an uploaded file prompts "is this the same person as ...?" before the week can be saved. The engine never fuzzy-matches and never calls an AI model. A name the table has never seen is reported in the briefing, not guessed at, since a new shorthand could hide a conflict
 - An area name in the files that isn't in setup is reported at the top of the briefing; its items are scored as Core. On upload, the reader is asked which area it is first
 
@@ -113,3 +114,12 @@ Rebuilt for use on a real company:
 - **Customer rating as a metric row**, named Customer rating, with segments blended by count. Replaces the per-area rating column names.
 - **Areas outside setup are reported**, not silently scored.
 - **Setup for your own company**, on the page: areas and tiers, the boss's title, what areas are called, owners and emails, a template to download, uploads of the template or any CSV, Excel or pasted table with columns matched once and remembered, and a question for every new name or unknown area. Kept in the reader's browser with the rest, and in the backup.
+
+Rebuilt so the Chief of Staff sets everything up in the browser:
+
+- **Every area has a leader** (name and email) and **its own metrics**, chosen on the page from a fixed list of common ones or typed in, each with a weekly target, a direction and a margin.
+- **One metric rule for every metric** replaces the customer-rating rule. The rating keeps its old behaviour as a metric with a 0.2-point margin and a floor of 10 ratings. The example's six businesses now report their real numbers (orders, revenue, reservations, transactions, dispute rate, roadmap items shipped) with targets they meet every week, so the dataset key's stories are unchanged.
+- **Tasks are kept on the page**, per person, not in files. Each task has an id, which becomes its identity across weeks, so it can be renamed or reassigned without losing its history. The example, which has no ids, still uses area plus title.
+- **Weekly sheets and requests.** Each leader gets a metrics sheet and each person a tasks sheet (Excel), with an email draft each, due Wednesday, and a recurring Monday calendar reminder for all of them. Returned sheets are uploaded together and checked before they change anything. The page sends nothing itself.
+- **Weeks.** Starting a new week freezes the week before as it stood, and drops tasks already done from the live list.
+- Removed: uploading files in a team's own format with column matching. It solved a problem this flow no longer has.

@@ -2,21 +2,23 @@
 and their own company), and every click, change and drop.
 
 Screens, by the address after #:
-  #/          the intro, or straight to the reader's own briefing if they have one
-  #/example   the Wasla example            (?week=YYYY-MM-DD)
-  #/briefing  the reader's own briefing     (?week=YYYY-MM-DD)
-  #/setup     setup for their company
-  #/add       add a week's files
+  #/          the intro, or straight to the reader's own CEO view if they have one
+  #/example   the Wasla example                 (?week=YYYY-MM-DD)
+  #/briefing  the reader's own CEO view          (?week=YYYY-MM-DD)
+  #/setup     company, areas, leaders, metrics
+  #/tasks     people and their tasks
+  #/week      this week: requests, sheets, uploads
 */
 import { loadDataFolder } from "../engine/sample.js";
 import { buildHistory } from "../engine/history.js";
-import { WASLA_SETUP, WASLA_CHIEF_OF_STAFF_EMAIL } from "../engine/config.js";
+import { WASLA_SETUP, WASLA_CHIEF_OF_STAFF_EMAIL, METRIC_SUGGESTIONS } from "../engine/config.js";
 import { toIso } from "../engine/dates.js";
 import * as store from "./store.js";
 import { newNote, isEmail } from "./notes.js";
 import { renderPage, esc } from "./render.js";
-import { intro, setupScreen, addWeekScreen, NEW } from "./screens.js";
-import * as intake from "./intake.js";
+import { intro, setupScreen, tasksScreen, sameNameQuestion, weekScreen } from "./screens.js";
+import { readTables, likelyMatches } from "./intake.js";
+import * as weekly from "./weekly.js";
 
 const root = document.getElementById("app");
 const saved = store.storageWorks();
@@ -24,11 +26,26 @@ const ws = { example: store.loadWorkspace("example"), own: store.loadWorkspace("
 
 let sample = null;          // the Wasla data, loaded the first time the example opens
 let route = { screen: "", week: null };
-let mode = null;            // "example" or "own" while a briefing is shown
+let mode = null;            // "example" or "own" while a CEO view is shown
 let briefings = [];
 let message = "";
 let setupDraft = null;
-let intakeState = null;
+let matchQuestion = "";
+let uploads = [];
+
+const own = () => ws.own;
+const hasOwnSetup = () => own().setup.areas.length > 0;
+const hasOwnWeek = () => own().weeks.length > 0;
+
+function todayIso() {
+  const d = new Date();
+  return toIso(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+}
+
+function saveOwn(note = message) {
+  if (!store.saveWorkspace("own", own())) message = "This browser is blocking storage. Export a backup to keep your work.";
+  else message = note;
+}
 
 // --- Routing ----------------------------------------------------------------------
 
@@ -37,7 +54,8 @@ function parseRoute() {
   const legacy = /^#week=(\d{4}-\d{2}-\d{2})/.exec(hash);   // links from before there were screens
   if (legacy) return { screen: "example", week: legacy[1] };
   const m = /^#\/([a-z]*)(?:\?week=(\d{4}-\d{2}-\d{2}))?/.exec(hash);
-  return { screen: m ? m[1] : "", week: m ? m[2] ?? null : null };
+  const screen = m ? m[1] : "";
+  return { screen: screen === "add" ? "week" : screen, week: m ? m[2] ?? null : null };
 }
 
 function go(hash) {
@@ -45,35 +63,31 @@ function go(hash) {
   else location.hash = hash;
 }
 
-const hasOwnData = () => ws.own.weeks.length > 0;
-const hasOwnSetup = () => ws.own.setup.areas.length > 0;
-
 async function show() {
-  const previous = mode;
+  const previous = route.screen;
   route = parseRoute();
   const s = route.screen;
-  if (s === "example") return showBriefing("example", previous);
-  if (s === "briefing") return hasOwnData() ? showBriefing("own", previous) : go(hasOwnSetup() ? "#/add" : "#/setup");
+  if (s !== previous) { message = ""; matchQuestion = ""; window.scrollTo(0, 0); }
+  if (s === "example") return showBriefing("example");
+  if (s === "briefing") return hasOwnWeek() ? showBriefing("own") : go(hasOwnSetup() ? "#/week" : "#/setup");
   mode = null;
-  message = "";
-  window.scrollTo(0, 0);
   if (s === "setup") {
     setupDraft = draftFromOwn();
     return drawSetup();
   }
-  if (s === "add") {
-    if (!hasOwnSetup()) return go("#/setup");
-    intakeState = freshIntake();
-    return drawAdd();
+  if (s === "tasks") return hasOwnSetup() ? drawTasks() : go("#/setup");
+  if (s === "week") {
+    if (s !== previous) uploads = [];
+    return hasOwnSetup() ? drawWeek() : go("#/setup");
   }
-  if (hasOwnData()) return go("#/briefing");
+  if (hasOwnWeek()) return go("#/briefing");
   root.innerHTML = intro({ hasOwn: hasOwnSetup() });
   document.title = "Chief of Staff briefing";
 }
 
-// --- Briefings --------------------------------------------------------------------
+// --- The CEO view -----------------------------------------------------------------
 
-async function showBriefing(which, previous) {
+async function showBriefing(which) {
   if (which === "example" && !sample) {
     root.innerHTML = '<p class="loading">Loading the example…</p>';
     try {
@@ -89,27 +103,19 @@ async function showBriefing(which, previous) {
       return;
     }
   }
-  if (previous !== which) message = "";
   mode = which;
   rescore();
   draw();
-  if (previous !== which) window.scrollTo(0, 0);
 }
 
 function rescore() {
-  const edits = store.byWeek(ws[mode].edits);
   briefings = mode === "example"
-    ? buildHistory(sample.weeks, { setup: WASLA_SETUP, aliasText: sample.aliasText, edits })
-    : buildHistory(ws.own.weeks, { setup: ws.own.setup, aliases: intake.ownerRows(ws.own.owners), edits });
+    ? buildHistory(sample.weeks, { setup: WASLA_SETUP, aliasText: sample.aliasText, edits: store.byWeek(ws.example.edits) })
+    : buildHistory(weekly.weeksForEngine(own()), { setup: own().setup, aliases: weekly.peopleRows(own().people) });
 }
 
-function currentSetup() {
-  return mode === "example" ? WASLA_SETUP : ws.own.setup;
-}
-
-function cosEmail() {
-  return ws[mode].settings.cosEmail ?? (mode === "example" ? WASLA_CHIEF_OF_STAFF_EMAIL : "");
-}
+const currentSetup = () => (mode === "example" ? WASLA_SETUP : own().setup);
+const cosEmail = (which = mode) => ws[which].settings.cosEmail ?? (which === "example" ? WASLA_CHIEF_OF_STAFF_EMAIL : "");
 
 function shownWeek() {
   const isos = briefings.map((b) => toIso(b.weekEnding));
@@ -123,22 +129,22 @@ function draw() {
   root.innerHTML = renderPage({
     mode, setup: currentSetup(), briefings, current,
     edits: w.edits, notes: w.notes, cosEmail: cosEmail(), saved, message,
-    weekEdits: w.edits.filter((e) => e.week === week),
-    weekCount: mode === "own" ? ws.own.weeks.length : 0,
+    weekEdits: mode === "example" ? w.edits.filter((e) => e.week === week) : [],
+    weekCount: mode === "own" ? own().weeks.length : 0,
   });
   document.title = `${currentSetup().company || "Your company"} briefing, week ending ${week}`;
 }
 
-/** Save the current workspace. Rescore only when a change could move an item. */
+/** Save the shown workspace and redraw. Rescore only when a change could move an item. */
 function commit(note = "", rescoreToo = true) {
-  store.saveWorkspace(mode, ws[mode]);
   message = note;
+  if (!store.saveWorkspace(mode, ws[mode])) message = "This browser is blocking storage. Export a backup to keep your work.";
   if (rescoreToo) rescore();
   draw();
 }
 
-function download(name, blob) {
-  const url = URL.createObjectURL(blob);
+function download(name, data, type) {
+  const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type }));
   const a = Object.assign(document.createElement("a"), { href: url, download: name });
   document.body.append(a);
   a.click();
@@ -149,15 +155,16 @@ function download(name, blob) {
 // --- Setup ------------------------------------------------------------------------
 
 function draftFromOwn() {
-  const { setup, owners, settings } = ws.own;
+  const { setup, settings } = own();
+  const blank = (tier) => ({ was: "", name: "", tier, leader: { name: "", email: "" }, metrics: [] });
   return {
     company: setup.company,
     areaKind: hasOwnSetup() ? setup.areaKind : "",
     boss: hasOwnSetup() ? setup.boss : "",
     cosEmail: settings.cosEmail ?? "",
-    areas: setup.areas.length ? setup.areas.map((a) => ({ ...a }))
-      : [{ name: "", tier: "Flagship" }, { name: "", tier: "Core" }, { name: "", tier: "Core" }],
-    owners: owners.map((o) => ({ name: o.name, email: o.email, spellings: o.spellings.join(", ") })),
+    areas: setup.areas.length
+      ? setup.areas.map((a) => ({ ...a, was: a.name, leader: { ...a.leader }, metrics: a.metrics.map((m) => ({ ...m })) }))
+      : [blank("Flagship"), blank("Core"), blank("Core")],
   };
 }
 
@@ -170,222 +177,328 @@ function saveSetup() {
   const d = setupDraft;
   const areas = d.areas.filter((a) => a.name.trim());
   const names = areas.map((a) => a.name.trim().toLowerCase());
-  if (!areas.length) return drawSetup("Add at least one area.");
-  if (new Set(names).size !== names.length) return drawSetup("Two areas have the same name.");
+  if (!areas.length) return drawSetup(`Add at least one ${d.areaKind || "area"}.`);
+  if (new Set(names).size !== names.length) return drawSetup("Two have the same name.");
   if (d.cosEmail.trim() && !isEmail(d.cosEmail.trim())) return drawSetup("Your email doesn't look like an email address.");
-  const badOwner = d.owners.find((o) => o.email.trim() && !isEmail(o.email.trim()));
-  if (badOwner) return drawSetup(`${badOwner.name || "One person"}'s email doesn't look like an email address.`);
-
-  ws.own.setup = store.cleanSetup({ company: d.company, areaKind: d.areaKind, boss: d.boss, areas });
-  ws.own.owners = store.cleanOwners(d.owners.map((o) => ({
-    name: o.name, email: o.email, spellings: o.spellings.split(",").map((s) => s.trim()).filter(Boolean),
-  })));
-  ws.own.settings = store.cleanSettings({ cosEmail: d.cosEmail });
-  store.saveWorkspace("own", ws.own);
-  go(hasOwnData() ? "#/briefing" : "#/add");
-}
-
-// --- Adding a week ----------------------------------------------------------------
-
-function lastSunday() {
-  const d = new Date();
-  d.setDate(d.getDate() - d.getDay());
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function freshIntake() {
-  return { week: lastSunday(), tables: [], ownerAnswers: {}, areaAnswers: {}, message: "" };
-}
-
-function addTables(tables) {
-  for (const t of tables) {
-    const sig = intake.signature(t.headers);
-    const remembered = ws.own.mappings[sig];
-    const kind = remembered?.kind ?? intake.guessKind(t.headers);
-    const template = !remembered && intake.isTemplate(t.headers, kind);
-    const mapping = remembered
-      ? { kind, columns: { ...remembered.columns }, area: remembered.area }
-      : { kind, columns: intake.autoMatch(t.headers, kind), area: "" };
-    intakeState.tables.push({ ...t, mapping, template, remembered: Boolean(remembered) });
-  }
-  if (!tables.length) intakeState.message = "Nothing readable in that. Include the header row.";
-}
-
-async function readFiles(files) {
-  intakeState.message = "";
-  for (const f of files) {
-    try {
-      const content = /\.(xlsx|xls)$/i.test(f.name) ? new Uint8Array(await f.arrayBuffer()) : await f.text();
-      addTables(intake.readTables(f.name, content));
-    } catch {
-      intakeState.message = `${f.name} couldn't be read. CSV, Excel or a pasted table work.`;
+  for (const a of areas) {
+    if (a.leader.email.trim() && !isEmail(a.leader.email.trim())) return drawSetup(`${a.name}'s leader's email doesn't look like an email address.`);
+    for (const m of a.metrics.filter((x) => x.name.trim())) {
+      if (String(m.target ?? "").trim() && Number.isNaN(Number(m.target))) return drawSetup(`${a.name}: ${m.name}'s target should be a number.`);
+      if (Number.isNaN(Number(m.margin))) return drawSetup(`${a.name}: ${m.name}'s margin should be a number.`);
     }
   }
-  drawAdd();
+  // A renamed area keeps its tasks, people and numbers.
+  const o = own();
+  for (const a of areas) {
+    const was = a.was, now = a.name.trim();
+    if (!was || was === now) continue;
+    for (const t of o.tasks) if (t.area === was) t.area = now;
+    for (const p of o.people) if (p.area === was) p.area = now;
+    for (const w of o.weeks) {
+      for (const r of w.metrics) if (r.area === was) r.area = now;
+      for (const t of w.tasks ?? []) if (t.area === was) t.area = now;
+      w.received.metrics = w.received.metrics.map((x) => (x === was ? now : x));
+    }
+  }
+  const first = !hasOwnSetup();
+  o.setup = store.cleanSetup({ company: d.company, areaKind: d.areaKind, boss: d.boss, areas });
+  o.settings = store.cleanSettings({ cosEmail: d.cosEmail });
+  saveOwn("Setup saved.");
+  go(first || !o.people.length ? "#/tasks" : hasOwnWeek() ? "#/briefing" : "#/week");
 }
 
-/** Mapped rows, the questions still open, and what blocks saving. */
-function intakeStatus() {
-  const s = intakeState;
-  const problems = [];
-  const ready = [];
-  s.tables.forEach((t) => {
-    const p = intake.mappingProblems(t.mapping, t.mapping.kind);
-    if (p.length) problems.push(`${t.name}: ${p[0]}`);
-    else ready.push(t);
-  });
-  const tasks = ready.filter((t) => t.mapping.kind === "tasks").flatMap((t) => intake.applyMapping(t, t.mapping));
-  const metrics = ready.filter((t) => t.mapping.kind === "metrics").flatMap((t) => intake.applyMapping(t, t.mapping));
-  const questions = {
-    owners: intake.newOwnerNames(tasks, ws.own.owners),
-    areas: intake.unknownAreaNames([...tasks, ...metrics], ws.own.setup.areas),
-  };
-  for (const n of questions.owners) if (!s.ownerAnswers[n]?.as) problems.push(`Say who ${n} is.`);
-  for (const n of questions.areas) if (!s.areaAnswers[n]?.as) problems.push(`Say what ${n} is.`);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s.week)) problems.push("Pick the week-ending date.");
-  if (!s.tables.length) problems.push("Add at least one file.");
-  else if (!tasks.length && !metrics.length) problems.push("No rows to save yet.");
-  return { tasks, metrics, questions, problems };
+function setupInput(el) {
+  const d = setupDraft;
+  let m;
+  if (["company", "boss", "areaKind", "cosEmail"].includes(el.name)) d[el.name] = el.value;
+  else if ((m = /^a-(\d+)-(name|tier|leader|leaderEmail)$/.exec(el.name))) {
+    const a = d.areas[Number(m[1])];
+    if (m[2] === "leader") a.leader.name = el.value;
+    else if (m[2] === "leaderEmail") a.leader.email = el.value;
+    else a[m[2]] = el.value;
+  } else if ((m = /^m-(\d+)-(\d+)-(\w+)$/.exec(el.name))) {
+    d.areas[Number(m[1])].metrics[Number(m[2])][m[3]] = el.value;
+  }
 }
 
-function drawAdd() {
-  const { questions, problems } = intakeStatus();
-  root.innerHTML = addWeekScreen(intakeState, {
-    setup: ws.own.setup, owners: ws.own.owners, questions, problems,
-    existingWeek: ws.own.weeks.some((w) => w.weekEnding === intakeState.week),
-  });
-  document.title = "Add a week, Chief of Staff briefing";
+function setupClick(el) {
+  const d = setupDraft;
+  const a = d.areas[Number(el.dataset.a)];
+  switch (el.dataset.act) {
+    case "add-area": d.areas.push({ was: "", name: "", tier: "Core", leader: { name: "", email: "" }, metrics: [] }); break;
+    case "remove-area":
+      if (a.was && !confirm(`Remove ${a.was}? Its tasks and numbers stay on record but it will no longer be tracked.`)) return;
+      d.areas.splice(Number(el.dataset.a), 1); break;
+    case "suggest-metric": a.metrics.push({ ...METRIC_SUGGESTIONS.find((m) => m.name === el.dataset.name), target: "" }); break;
+    case "add-metric": a.metrics.push({ name: "", unit: "", target: "", better: "higher", margin: 5, marginKind: "percent" }); break;
+    case "remove-metric": a.metrics.splice(Number(el.dataset.m), 1); break;
+    default: return;
+  }
+  drawSetup();
 }
 
-function saveWeek() {
-  const s = intakeState;
-  const { tasks, metrics, questions, problems } = intakeStatus();
-  if (problems.length) return drawAdd();
+// --- Tasks ------------------------------------------------------------------------
 
-  // Areas: the reader said which setup area each unknown name is, or added it.
-  const areaName = {};
-  for (const n of questions.areas) {
-    const ans = s.areaAnswers[n];
-    if (ans.as === NEW) {
-      ws.own.setup.areas.push({ name: n, tier: ans.tier ?? "Core" });
-      areaName[n] = n;
+function drawTasks() {
+  root.innerHTML = tasksScreen(own(), { message, matchQuestion });
+  document.title = "Tasks, Chief of Staff briefing";
+}
+
+function taskChange(el) {
+  const o = own();
+  let m;
+  if (el.dataset.id && ["task", "due_date", "status", "area", "owner", "waiting_on", "decision_type", "blocked_by"].includes(el.name)) {
+    const t = o.tasks.find((x) => x.id === el.dataset.id);
+    if (!t) return;
+    t[el.name] = el.value;
+    t.last_updated = todayIso();
+  } else if ((m = /^p-(\d+)-(name|email|area)$/.exec(el.name))) {
+    const p = o.people[Number(m[1])];
+    const value = el.value.trim();
+    if (m[2] === "name") {
+      if (!value || o.people.some((x) => x !== p && x.name === value)) { message = "Each person needs a different name."; return drawTasks(); }
+      for (const t of o.tasks) if (t.owner === p.name) t.owner = value;
+      p.name = value;
+    } else if (m[2] === "email") {
+      if (value && !isEmail(value)) { message = "That doesn't look like an email address."; return drawTasks(); }
+      p.email = value;
     } else {
-      areaName[n] = ans.as;
+      p.area = value;
+    }
+  } else {
+    return;
+  }
+  saveOwn("");
+  drawTasks();
+}
+
+function addPerson(name, email, area) {
+  own().people.push({ name, email: isEmail(email) ? email : "", area, spellings: [] });
+  matchQuestion = "";
+  saveOwn(`${name} added.`);
+  drawTasks();
+}
+
+function tasksClick(el) {
+  const o = own();
+  const p = o.people[Number(el.dataset.p)];
+  switch (el.dataset.act) {
+    case "add-task": {
+      const t = { id: store.newId(), area: p.area || o.setup.areas[0]?.name || "", task: "", owner: p.name, due_date: "",
+        status: "Open", waiting_on: "", blocked_by: "", decision_type: "", last_updated: todayIso() };
+      o.tasks.push(t);
+      saveOwn("");
+      drawTasks();
+      root.querySelector(`input[name="task"][data-id="${t.id}"]`)?.focus();
+      return;
+    }
+    case "delete-task":
+      if (!confirm("Delete this task? If it was flagged last week it will show as removed, not done.")) return;
+      o.tasks = o.tasks.filter((t) => t.id !== el.dataset.id);
+      break;
+    case "remove-person": {
+      const n = o.tasks.filter((t) => t.owner === p.name).length;
+      if (!confirm(n ? `Remove ${p.name} and delete their ${n} tasks?` : `Remove ${p.name}?`)) return;
+      o.tasks = o.tasks.filter((t) => t.owner !== p.name);
+      o.people.splice(Number(el.dataset.p), 1);
+      break;
+    }
+    case "same-person": {
+      const existing = o.people.find((x) => x.name === el.dataset.as);
+      existing.spellings.push(el.dataset.name);
+      matchQuestion = "";
+      saveOwn(`Noted: ${el.dataset.name} is ${existing.name}.`);
+      return drawTasks();
+    }
+    case "new-person": {
+      const form = root.querySelector('form[data-form="add-person"]');
+      const f = new FormData(form);
+      return addPerson(el.dataset.name, String(f.get("email") ?? "").trim(), String(f.get("area") ?? ""));
+    }
+    default: return;
+  }
+  saveOwn("");
+  drawTasks();
+}
+
+// --- This week --------------------------------------------------------------------
+
+function drawWeek() {
+  root.innerHTML = weekScreen(own(), {
+    suggestedWeek: weekly.lastSunday(), message, uploads, cosEmail: cosEmail("own"),
+    googleLink: weekly.reminderGoogleLink(own(), cosEmail("own")),
+  });
+  document.title = "This week, Chief of Staff briefing";
+}
+
+async function readUploads(files) {
+  const o = own();
+  for (const f of files) {
+    let tables;
+    try {
+      tables = readTables(f.name, /\.(xlsx|xls)$/i.test(f.name) ? new Uint8Array(await f.arrayBuffer()) : await f.text());
+    } catch {
+      uploads.push({ name: f.name, error: true, summary: "couldn't be read. Upload the .xlsx sheets this page made." });
+      continue;
+    }
+    const table = tables.find((t) => weekly.sheetKind(t.headers));
+    if (!table) {
+      uploads.push({ name: f.name, error: true, summary: "isn't one of the sheets this page made, so nothing was read from it." });
+      continue;
+    }
+    if (weekly.sheetKind(table.headers) === "metrics") {
+      const read = weekly.readMetricSheet(table, o.setup);
+      if (read.unknown.length) {
+        uploads.push({ name: f.name, error: true, summary: `names ${read.unknown.join(", ")}, which isn't in your setup.` });
+        continue;
+      }
+      const filled = read.rows.filter((r) => r.value !== "").length;
+      uploads.push({ name: f.name, kind: "metrics", read,
+        summary: `numbers for ${read.areas.join(", ")}: ${filled} of ${read.rows.length} filled in.`,
+        detail: read.rows.map((r) => `${r.metric}: ${r.value || "blank"}${r.count ? ` (from ${r.count})` : ""}`) });
+    } else {
+      const diff = weekly.diffTaskSheet(o, table, todayIso());
+      if (!diff.person) {
+        uploads.push({ name: f.name, error: true,
+          summary: diff.owners.length ? `is for ${diff.owners.join(", ")}, who isn't in your people list.` : "has no rows left, so it can't say whose it is." });
+        continue;
+      }
+      const parts = [`${diff.updated.length} updated`, `${diff.added.length} new`, `${diff.removed.length} no longer in their sheet`, `${diff.unchanged} unchanged`];
+      uploads.push({ name: f.name, kind: "tasks", diff, summary: `${diff.person.name}'s tasks: ${parts.join(", ")}.`,
+        detail: [
+          ...diff.updated.map((u) => `Updated: ${u.after.task} (${u.changed.join(", ") || "last touched"})`),
+          ...diff.added.map((t) => `New: ${t.task}`),
+          ...diff.removed.map((t) => `Will be removed (it will show as removed, not done if it was flagged): ${t.task}`),
+        ] });
     }
   }
-  const fixArea = (r) => ({ ...r, area: areaName[r.area] ?? r.area });
+  drawWeek();
+}
 
-  // Owners: a new person, or another spelling of someone already known.
-  for (const n of questions.owners) {
-    const ans = s.ownerAnswers[n];
-    if (ans.as === NEW) ws.own.owners.push({ name: n, email: isEmail(ans.email) ? ans.email.trim() : "", spellings: [] });
-    else ws.own.owners.find((o) => o.name === ans.as)?.spellings.push(n);
-  }
-
-  // Remember how each file's columns were matched.
-  for (const t of s.tables) {
-    if (!t.template) ws.own.mappings[intake.signature(t.headers)] = t.mapping;
-  }
-
-  // New data wins: an area's rows in these files replace that area's rows for this week.
-  const newTasks = tasks.map(fixArea), newMetrics = metrics.map(fixArea);
-  const key = (r) => String(r.area).trim().toLowerCase();
-  const taskAreas = new Set(newTasks.map(key)), metricAreas = new Set(newMetrics.map(key));
-  const existing = ws.own.weeks.find((w) => w.weekEnding === s.week);
-  if (existing) {
-    existing.tasks = [...existing.tasks.filter((r) => !taskAreas.has(key(r))), ...newTasks];
-    existing.metrics = [...existing.metrics.filter((r) => !metricAreas.has(key(r))), ...newMetrics];
-    existing.files = [...existing.files, ...s.tables.map((t) => t.name)];
+function applyUpload(u) {
+  const o = own();
+  const week = o.weeks.at(-1);
+  if (u.kind === "metrics") {
+    const areas = new Set(u.read.areas);
+    week.metrics = [...week.metrics.filter((r) => !areas.has(r.area)), ...u.read.rows.filter((r) => r.value !== "")];
+    week.received.metrics = [...new Set([...week.received.metrics, ...u.read.areas])];
   } else {
-    ws.own.weeks.push({ weekEnding: s.week, tasks: newTasks, metrics: newMetrics, files: s.tables.map((t) => t.name) });
+    weekly.applyTaskDiff(o, u.diff);
+    week.received.tasks = [...new Set([...week.received.tasks, u.diff.person.name])];
   }
-  ws.own = store.cleanWorkspace("own", ws.own);
-  store.saveWorkspace("own", ws.own);
-  go(`#/briefing?week=${s.week}`);
+  u.applied = true;
+  saveOwn("");
+  drawWeek();
+}
+
+function weekClick(el, ev) {
+  const o = own();
+  const week = o.weeks.at(-1);
+  const safe = (s) => s.replace(/[\\/:*?"<>|]/g, " ");
+  switch (el.dataset.act) {
+    case "metric-request":
+      ev.preventDefault();
+      location.href = weekly.metricRequest(o.setup.areas[Number(el.dataset.a)], week.weekEnding);
+      return;
+    case "task-request":
+      ev.preventDefault();
+      location.href = weekly.taskRequest(o, o.people[Number(el.dataset.p)], week.weekEnding);
+      return;
+    case "metric-sheet": {
+      const a = o.setup.areas[Number(el.dataset.a)];
+      return download(`${safe(a.name)} metrics.xlsx`, weekly.metricSheet(a), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
+    case "task-sheet": {
+      const p = o.people[Number(el.dataset.p)];
+      return download(`${safe(p.name)} tasks ${week.weekEnding}.xlsx`, weekly.taskSheet(o, p), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
+    case "reminder-ics":
+      return download("weekly-reminder.ics", weekly.reminderIcs(o, cosEmail("own")), "text/calendar");
+    case "apply-upload":
+      return applyUpload(uploads[Number(el.dataset.i)]);
+    default:
+  }
 }
 
 // --- Events -----------------------------------------------------------------------
 
 root.addEventListener("input", (ev) => {
-  const el = ev.target;
-  if (route.screen === "setup" && el.name) {
-    const m = /^(area|owner)-(name|tier|email|spellings)-(\d+)$/.exec(el.name);
-    if (m) (m[1] === "area" ? setupDraft.areas : setupDraft.owners)[Number(m[3])][m[2]] = el.value;
-    else if (["company", "boss", "areaKind", "cosEmail"].includes(el.name)) setupDraft[el.name] = el.value;
-  }
-  if (route.screen === "add" && el.name === "owner-email") {
-    intakeState.ownerAnswers[el.dataset.name] = { ...intakeState.ownerAnswers[el.dataset.name], email: el.value };
-  }
+  if (route.screen === "setup") setupInput(ev.target);
 });
 
 root.addEventListener("change", (ev) => {
   const el = ev.target;
-  if (route.screen === "setup") {
-    if (/^area-tier-\d+$/.test(el.name)) setupDraft.areas[Number(el.name.split("-")[2])].tier = el.value;
+  if (route.screen === "setup") return setupInput(el);
+  if (route.screen === "tasks") return taskChange(el);
+  if (route.screen === "week") {
+    if (el.name === "files") readUploads([...el.files]);
     return;
   }
-  if (route.screen === "add") return onAddChange(el);
   if (!mode) return;
-  const { act, area, title, label } = el.dataset;
+  const { act, id, area, title, label } = el.dataset;
   const w = ws[mode];
-  if (act === "done" && el.checked) {
-    w.edits = store.upsert(w.edits, shownWeek(), area, title, { done: true, label });
-    commit();
-  } else if (act === "due" && el.value) {
-    w.edits = store.upsert(w.edits, shownWeek(), area, title, { due: el.value, label });
-    commit();
-  } else if (act === "import-file" && el.files[0]) {
-    importBackup(el.files[0]);
-  }
-});
-
-function onAddChange(el) {
-  const s = intakeState;
-  let m;
-  if (el.name === "week") s.week = el.value;
-  else if (el.name === "files") return readFiles([...el.files]);
-  else if ((m = /^map-(\d+)-(\w+)$/.exec(el.name))) {
-    const t = s.tables[Number(m[1])];
-    if (el.value) t.mapping.columns[m[2]] = el.value;
-    else delete t.mapping.columns[m[2]];
-    t.template = false;   // matched by hand, so remember it
-  } else if ((m = /^area-(\d+)$/.exec(el.name))) {
-    s.tables[Number(m[1])].mapping.area = el.value;
-  } else if ((m = /^kind-(\d+)$/.exec(el.name))) {
-    const t = s.tables[Number(m[1])];
-    t.mapping = { kind: el.value, columns: intake.autoMatch(t.headers, el.value), area: t.mapping.area };
-    t.template = intake.isTemplate(t.headers, el.value);
-  } else if (el.name === "owner-as") {
-    s.ownerAnswers[el.dataset.name] = { ...s.ownerAnswers[el.dataset.name], as: el.value };
-  } else if (el.name === "area-as") {
-    s.areaAnswers[el.dataset.name] = { ...s.areaAnswers[el.dataset.name], as: el.value };
-  } else if (el.name === "area-tier") {
-    s.areaAnswers[el.dataset.name] = { ...s.areaAnswers[el.dataset.name], tier: el.value };
+  if (act === "import-file" && el.files[0]) return importBackup(el.files[0]);
+  if (act !== "done" && act !== "due") return;
+  if (!(act === "done" ? el.checked : el.value)) return;
+  if (mode === "own") {
+    // The reader's own tasks are changed where they live.
+    const t = own().tasks.find((x) => x.id === id);
+    if (!t) return;
+    if (act === "done") t.status = "Done";
+    else t.due_date = el.value;
+    t.last_updated = todayIso();
   } else {
-    return;
+    w.edits = store.upsert(w.edits, shownWeek(), area, title, act === "done" ? { done: true, label } : { due: el.value, label });
   }
-  drawAdd();
-}
+  commit();
+});
 
 root.addEventListener("submit", (ev) => {
   ev.preventDefault();
   const form = ev.target;
-  if (form.dataset.form === "setup") return saveSetup();
+  const f = new FormData(form);
+  const kind = form.dataset.form;
+  if (kind === "setup") return saveSetup();
+  if (kind === "add-person") {
+    const name = String(f.get("name") ?? "").trim();
+    const email = String(f.get("email") ?? "").trim();
+    if (!name) return;
+    if (own().people.some((p) => p.name === name)) { message = `${name} is already on the list.`; return drawTasks(); }
+    if (email && !isEmail(email)) { message = "That doesn't look like an email address."; return drawTasks(); }
+    const matches = likelyMatches(name, own().people);
+    if (matches.length) {
+      matchQuestion = sameNameQuestion(name, matches);
+      drawTasks();
+      const again = root.querySelector('form[data-form="add-person"]');
+      again.name.value = name; again.email.value = email; again.area.value = String(f.get("area") ?? "");
+      return;
+    }
+    return addPerson(name, email, String(f.get("area") ?? ""));
+  }
+  if (kind === "start-week") {
+    try {
+      weekly.startWeek(own(), String(f.get("week")));
+    } catch (err) {
+      message = err.message;
+      return drawWeek();
+    }
+    uploads = [];
+    saveOwn("Week started. Send the requests below.");
+    return drawWeek();
+  }
   if (!mode) return;
   const w = ws[mode];
-  if (form.dataset.form === "cos-email") {
-    w.settings = store.cleanSettings({ cosEmail: new FormData(form).get("email")?.toString() });
+  if (kind === "cos-email") {
+    w.settings = store.cleanSettings({ cosEmail: String(f.get("email") ?? "") });
     return commit(w.settings.cosEmail ? `Drafts will copy ${w.settings.cosEmail}.` : "That doesn't look like an email address.", false);
   }
-  const text = new FormData(form).get("text")?.toString().trim();
+  const text = String(f.get("text") ?? "").trim();
   if (!text) return;
-  if (form.dataset.form === "note") {
-    const { area, title, label, owner } = form.dataset;
-    const from = new FormData(form).get("from")?.toString();
-    w.notes = [...w.notes, newNote({ area, title, label, owner, from, text, week: shownWeek() })];
+  if (kind === "note") {
+    const { taskId, area, title, label, owner } = form.dataset;
+    w.notes = [...w.notes, newNote({ taskId, area, title, label, owner, from: String(f.get("from")), text, week: shownWeek() })];
     commit("", false);
-  } else if (form.dataset.form === "reply") {
+  } else if (kind === "reply") {
     w.notes = w.notes.map((n) => (n.id === form.dataset.id ? { ...n, reply: { text, at: new Date().toISOString() } } : n));
     commit("", false);
   }
@@ -402,41 +515,15 @@ root.addEventListener("click", (ev) => {
     }, 0);
     return;
   }
-  const el = ev.target.closest("button");
+  const el = ev.target.closest("button, a[data-act]");
   if (!el) return;
-  const { act } = el.dataset;
-
-  if (route.screen === "setup") {
-    const i = Number(el.dataset.i);
-    if (act === "add-area") setupDraft.areas.push({ name: "", tier: "Core" });
-    else if (act === "remove-area") setupDraft.areas.splice(i, 1);
-    else if (act === "add-owner") setupDraft.owners.push({ name: "", email: "", spellings: "" });
-    else if (act === "remove-owner") setupDraft.owners.splice(i, 1);
-    else return;
-    return drawSetup();
-  }
-
-  if (route.screen === "add") {
-    if (act === "download-template") {
-      const files = intake.templateFiles(ws.own.setup);
-      return download(el.dataset.file, new Blob([files[el.dataset.file]], { type: "text/csv" }));
-    }
-    if (act === "use-paste") {
-      intakeState.message = "";
-      addTables(intake.readTables("Pasted table", root.querySelector('textarea[name="paste"]').value));
-      return drawAdd();
-    }
-    if (act === "remove-table") {
-      intakeState.tables.splice(Number(el.dataset.i), 1);
-      return drawAdd();
-    }
-    if (act === "save-week") return saveWeek();
-    return;
-  }
-
+  if (route.screen === "setup") return setupClick(el);
+  if (route.screen === "tasks") return tasksClick(el);
+  if (route.screen === "week") return weekClick(el, ev);
   if (!mode) return;
+
   const w = ws[mode];
-  const { area, title } = el.dataset;
+  const { act, area, title } = el.dataset;
   if (el.dataset.week) {
     go(`#/${mode === "example" ? "example" : "briefing"}?week=${el.dataset.week}`);
     window.scrollTo(0, 0);
@@ -452,22 +539,22 @@ root.addEventListener("click", (ev) => {
     w.edits = store.upsert(w.edits, shownWeek(), area, title, { done: false, due: null });
     commit();
   } else if (act === "remove-week") {
-    if (confirm(`Remove the week ending ${el.dataset.target}, with its files and your changes to it? Notes stay.`)) {
-      ws.own.weeks = ws.own.weeks.filter((x) => x.weekEnding !== el.dataset.target);
-      ws.own.edits = ws.own.edits.filter((e) => e.week !== el.dataset.target);
-      store.saveWorkspace("own", ws.own);
-      go(hasOwnData() ? "#/briefing" : "#/add");
-    }
+    if (!confirm(`Undo starting the week ending ${el.dataset.target}? Its numbers are dropped; tasks stay as they are now.`)) return;
+    const o = own();
+    o.weeks.pop();
+    if (o.weeks.length) o.weeks.at(-1).tasks = null;
+    saveOwn("");
+    go(hasOwnWeek() ? "#/briefing" : "#/week");
   } else if (act === "export") {
     const name = mode === "own" ? "briefing-backup" : "briefing-example-backup";
-    download(`${name}-${new Date().toISOString().slice(0, 10)}.json`, store.backupBlob(mode, ws[mode]));
+    download(`${name}-${todayIso()}.json`, store.backupBlob(mode, ws[mode]));
     message = "Backup saved to your downloads.";
     draw();
   } else if (act === "import") {
     root.querySelector('[data-act="import-file"]').click();
   } else if (act === "reset") {
     const ask = mode === "own"
-      ? "Delete your setup, every week's files, changes and notes from this browser? This can't be undone unless you exported a backup."
+      ? "Delete your setup, people, tasks, weeks and notes from this browser? This can't be undone unless you exported a backup."
       : "Clear all your changes and notes on the example? This can't be undone unless you exported a backup.";
     if (!confirm(ask)) return;
     if (mode === "own") {
@@ -496,14 +583,14 @@ async function importBackup(file) {
   go(incoming.id === "own" ? "#/briefing" : "#/example");
 }
 
-// Files dropped on the add-week screen.
+// Returned sheets dropped on This week.
 root.addEventListener("dragover", (ev) => {
-  if (route.screen === "add" && ev.target.closest("[data-drop]")) ev.preventDefault();
+  if (route.screen === "week" && ev.target.closest("[data-drop]")) ev.preventDefault();
 });
 root.addEventListener("drop", (ev) => {
-  if (route.screen !== "add" || !ev.target.closest("[data-drop]")) return;
+  if (route.screen !== "week" || !ev.target.closest("[data-drop]")) return;
   ev.preventDefault();
-  readFiles([...ev.dataTransfer.files]);
+  readUploads([...ev.dataTransfer.files]);
 });
 
 window.addEventListener("hashchange", show);

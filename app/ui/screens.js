@@ -1,30 +1,38 @@
-/* The screens around the briefing: the intro, setup for the reader's own
-company, and adding a week's files. Everything here is HTML built from
-state; main.js owns the state and the events.
+/* The screens around the CEO view: the intro, setup, tasks, and this week's
+routine. Everything here is HTML built from state; main.js owns the state
+and the events.
 */
-import { esc } from "./render.js";
-import { FIELDS, applyMapping, mappingProblems, likelyMatches } from "./intake.js";
+import { esc, ownNav } from "./render.js";
+import { METRIC_SUGGESTIONS } from "../engine/config.js";
+import { fmtLong, parseIsoDate } from "../engine/dates.js";
+import { openTasksOf } from "./weekly.js";
 
-export const NEW = "__new";
 const TIERS = [
   ["Flagship", "Matters most. Its items always count as important."],
   ["Core", "Important and steady."],
   ["Experimental", "A newer bet. Listed after Core inside each group."],
 ];
 const AREA_KINDS = ["department", "business", "business line", "brand", "market", "region", "team", "portfolio company"];
+const STATUSES = ["Open", "In progress", "Waiting on decision", "Done"];
+const DECISIONS = ["", "Yes or no", "Pick an option", "Open question"];
+
+const plural = (n, w) => `${n} ${n === 1 ? w : `${w}s`}`;
+const opts = (values, current, label = (v) => v) =>
+  values.map((v) => `<option value="${esc(v)}"${v === current ? " selected" : ""}>${esc(label(v))}</option>`).join("");
 
 export function intro({ hasOwn }) {
   return `
   <section class="intro">
     <div class="eyebrow">Chief of Staff · Weekly briefing</div>
     <h1>Every week, what needs the boss, and nothing else.</h1>
-    <p class="lede">Your teams send their task lists. This page reads them and puts in front of your CEO only
-    what needs them: work that is overdue, stalled, clashing for one person, or waiting on a decision. It
-    flags. It never decides, reassigns or suggests.</p>
+    <p class="lede">Set up your company's areas, who leads each, the numbers each one reports and who owns
+    what work. Each week the page asks the leaders for their numbers and people for their task updates, and
+    turns what comes back into one view for your CEO: metrics against target, and only the work that needs
+    them. It flags. It never decides, reassigns or suggests.</p>
     <ul class="points">
-      <li>Set up your areas once: departments, businesses or whatever you call them.</li>
-      <li>Each week, drop in the files the teams sent. The page keeps the history: what is new, what keeps coming back, what quietly disappeared.</li>
-      <li>Runs in your browser. Nothing you load leaves your computer. There is no server and no account.</li>
+      <li>All set up in the browser. No spreadsheets to build: the page makes each leader's and each person's sheet for you.</li>
+      <li>Every Monday: one click per person to email the request, and a calendar reminder they get automatically. Back by Wednesday, uploaded in one go.</li>
+      <li>Runs in your browser. Nothing you enter leaves your computer. There is no server and no account.</li>
     </ul>
     <div class="intro-actions">
       <a class="primary big" href="#/setup">${hasOwn ? "Continue with your company" : "Set up for your company"}</a>
@@ -34,27 +42,49 @@ export function intro({ hasOwn }) {
   </section>`;
 }
 
-function tierSelect(name, value) {
-  return `<select name="${name}">${TIERS.map(([t]) => `<option${t === value ? " selected" : ""}>${t}</option>`).join("")}</select>`;
+// --- Setup ------------------------------------------------------------------------
+
+function metricRow(ai, mi, m) {
+  const n = `m-${ai}-${mi}`;
+  return `
+        <li class="metric-row">
+          <label class="mini">Metric <input name="${n}-name" value="${esc(m.name)}" list="metric-names" placeholder="e.g. Sales"></label>
+          <label class="mini">Unit <input name="${n}-unit" value="${esc(m.unit)}" placeholder="e.g. AED or %"></label>
+          <label class="mini">Weekly target <input name="${n}-target" value="${esc(m.target ?? "")}" inputmode="decimal" placeholder="e.g. 100000"></label>
+          <select name="${n}-better" aria-label="Which way is good">${opts(["higher", "lower"], m.better, (v) => `${v[0].toUpperCase()}${v.slice(1)} is better`)}</select>
+          <span class="margin">Miss when worse by more than
+            <input name="${n}-margin" value="${esc(m.margin)}" inputmode="decimal" aria-label="Margin">
+            <select name="${n}-marginKind" aria-label="Margin kind">${opts(["percent", "points"], m.marginKind, (v) => (v === "percent" ? "%" : "points"))}</select></span>
+          <button type="button" class="link" data-act="remove-metric" data-a="${ai}" data-m="${mi}">Remove</button>
+        </li>`;
 }
 
-/** draft: { company, areaKind, boss, cosEmail, areas: [{ name, tier }], owners: [{ name, email, spellings }] } */
-export function setupScreen(draft, { firstTime, message }) {
-  const areas = draft.areas.map((a, i) => `
-      <li class="row">
-        <input name="area-name-${i}" value="${esc(a.name)}" placeholder="e.g. Sales" aria-label="Name">
-        ${tierSelect(`area-tier-${i}`, a.tier)}
-        <button type="button" class="link" data-act="remove-area" data-i="${i}">Remove</button>
-      </li>`).join("");
-  const owners = draft.owners.map((o, i) => `
-      <li class="row">
-        <input name="owner-name-${i}" value="${esc(o.name)}" placeholder="Full name" aria-label="Name">
-        <input name="owner-email-${i}" type="email" value="${esc(o.email)}" placeholder="Email" aria-label="Email">
-        <input name="owner-spellings-${i}" value="${esc(o.spellings)}" placeholder="Other spellings, e.g. P. Nair" aria-label="Other spellings">
-        <button type="button" class="link" data-act="remove-owner" data-i="${i}">Remove</button>
-      </li>`).join("");
+function areaCard(a, i, kind) {
+  const chosen = new Set(a.metrics.map((m) => m.name.toLowerCase()));
+  const chips = METRIC_SUGGESTIONS.filter((s) => !chosen.has(s.name.toLowerCase()))
+    .map((s) => `<button type="button" class="chip-add" data-act="suggest-metric" data-a="${i}" data-name="${esc(s.name)}">+ ${esc(s.name)}</button>`).join("");
   return `
-  <nav class="toolbar"><a href="#/">Back</a></nav>
+    <li class="area-card">
+      <div class="row">
+        <input name="a-${i}-name" value="${esc(a.name)}" placeholder="Name, e.g. Sales" aria-label="${esc(kind)} name" class="area-name">
+        <select name="a-${i}-tier" aria-label="Tier">${opts(TIERS.map(([t]) => t), a.tier)}</select>
+        <button type="button" class="link" data-act="remove-area" data-a="${i}">Remove</button>
+      </div>
+      <div class="row">
+        <input name="a-${i}-leader" value="${esc(a.leader.name)}" placeholder="Leader's name" aria-label="Leader's name">
+        <input name="a-${i}-leaderEmail" type="email" value="${esc(a.leader.email)}" placeholder="Leader's email" aria-label="Leader's email">
+      </div>
+      <p class="hint">Metrics the leader reports each week, each with a weekly target.</p>
+      ${a.metrics.length ? `<ul class="metric-rows">${a.metrics.map((m, mi) => metricRow(i, mi, m)).join("")}</ul>` : ""}
+      <div class="chips">${chips}<button type="button" class="chip-add" data-act="add-metric" data-a="${i}">+ Another metric</button></div>
+    </li>`;
+}
+
+/** draft: { company, areaKind, boss, cosEmail, areas: [{ name, tier, leader, metrics }] } */
+export function setupScreen(draft, { firstTime, message }) {
+  const kind = draft.areaKind || "area";
+  return `
+  ${firstTime ? '<nav class="toolbar"><a href="#/">Back</a></nav>' : ownNav("setup")}
   <form class="setup" data-form="setup">
     <h1>${firstTime ? "Set up for your company" : "Setup"}</h1>
     <p class="lede">Once. You can change any of it later. Saved in this browser only.</p>
@@ -68,144 +98,188 @@ export function setupScreen(draft, { firstTime, message }) {
         <input name="areaKind" list="area-kinds" value="${esc(draft.areaKind)}" placeholder="department">
         <datalist id="area-kinds">${AREA_KINDS.map((k) => `<option value="${k}">`).join("")}</datalist></label>
       <label>Your email, as Chief of Staff <input name="cosEmail" type="email" value="${esc(draft.cosEmail)}" placeholder="you@company.com">
-        <span class="hint">Copied on every email the page drafts to an owner.</span></label>
+        <span class="hint">Where leaders and people send their updates. Copied on every email the page drafts to an owner.</span></label>
     </fieldset>
 
     <fieldset>
-      <legend>Your ${esc(draft.areaKind || "area")}s and how much each matters</legend>
+      <legend>Your ${esc(kind)}s: who leads each, how much it matters, what it reports</legend>
       <ul class="tier-help">${TIERS.map(([t, d]) => `<li><strong>${t}</strong>: ${d}</li>`).join("")}</ul>
-      <ul class="rows">${areas}</ul>
-      <button type="button" data-act="add-area">Add another</button>
-    </fieldset>
-
-    <fieldset>
-      <legend>Who owns work (optional now)</legend>
-      <p class="hint">Add people now, or as they appear in the files: each new name gets a
-      "same person as...?" question, never a guess. Emails let you draft emails to owners.</p>
-      <ul class="rows">${owners}</ul>
-      <button type="button" data-act="add-owner">Add a person</button>
+      <datalist id="metric-names">${METRIC_SUGGESTIONS.map((m) => `<option value="${esc(m.name)}">`).join("")}</datalist>
+      <ul class="area-cards">${draft.areas.map((a, i) => areaCard(a, i, kind)).join("")}</ul>
+      <button type="button" data-act="add-area">Add another ${esc(kind)}</button>
     </fieldset>
 
     ${message ? `<p class="message" role="alert">${esc(message)}</p>` : ""}
-    <div class="form-actions"><button type="submit" class="primary">Save setup</button></div>
+    <div class="form-actions"><button type="submit" class="primary">Save setup</button>
+      ${firstTime ? '<span class="meta">Next: the people who own work, and their tasks.</span>' : ""}</div>
   </form>`;
 }
 
-function preview(rows, kind) {
-  if (!rows.length) return '<p class="meta">No rows read yet.</p>';
-  const cols = FIELDS[kind].map((f) => f.key);
-  return `<div class="table-wrap"><table class="preview">
-    <thead><tr>${cols.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead>
-    <tbody>${rows.slice(0, 3).map((r) => `<tr>${cols.map((c) => `<td>${esc(r[c])}</td>`).join("")}</tr>`).join("")}</tbody>
-  </table></div>${rows.length > 3 ? `<p class="meta">and ${rows.length - 3} more rows</p>` : ""}`;
+// --- Tasks ------------------------------------------------------------------------
+
+function taskRow(t, areas, people, titles) {
+  const a = (f) => `name="${f}" data-id="${esc(t.id)}"`;
+  const others = titles.filter((x) => x !== t.task.split(",", 1)[0].trim());
+  const waiting = t.status === "Waiting on decision";
+  return `
+        <li class="task-row${t.status === "Done" ? " done" : ""}">
+          <input ${a("task")} value="${esc(t.task)}" placeholder="What the task is" aria-label="Task" class="task-text">
+          <div class="task-fields">
+            <label>Due <input type="date" ${a("due_date")} value="${esc(/^\d{4}-\d{2}-\d{2}$/.test(t.due_date) ? t.due_date : "")}"></label>
+            <label>Status <select ${a("status")}>${opts(STATUSES, t.status || "Open")}</select></label>
+            <label>Area <select ${a("area")}>${opts(areas.map((x) => x.name), t.area)}</select></label>
+            <label>Owner <select ${a("owner")}>${opts(people.map((p) => p.name), t.owner)}</select></label>
+            ${waiting ? `<label>Waiting on <input ${a("waiting_on")} value="${esc(t.waiting_on)}" placeholder="e.g. CEO"></label>
+            <label>Decision <select ${a("decision_type")}>${opts(DECISIONS, t.decision_type, (v) => v || "(type)")}</select></label>` : ""}
+            <label>Blocked by <select ${a("blocked_by")}>${opts(["", ...others], t.blocked_by, (v) => v || "(nothing)")}</select></label>
+            <span class="meta">last touched ${t.last_updated ? fmtLong(parseIsoDate(t.last_updated)) : "never"}</span>
+            <button type="button" class="link" data-act="delete-task" data-id="${esc(t.id)}">Delete</button>
+          </div>
+        </li>`;
 }
 
-function tableCard(t, i, areas) {
-  const m = t.mapping;
-  const rows = applyMapping(t, m);
-  const problems = mappingProblems(m, m.kind);
-  const options = (field) => [`<option value="">(none)</option>`,
-    ...t.headers.map((h) => `<option value="${esc(h)}"${m.columns[field] === h ? " selected" : ""}>${esc(h)}</option>`)].join("");
-  const matching = t.template ? '<p class="ok">Matches the template.</p>' : `
-      <p class="meta">${t.remembered ? "Matched the way you did last time. Check and change if needed." : "Match its columns to the template. The page remembers this for next time."}</p>
-      <div class="match-grid">
-        ${FIELDS[m.kind].map((f) => `
-        <label>${esc(f.label)}${f.required ? " *" : ""}
-          <select name="map-${i}-${f.key}">${options(f.key)}</select>
-          ${f.hint ? `<span class="hint">${esc(f.hint)}</span>` : ""}</label>`).join("")}
-      </div>`;
-  const areaPick = m.columns.area ? "" : `
-      <label class="whole-file">This whole file is for
-        <select name="area-${i}"><option value="">(pick one)</option>${areas.map((a) =>
-          `<option${m.area === a.name ? " selected" : ""}>${esc(a.name)}</option>`).join("")}</select></label>`;
-  return `
-    <li class="table-card">
-      <div class="table-head"><strong>${esc(t.name)}</strong>
-        <label>It holds <select name="kind-${i}">
-          <option value="tasks"${m.kind === "tasks" ? " selected" : ""}>tasks</option>
-          <option value="metrics"${m.kind === "metrics" ? " selected" : ""}>metrics</option></select></label>
-        <button type="button" class="link" data-act="remove-table" data-i="${i}">Remove</button></div>
-      ${matching}
-      ${areaPick}
-      ${problems.length ? `<ul class="problems">${problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>` : preview(rows, m.kind)}
+/** own: the reader's workspace. draftPerson: the add-a-person form's values. */
+export function tasksScreen(own, { message, matchQuestion }) {
+  const { setup, people, tasks } = own;
+  const titles = [...new Set(tasks.map((t) => t.task.split(",", 1)[0].trim()).filter(Boolean))];
+  const cards = people.map((p, i) => {
+    const mine = tasks.filter((t) => t.owner === p.name);
+    return `
+    <li class="person-card">
+      <div class="row person-head">
+        <input name="p-${i}-name" value="${esc(p.name)}" aria-label="Name" class="person-name">
+        <input name="p-${i}-email" type="email" value="${esc(p.email)}" placeholder="Email" aria-label="Email">
+        <select name="p-${i}-area" aria-label="Their ${esc(setup.areaKind)}">${opts(["", ...setup.areas.map((a) => a.name)], p.area, (v) => v || `(${setup.areaKind})`)}</select>
+        <button type="button" class="link" data-act="remove-person" data-p="${i}">Remove</button>
+      </div>
+      ${mine.length ? `<ul class="task-rows">${mine.map((t) => taskRow(t, setup.areas, people, titles)).join("")}</ul>` : '<p class="meta">No tasks yet.</p>'}
+      <button type="button" data-act="add-task" data-p="${i}">Add a task for ${esc(p.name.split(" ")[0])}</button>
     </li>`;
+  }).join("");
+  return `
+  ${ownNav("tasks")}
+  <section class="tasks">
+    <h1>People and their tasks</h1>
+    <p class="lede">Everyone who owns work, and what they own. Changes save as you go. Each person can also
+    update their own sheet from <a href="#/week">This week</a>, and you upload it.</p>
+    ${message ? `<p class="message" role="alert">${esc(message)}</p>` : ""}
+    <ul class="person-cards">${cards}</ul>
+    <form class="add-person" data-form="add-person">
+      <h2>Add a person</h2>
+      <div class="row">
+        <input name="name" placeholder="Full name" aria-label="Full name" required>
+        <input name="email" type="email" placeholder="Email" aria-label="Email">
+        <select name="area" aria-label="Their ${esc(setup.areaKind)}">${opts(["", ...setup.areas.map((a) => a.name)], "", (v) => v || `(${setup.areaKind})`)}</select>
+        <button type="submit">Add</button>
+      </div>
+      ${matchQuestion ?? ""}
+    </form>
+    <div class="form-actions"><a class="primary" href="#/week">Next: this week</a></div>
+  </section>`;
 }
 
-/** intake: { week, tables, ownerAnswers, areaAnswers, message }. questions: from main.js. */
-export function addWeekScreen(intake, { setup, owners, questions, problems, existingWeek }) {
-  const ownerQs = questions.owners.map((name) => {
-    const ans = intake.ownerAnswers[name] ?? {};
-    const likely = likelyMatches(name, owners);
-    const rest = owners.filter((o) => !likely.includes(o));
-    const opt = (o) => `<option value="${esc(o.name)}"${ans.as === o.name ? " selected" : ""}>${esc(o.name)}</option>`;
-    return `
-      <li class="question">
-        <span>Is <strong>${esc(name)}</strong> the same person as someone you already have?</span>
-        <select name="owner-as" data-name="${esc(name)}">
-          <option value="">(choose)</option>
-          ${likely.length ? `<optgroup label="Possibly">${likely.map(opt).join("")}</optgroup>` : ""}
-          ${rest.length ? `<optgroup label="Everyone else">${rest.map(opt).join("")}</optgroup>` : ""}
-          <option value="${NEW}"${ans.as === NEW ? " selected" : ""}>No, a new person</option>
-        </select>
-        ${ans.as === NEW ? `<input name="owner-email" type="email" data-name="${esc(name)}" value="${esc(ans.email ?? "")}" placeholder="Their email (optional)">` : ""}
-      </li>`;
-  }).join("");
-  const areaQs = questions.areas.map((name) => {
-    const ans = intake.areaAnswers[name] ?? {};
-    return `
-      <li class="question">
-        <span><strong>${esc(name)}</strong> isn't one of your ${esc(setup.areaKind)}s.</span>
-        <select name="area-as" data-name="${esc(name)}">
-          <option value="">(choose)</option>
-          ${setup.areas.map((a) => `<option value="${esc(a.name)}"${ans.as === a.name ? " selected" : ""}>Same as ${esc(a.name)}</option>`).join("")}
-          <option value="${NEW}"${ans.as === NEW ? " selected" : ""}>Add it as a new ${esc(setup.areaKind)}</option>
-        </select>
-        ${ans.as === NEW ? tierSelect(`area-tier`, ans.tier ?? "Core").replace("<select ", `<select data-name="${esc(name)}" `) : ""}
-      </li>`;
-  }).join("");
-
+/** "Is X the same person as Y?", asked before a similar name is added. */
+export function sameNameQuestion(name, matches) {
   return `
-  <nav class="toolbar"><a href="#/">Back</a> <a href="#/setup">Setup</a></nav>
-  <section class="add-week">
-    <h1>Add a week</h1>
-    <p class="lede">Drop in whatever the teams sent: the template, an Excel file, a CSV in their own
-    shape, or a table pasted from a spreadsheet. Nothing leaves your computer.</p>
+      <div class="question" role="alert">
+        <span>Is <strong>${esc(name)}</strong> the same person as ${matches.map((m) => `<strong>${esc(m.name)}</strong>`).join(" or ")}?</span>
+        ${matches.map((m) => `<button type="button" data-act="same-person" data-name="${esc(name)}" data-as="${esc(m.name)}">Yes, ${esc(m.name)}</button>`).join("")}
+        <button type="button" data-act="new-person" data-name="${esc(name)}">No, a new person</button>
+      </div>`;
+}
 
-    <div class="templates">
-      <span>Want every ${esc(setup.areaKind)} to send the same thing?</span>
-      <button type="button" data-act="download-template" data-file="tasks-template.csv">Tasks template</button>
-      <button type="button" data-act="download-template" data-file="metrics-template.csv">Metrics template</button>
-      <details><summary>What goes in them</summary>
-        <p>Tasks: one row per task. <strong>status</strong> is Open, In progress, Waiting on decision or Done.
-        For a decision, <strong>waiting_on</strong> says who it waits on (for example ${esc(setup.boss)}) and
-        <strong>decision_type</strong> is Yes or no, Pick an option, or Open question. <strong>blocked_by</strong>
-        names another task's title. Dates as YYYY-MM-DD; "next Tuesday" also works.</p>
-        <p>Metrics: one row per ${esc(setup.areaKind)} (or per city or store, in <strong>segment</strong>) with
-        its customer rating, target and how many ratings it is based on. Optional.</p>
-      </details>
+// --- This week --------------------------------------------------------------------
+
+/** week: the current week or null. uploads: files dropped this visit, read and checked. */
+export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, googleLink }) {
+  const { setup, people } = own;
+  const week = own.weeks.at(-1) ?? null;
+  const kind = setup.areaKind;
+  const start = `
+    <form class="start-week" data-form="start-week">
+      <label>Week ending <input type="date" name="week" value="${esc(suggestedWeek)}" required></label>
+      <button type="submit" class="primary">${week ? "Start this week" : "Start the first week"}</button>
+      <span class="hint">The week being reported on, usually the Sunday just gone.</span>
+    </form>`;
+  if (!week) {
+    return `
+  ${ownNav("week")}
+  <section class="week">
+    <h1>This week</h1>
+    <p class="lede">Each week has the same rhythm: on Monday, ask each ${esc(kind)} leader for last week's numbers
+    and each person for their task updates, due Wednesday. Upload what comes back. Then open the CEO view.</p>
+    ${message ? `<p class="message" role="alert">${esc(message)}</p>` : ""}
+    ${start}
+  </section>`;
+  }
+  const w = week.weekEnding;
+  const due = fmtLong(parseIsoDate(w) + 3);
+  const leaderRows = setup.areas.map((a, i) => {
+    const got = week.received.metrics.includes(a.name);
+    const ready = a.leader.email && a.metrics.length;
+    return `
+        <tr>
+          <td><strong>${esc(a.name)}</strong><br><span class="meta">${esc(a.leader.name || "No leader set")}</span></td>
+          <td>${plural(a.metrics.length, "metric")}</td>
+          <td class="actions">${ready ? `<a class="button-link" href="#" data-act="metric-request" data-a="${i}">Draft email</a>` : '<span class="meta">Add a leader email and metrics in Setup</span>'}
+            ${a.metrics.length ? `<button type="button" class="link" data-act="metric-sheet" data-a="${i}">Their sheet (.xlsx)</button>` : ""}</td>
+          <td>${got ? '<span class="ok">Received</span>' : '<span class="meta">Waiting</span>'}</td>
+        </tr>`;
+  }).join("");
+  const personRows = people.map((p, i) => {
+    const got = week.received.tasks.includes(p.name);
+    return `
+        <tr>
+          <td><strong>${esc(p.name)}</strong><br><span class="meta">${esc(p.area)}</span></td>
+          <td>${plural(openTasksOf(own, p).length, "open task")}</td>
+          <td class="actions">${p.email ? `<a class="button-link" href="#" data-act="task-request" data-p="${i}">Draft email</a>` : '<span class="meta">Add their email in Tasks</span>'}
+            <button type="button" class="link" data-act="task-sheet" data-p="${i}">Their sheet (.xlsx)</button></td>
+          <td>${got ? '<span class="ok">Received</span>' : '<span class="meta">Waiting</span>'}</td>
+        </tr>`;
+  }).join("");
+  const uploadList = uploads.length ? `
+      <ul class="uploads">${uploads.map((u, i) => `
+        <li class="upload ${u.error ? "bad" : ""}">
+          <strong>${esc(u.name)}</strong>: ${esc(u.summary)}
+          ${u.detail ? `<ul class="changes-list">${u.detail.map((d) => `<li>${esc(d)}</li>`).join("")}</ul>` : ""}
+          ${u.error || u.applied ? "" : `<button type="button" class="primary small" data-act="apply-upload" data-i="${i}">Apply</button>`}
+          ${u.applied ? '<span class="ok">Applied</span>' : ""}
+        </li>`).join("")}</ul>` : "";
+  return `
+  ${ownNav("week")}
+  <section class="week">
+    <h1>Week ending ${fmtLong(parseIsoDate(w))}</h1>
+    <p class="lede">Ask on Monday, back by ${due}. Drafts open in your own email app; nothing is sent from
+    this page. Attach each person's sheet to their email; a leader's sheet is the same every week.</p>
+    ${message ? `<p class="message" role="alert">${esc(message)}</p>` : ""}
+
+    <h2>1. Numbers from each ${esc(kind)} leader</h2>
+    <div class="table-wrap"><table class="checklist"><tbody>${leaderRows}</tbody></table></div>
+
+    <h2>2. Task updates from each person</h2>
+    ${people.length ? `<div class="table-wrap"><table class="checklist"><tbody>${personRows}</tbody></table></div>`
+      : '<p class="meta">No people yet. Add them in <a href="#/tasks">Tasks</a>.</p>'}
+
+    <div class="reminder">
+      <strong>Reminder every Monday, set once.</strong> A recurring calendar event inviting every leader and
+      person: "send last week's numbers and task updates to ${esc(cosEmail || "the Chief of Staff")} by Wednesday".
+      <div class="reminder-actions">
+        <a class="button-link" href="${esc(googleLink)}" target="_blank" rel="noopener">Add to Google Calendar</a>
+        <button type="button" class="link" data-act="reminder-ics">Calendar file for Outlook or Apple (.ics)</button>
+      </div>
+      <span class="hint">Google Calendar opens with the event filled in; nothing is created until you save it there.</span>
     </div>
 
-    <label class="week-pick">Week ending <input type="date" name="week" value="${esc(intake.week)}"></label>
-    ${existingWeek ? `<p class="meta">You already have this week. Files you add replace that week's rows for the same ${esc(setup.areaKind)}s; the rest stay.</p>` : ""}
-
+    <h2>3. Upload what came back</h2>
     <div class="drop" data-drop>
-      <p><strong>Drop files here</strong> or <label class="file-pick">choose files
-        <input type="file" name="files" multiple accept=".csv,.tsv,.txt,.xlsx,.xls"></label></p>
-      <details><summary>Or paste a table</summary>
-        <textarea name="paste" rows="5" placeholder="Copy the cells in Excel or Google Sheets, including the header row, and paste here"></textarea>
-        <button type="button" data-act="use-paste">Use pasted table</button>
-      </details>
+      <p><strong>Drop the returned sheets here</strong> or <label class="file-pick">choose files
+        <input type="file" name="files" multiple accept=".xlsx,.xls,.csv"></label></p>
+      <p class="hint">Any mix of leaders' and people's sheets. Each is checked before anything changes.</p>
     </div>
+    ${uploadList}
 
-    ${intake.tables.length ? `<ul class="tables">${intake.tables.map((t, i) => tableCard(t, i, setup.areas)).join("")}</ul>` : ""}
-    ${ownerQs ? `<h2>New names</h2><p class="section-note">Each name is matched only when you say so. A wrong
-      match could hide or invent a clash for one person.</p><ul class="questions">${ownerQs}</ul>` : ""}
-    ${areaQs ? `<h2>Unknown ${esc(setup.areaKind)}s</h2><ul class="questions">${areaQs}</ul>` : ""}
+    <div class="form-actions"><a class="primary" href="#/briefing">Open the CEO view</a></div>
 
-    ${intake.message ? `<p class="message" role="alert">${esc(intake.message)}</p>` : ""}
-    ${problems.length && intake.tables.length ? `<ul class="problems">${problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>` : ""}
-    <div class="form-actions">
-      <button type="button" class="primary" data-act="save-week"${problems.length ? " disabled" : ""}>Save this week</button>
-    </div>
+    <details class="next-week"><summary>Start the next week</summary>${start}</details>
   </section>`;
 }

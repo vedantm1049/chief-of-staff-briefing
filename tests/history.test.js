@@ -168,7 +168,7 @@ test("w4 rating miss lifts an experimental area", () => {
   // misses by 0.5. That lifts Mina's untouched item to the top group, in its
   // 4th week running, with its due date moved four times.
   const b = weeks[W4];
-  const express = b.customerHealth.find((r) => r.area === "Wasla Express");
+  const express = b.metricResults.find((r) => r.area === "Wasla Express" && r.metric === "Customer rating");
   assert.ok(express.triggered && express.count === 15);
   const mina = findCommitment(b, { owner: "Mina" });
   assert.equal(b.classified.get(mina).quadrant, QUADRANT_NEEDS_DECISION_NOW);
@@ -200,8 +200,8 @@ test("w4 workshop is back", () => {
 
 test("w4 mart rating recovered", () => {
   const b = weeks[W4];
-  const now = b.customerHealth.find((r) => r.area === "Wasla Mart");
-  const before = b.comparison.prevHealth["Wasla Mart"];
+  const now = b.metricResults.find((r) => r.area === "Wasla Mart" && r.metric === "Customer rating");
+  const before = b.comparison.prevMetrics["Wasla Mart\u0000Customer rating"];
   assert.ok(before.triggered && !now.triggered);
 });
 

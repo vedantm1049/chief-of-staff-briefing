@@ -33,7 +33,11 @@ Reference "today" for all day-counts in this section: 2026-09-28.
 
 - **Wasla Central, "Q4 product roadmap prioritization workshop"**: no due date at all. Should be flagged "needs a deadline set," not scored as zero urgency and ignored.
 
-### Customer-health signal (rating vs. target, single week, sample-floor gated)
+### Metrics (against the targets in setup, single week)
+
+- **Every business reports the metrics set for it**: Eats orders, on-time delivery and rating; Mart revenue (per city, added up) and rating (per city, averaged by count); Table reservations and rating; Express orders and rating; Pay transactions, dispute rate and rating; Central roadmap items shipped. Every metric other than the ratings below is met every week, so only the ratings move a quadrant.
+
+### Customer rating (0.2-point margin, floor of 10 ratings)
 
 - **Wasla Mart**: reports its rating per city, three rows with `segment` Dubai, Abu Dhabi and Sharjah. Blended, weighted by `count`, it is roughly 3.93 against a 4.5 target. A real miss, should trigger. Sharjah (3.7, worst of the three) also lines up narratively with the stockout item above, same underlying problem showing up two ways.
 - **Wasla Eats**: 4.4 vs. 4.5, a 0.1 miss. Should NOT trigger, this is the "small miss, within tolerance" case.
@@ -43,7 +47,7 @@ Reference "today" for all day-counts in this section: 2026-09-28.
 
 ### The template
 
-- Every area sends tasks.csv in the same columns, and every area with customers sends metrics.csv. Wasla Central sends no metrics.
+- Every area sends tasks.csv and metrics.csv in the same columns.
 - Decisions name who they wait on in `waiting_on`: the CEO for Zayd's, Central Legal for Nadia Osman's.
 - Every area in the files is one of the six in setup.
 

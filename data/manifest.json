@@ -3,6 +3,7 @@
   "weeks": {
     "2026-09-27": {
       "wasla_central": [
+        "metrics.csv",
         "tasks.csv"
       ],
       "wasla_eats": [
@@ -28,6 +29,7 @@
     },
     "2026-10-04": {
       "wasla_central": [
+        "metrics.csv",
         "tasks.csv"
       ],
       "wasla_eats": [
@@ -53,6 +55,7 @@
     },
     "2026-10-11": {
       "wasla_central": [
+        "metrics.csv",
         "tasks.csv"
       ],
       "wasla_eats": [
@@ -78,6 +81,7 @@
     },
     "2026-10-18": {
       "wasla_central": [
+        "metrics.csv",
         "tasks.csv"
       ],
       "wasla_eats": [

@@ -11,10 +11,9 @@ import {
   QUADRANT_OMIT,
   QUADRANT_ORDER,
 } from "../engine/classify.js";
-import { MIN_RATED_SAMPLE, RATING_MISS_MARGIN } from "../engine/config.js";
 import { itemTitle } from "../engine/rules.js";
 import { fmtLong, fmtShort, toIso, parseIsoDate } from "../engine/dates.js";
-import { notesFor, emailDraft, NOTE_FROM } from "./notes.js";
+import { notesFor, noteMatches, emailDraft, NOTE_FROM } from "./notes.js";
 
 const QUADRANT_META = {
   [QUADRANT_NEEDS_DECISION_NOW]: ["needs", "Important and urgent"],
@@ -91,10 +90,12 @@ function dueText(c) {
   return fmtLong(c.dueDate);
 }
 
-/** The two things a reader can change: tick it done, or set its due date. */
-function editControls(c) {
+/** The two things a reader can change on a card: tick it done, or set its
+due date. Not on a past week of the reader's own company: that is a record. */
+function editControls(c, ctx) {
+  if (!ctx.editable) return "";
   const label = c.description.split(",", 1)[0].trim();
-  const attrs = `data-area="${esc(c.area)}" data-title="${esc(itemTitle(c.description))}" data-label="${esc(label)}"`;
+  const attrs = `data-id="${esc(c.id)}" data-area="${esc(c.area)}" data-title="${esc(itemTitle(c.description))}" data-label="${esc(label)}"`;
   const value = c.dueDate != null ? toIso(c.dueDate) : "";
   return `
         <div class="edit">
@@ -139,14 +140,14 @@ function noteEntry(n, ctx, item, flags) {
 function notesBlock(c, flags, ctx) {
   const title = itemTitle(c.description);
   const label = c.description.split(",", 1)[0].trim();
-  const list = notesFor(ctx.notes, c.area, title, ctx.week);
+  const list = notesFor(ctx.notes, { id: c.id, area: c.area, title }, ctx.week);
   const entries = list.length ? `<ul class="note-list">${list.map((n) => noteEntry(n, ctx, c, flags)).join("")}</ul>` : "";
   const options = NOTE_FROM.map((f) => `<option>${esc(f)}</option>`).join("");
   return `
         <div class="notes">
           ${entries}
           <details class="add-note"><summary>Add a note or question</summary>
-            <form data-form="note" data-area="${esc(c.area)}" data-title="${esc(title)}" data-label="${esc(label)}" data-owner="${esc(c.owner)}">
+            <form data-form="note" data-task-id="${esc(c.id)}" data-area="${esc(c.area)}" data-title="${esc(title)}" data-label="${esc(label)}" data-owner="${esc(c.owner)}">
               <label>From <select name="from">${options}</select></label>
               <textarea name="text" rows="2" required placeholder="A question, a decision, or a note for the record"></textarea>
               <button type="submit">Save note</button>
@@ -180,7 +181,7 @@ function itemCard(b, item, showEffort, tiers, ctx) {
         <div class="meta">Due ${dueText(c)} · last touched ${fmtLong(c.lastUpdated)}</div>
         ${reasons ? `<ul class="reasons">${reasons}</ul>` : ""}
         ${extra}
-        ${editControls(c)}
+        ${editControls(c, ctx)}
         ${notesBlock(c, item.flags.map((f) => FLAG_LABELS[f]), ctx)}
       </li>`;
 }
@@ -209,11 +210,12 @@ function quadrant(b, name, tiers, ctx) {
 
 function summary(b) {
   const top = b.quadrants[QUADRANT_NEEDS_DECISION_NOW].length;
-  const misses = b.customerHealth.filter((r) => r.triggered).map((r) => r.area);
+  const misses = [...new Set(b.metricResults.filter((r) => r.triggered).map((r) => r.area))];
   const parts = [`<strong>${plural(top, "item")}</strong> need${top === 1 ? "s" : ""} you now`];
   if (b.conflicts.length) parts.push(`<strong>${plural(b.conflicts.length, "owner conflict")}</strong>`);
   if (misses.length) {
-    parts.push(`<strong>${plural(misses.length, "customer-rating miss", "customer-rating misses")}</strong> (${esc(misses.join(", "))})`);
+    const n = b.metricResults.filter((r) => r.triggered).length;
+    parts.push(`<strong>${plural(n, "metric miss", "metric misses")}</strong> (${esc(misses.join(", "))})`);
   }
   if (b.needsDeadlineItems.length) parts.push(`<strong>${plural(b.needsDeadlineItems.length, "item")}</strong> with no deadline`);
   let line = parts.join(" · ");
@@ -304,51 +306,58 @@ function conflictsSection(b, tiers) {
   </section>`;
 }
 
-function healthLabel(r) {
-  if (!r) return ["no data", "none"];
+function metricStatus(r) {
+  if (!r) return ["", "none"];
+  if (!r.reported) return ["Not reported", "none"];
   if (r.triggered) return ["Miss", "miss"];
-  if (r.lowSample) return ["Not enough data", "lowsample"];
-  if (r.rating != null && r.target != null && r.rating >= r.target) return ["On target", "ok"];
-  return ["Within tolerance", "ok"];
+  if (r.lowSample) return ["Too few to judge", "lowsample"];
+  if (r.target == null) return ["No target", "none"];
+  return [r.shortfall <= 0 ? "On target" : "Within margin", "ok"];
 }
 
-function num(v, digits) {
-  return v == null ? "not reported"
-    : v.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+function num(v) {
+  if (v == null) return "";
+  const digits = Math.abs(v) < 10 && !Number.isInteger(v) ? 2 : Number.isInteger(v) ? 0 : 1;
+  return v.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
-function healthSection(b, kindTitle) {
-  const prev = b.comparison?.prevHealth ?? {};
+function withUnit(v, unit) {
+  if (v == null) return "";
+  return unit === "%" ? `${num(v)}%` : unit && unit !== "out of 5" && !/^[A-Z]{3}$/.test(unit) ? `${num(v)} ${esc(unit)}` : num(v);
+}
+
+/** Every tracked metric, area by area: this week against target and last week. */
+function metricsSection(b, kindTitle) {
+  if (!b.metricResults.length) return "";
+  const prev = b.comparison?.prevMetrics ?? {};
   const hasPrev = Object.keys(prev).length > 0;
-  const rows = b.customerHealth.map((r) => {
-    const [label, status] = healthLabel(r);
-    let last = "";
-    if (hasPrev) {
-      const p = prev[r.area];
-      const [pLabel, pStatus] = healthLabel(p);
-      const pRating = p?.rating != null ? p.rating.toFixed(2) : "";
-      last = `<td class="last">${pRating} <span class="last-${pStatus}">${pLabel}</span></td>`;
-    }
+  let lastArea = null;
+  const rows = b.metricResults.map((r) => {
+    const [label, status] = metricStatus(r);
+    const p = prev[`${r.area}\u0000${r.metric}`];
+    const areaCell = r.area === lastArea ? "" : esc(r.area);
+    lastArea = r.area;
+    const unit = r.unit && /^[A-Z]{3}$/.test(r.unit) ? ` (${esc(r.unit)})` : "";
+    const change = hasPrev && p?.value != null
+      ? `${withUnit(p.value, r.unit)}${p.triggered ? ' <span class="last-miss">Miss</span>' : ""}` : "";
     return `
-        <tr>
-          <td>${esc(r.area)}</td>
-          <td>${num(r.rating, 2)}</td>
-          <td>${num(r.target, 2)}</td>
-          <td>${num(r.count, 0)}</td>
+        <tr class="${status === "miss" ? "row-miss" : ""}">
+          <td class="area-cell">${areaCell}</td>
+          <td>${esc(r.metric)}${unit}</td>
+          <td class="num">${r.reported ? withUnit(r.value, r.unit) : "not reported"}</td>
+          <td class="num">${withUnit(r.target, r.unit)}</td>
+          ${hasPrev ? `<td class="num last">${change}</td>` : ""}
           <td><span class="badge badge-health-${status}">${label}</span></td>
-          ${last}
-          <td class="why">${esc(r.reason)}</td>
+          <td class="why">${status === "ok" ? "" : esc(r.reason)}</td>
         </tr>`;
   }).join("");
-  if (!b.customerHealth.length) return "";
   return `
   <section>
-    <h2>Customer ratings vs. target</h2>
-    <p class="section-note">Judged on this week alone. An area counts as a miss when it is more than
-    ${RATING_MISS_MARGIN} below its own target and logged at least ${MIN_RATED_SAMPLE} ratings.
-    A miss raises the priority of that area's items above. Areas that report no customer rating are left out.</p>
-    <div class="table-wrap"><table>
-      <thead><tr><th>${esc(kindTitle)}</th><th>Rating</th><th>Target</th><th>Rated</th><th></th>${hasPrev ? "<th>Last week</th>" : ""}<th>Why</th></tr></thead>
+    <h2>Metrics vs. target</h2>
+    <p class="section-note">Judged on this week alone. A metric is a miss when it is worse than its target
+    by more than its margin. A miss raises the priority of that ${esc(kindTitle.toLowerCase())}'s items above.</p>
+    <div class="table-wrap"><table class="metrics">
+      <thead><tr><th>${esc(kindTitle)}</th><th>Metric</th><th>This week</th><th>Target</th>${hasPrev ? "<th>Last week</th>" : ""}<th></th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
   </section>`;
@@ -361,7 +370,7 @@ function needsDeadlineSection(b, tiers, ctx) {
         <div class="item-head">${areaTag(c.area, tiers)}<span class="owner">${esc(c.owner)}</span>${historyBadge(hist(b, c))}</div>
         <div class="desc">${esc(c.description)}</div>
         <div class="meta">Due ${dueText(c)} · last touched ${fmtLong(c.lastUpdated)}</div>
-        ${editControls(c)}
+        ${editControls(c, ctx)}
         ${notesBlock(c, ["No deadline"], ctx)}
       </li>`).join("");
   return `
@@ -376,18 +385,18 @@ function needsDeadlineSection(b, tiers, ctx) {
 /** Notes whose item has no card this week: closed, cleared, or not flagged.
 The item is looked up in this week's files so the email draft has facts. */
 function otherNotesSection(b, shown, ctx) {
-  const shownKeys = new Set(shown.map((c) => `${c.area}\u0000${itemTitle(c.description)}`));
-  const rest = ctx.notes.filter((n) => n.week <= ctx.week && !shownKeys.has(`${n.area}\u0000${n.title}`));
+  const asItem = (c) => ({ id: c.id, area: c.area, title: itemTitle(c.description) });
+  const rest = ctx.notes.filter((n) => n.week <= ctx.week && !shown.some((c) => noteMatches(n, asItem(c))));
   if (!rest.length) return "";
   const groups = new Map();
   for (const n of rest) {
-    const k = `${n.area}\u0000${n.title}`;
+    const k = n.taskId || `${n.area}\u0000${n.title}`;
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push(n);
   }
   const rows = [...groups.values()].map((list) => {
     const n0 = list[0];
-    const item = b.allCommitments.find((c) => c.area === n0.area && itemTitle(c.description) === n0.title) ?? null;
+    const item = b.allCommitments.find((c) => noteMatches(n0, asItem(c))) ?? null;
     const state = item ? (item.status === "done" ? "Done" : "Open, not flagged this week") : "Not in this week's files";
     return `
       <li class="item">
@@ -467,11 +476,16 @@ function topBar(state) {
       <a class="primary" href="#/setup">Set up for your company</a>
     </div>`;
   }
+  return ownNav("briefing");
+}
+
+/** Navigation between the reader's own screens. */
+export function ownNav(current) {
+  const links = [["briefing", "#/briefing", "CEO view"], ["week", "#/week", "This week"], ["tasks", "#/tasks", "Tasks"],
+    ["setup", "#/setup", "Setup"], ["example", "#/example", "See the example"]];
   return `
     <nav class="toolbar" aria-label="Your company">
-      <a class="primary" href="#/add">Add a week</a>
-      <a href="#/setup">Setup</a>
-      <a href="#/example">See the example</a>
+      ${links.map(([k, href, label]) => (k === current ? `<strong aria-current="page">${label}</strong>` : `<a href="${href}">${label}</a>`)).join("")}
     </nav>`;
 }
 
@@ -480,11 +494,12 @@ export function renderPage(state) {
   const { briefings, current: b, setup } = state;
   const tiers = b.tiers;
   const kindTitle = capital(setup.areaKind || "area");
-  const ctx = { notes: state.notes, week: toIso(b.weekEnding), emails: b.ownerEmails, cosEmail: state.cosEmail, areaKind: setup.areaKind };
+  const ctx = { notes: state.notes, week: toIso(b.weekEnding), emails: b.ownerEmails, cosEmail: state.cosEmail,
+    areaKind: setup.areaKind, editable: state.mode === "example" || b === briefings.at(-1) };
   const shown = [...[...b.classified.values()].map((i) => i.commitment), ...b.needsDeadlineItems];
   const week = fmtLong(b.weekEnding);
-  const removeWeek = state.mode === "own"
-    ? `<button type="button" class="link" data-act="remove-week" data-target="${toIso(b.weekEnding)}">Remove this week</button>` : "";
+  const removeWeek = state.mode === "own" && b === briefings.at(-1)
+    ? `<button type="button" class="link" data-act="remove-week" data-target="${toIso(b.weekEnding)}">Undo starting this week</button>` : "";
   return `
   ${topBar(state)}
   <header>
@@ -505,11 +520,12 @@ export function renderPage(state) {
     or waiting on a decision. Each is placed by importance and urgency, with the reasons listed on the
     card. Nothing has been resolved or decided on your behalf.</p>
     <div class="grid">${QUADRANT_ORDER.map((q) => quadrant(b, q, tiers, ctx)).join("")}</div>
+    ${ctx.editable ? "" : '<p class="meta">A past week is a record. Change tasks on the current week.</p>'}
   </section>
+  ${metricsSection(b, kindTitle)}
   ${yourChanges(state.weekEdits)}
   ${closedSection(b, tiers)}
   ${conflictsSection(b, tiers)}
-  ${healthSection(b, kindTitle)}
   ${needsDeadlineSection(b, tiers, ctx)}
   ${otherNotesSection(b, shown, ctx)}
 

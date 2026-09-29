@@ -4,10 +4,10 @@ area. It reads and normalizes. It scores nothing.
 The template (docs/data_contract.md section 3):
   tasks:   area, task, owner, due_date, status, waiting_on, blocked_by,
            decision_type, last_updated
-  metrics: area, metric, segment, value, target, count
+  metrics: area, metric, segment, value, target, count (read in metrics.js)
 
-Rows come in as objects keyed by those column names, from the sample files,
-an uploaded template, or a file whose columns the reader matched on the page.
+A task row may also carry an id: tasks kept on the page have one, and it
+identifies the task across weeks even if its title is edited.
 */
 import {
   normalizeStatus,
@@ -17,7 +17,6 @@ import {
   parseDueDate,
 } from "./normalize.js";
 import { parseIsoDate } from "./dates.js";
-import { RATING_METRIC } from "./config.js";
 
 /** Blank strings and NaN become null. */
 function clean(v) {
@@ -41,6 +40,7 @@ function text(v) {
 /** One tracked task. */
 export function makeCommitment(fields) {
   return {
+    id: "",                 // set for tasks kept on the page
     area: "",               // the area whose file lists the task, e.g. "Wasla Table"
     rawOwner: "",
     owner: "",              // after alias resolution
@@ -92,6 +92,7 @@ export function loadTasks(rows, { areaNames, aliases, today, boss }) {
       const decisionPending = isDecisionPending(status, description);
 
       return makeCommitment({
+        id: text(row.id),
         area,
         rawOwner: text(row.owner),
         owner: aliases.resolve(row.owner, area),
@@ -115,42 +116,4 @@ export function loadTasks(rows, { areaNames, aliases, today, boss }) {
   const indexed = out.map((c, i) => [c, i]);
   indexed.sort((x, y) => rank(x[0]) - rank(y[0]) || x[1] - y[1]);
   return { commitments: indexed.map(([c]) => c), unknownAreas: [...unknownAreas].sort() };
-}
-
-/** Customer rating per area, from the metrics rows. Several rows for one
-area (cities, stores) are blended, weighted by each row's count. Areas with
-no rating row are left out: not every area has customers. */
-export function loadRatings(rows, { areaNames }) {
-  const match = areaMatcher(areaNames);
-  const byArea = new Map();
-  for (const row of rows) {
-    if (text(row.metric).toLowerCase() !== RATING_METRIC) continue;
-    const area = match(row.area) ?? text(row.area);
-    if (!byArea.has(area)) byArea.set(area, []);
-    byArea.get(area).push({
-      segment: text(row.segment),
-      rating: toFloat(row.value),
-      target: toFloat(row.target),
-      count: toFloat(row.count),
-    });
-  }
-  const order = new Map(areaNames.map((n, i) => [n, i]));
-  const areas = [...byArea.keys()].sort((a, b) => (order.get(a) ?? 1e9) - (order.get(b) ?? 1e9));
-  return areas.map((area) => {
-    const segments = byArea.get(area);
-    let total = 0, ratingSum = 0, targetSum = 0;
-    for (const s of segments) {
-      if (s.rating == null || s.target == null || !s.count) continue;
-      total += s.count;
-      ratingSum += s.rating * s.count;
-      targetSum += s.target * s.count;
-    }
-    return {
-      area,
-      rating: total ? ratingSum / total : null,
-      target: total ? targetSum / total : null,
-      count: total || null,
-      segments: segments.length > 1 || segments[0].segment ? segments : null,
-    };
-  });
 }

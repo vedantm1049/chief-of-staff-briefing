@@ -5,8 +5,17 @@ saves and can load again, in this browser or another.
 Two workspaces, kept apart:
   example: the Wasla sample. Only the reader's edits, notes and settings are
     stored; the sample itself is read from data/.
-  own: the reader's company. Setup, owners, every week's rows, remembered
-    column matches, edits, notes and settings.
+  own: the reader's company:
+    setup    company, the boss's title, what areas are called, and each area
+             with its tier, leader and metrics
+    people   everyone who owns work: { name, email, area, spellings }
+    tasks    the live task list, kept on the page: { id, area, task, owner,
+             due_date, status, waiting_on, blocked_by, decision_type,
+             last_updated }
+    weeks    { weekEnding, tasks, metrics, received }. The last week is the
+             current one and reads the live list (its tasks are null). A
+             finished week keeps a frozen copy, so history can be told.
+    notes, settings
 
 An edit: { week, area, title, label, done, due, at }. week is the week-ending
 date, title the item's title as the engine matches it (engine/rules.js:
@@ -78,13 +87,15 @@ export function cleanWorkspace(id, body) {
     settings: cleanSettings(body.settings),
   };
   if (id !== "own") return base;
-  return {
-    ...base,
-    setup: cleanSetup(body.setup),
-    owners: cleanOwners(body.owners),
-    weeks: cleanWeeks(body.weeks),
-    mappings: cleanMappings(body.mappings),
-  };
+  const people = cleanPeople(body.people ?? body.owners);
+  const weeks = cleanWeeks(body.weeks);
+  let tasks = cleanTasks(body.tasks);
+  // Data from before the live list: the latest week's rows become the live list.
+  if (!Array.isArray(body.tasks) && weeks.length && weeks.at(-1).tasks) {
+    tasks = cleanTasks(weeks.at(-1).tasks);
+    weeks.at(-1).tasks = null;
+  }
+  return { ...base, setup: cleanSetup(body.setup), people, tasks, weeks };
 }
 
 /** Settings the reader can change. cosEmail: copied on every email draft. */
@@ -92,9 +103,29 @@ export function cleanSettings(s) {
   return { cosEmail: isEmail(s?.cosEmail) ? s.cosEmail.trim() : null };
 }
 
+const num = (v) => (v === "" || v == null || Number.isNaN(Number(v)) ? null : Number(v));
+
+export function cleanMetric(m) {
+  return {
+    id: str(m?.id) || newId("m"),
+    name: str(m?.name),
+    unit: str(m?.unit),
+    target: num(m?.target),
+    better: m?.better === "lower" ? "lower" : "higher",
+    margin: num(m?.margin) ?? 5,
+    marginKind: m?.marginKind === "points" ? "points" : "percent",
+    minCount: num(m?.minCount) || null,
+  };
+}
+
 export function cleanSetup(s) {
   const areas = list(s?.areas)
-    .map((a) => ({ name: str(a?.name), tier: TIERS.includes(a?.tier) ? a.tier : "Core" }))
+    .map((a) => ({
+      name: str(a?.name),
+      tier: TIERS.includes(a?.tier) ? a.tier : "Core",
+      leader: { name: str(a?.leader?.name), email: isEmail(a?.leader?.email) ? a.leader.email.trim() : "" },
+      metrics: list(a?.metrics).map(cleanMetric).filter((m) => m.name),
+    }))
     .filter((a) => a.name);
   return {
     company: str(s?.company),
@@ -104,16 +135,24 @@ export function cleanSetup(s) {
   };
 }
 
-/** Owners: { name, email, spellings: other ways their name is written }. */
-export function cleanOwners(owners) {
-  return list(owners)
+export function newId(prefix = "t") {
+  return `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+}
+
+/** People who own work: { name, email, area, spellings: other ways their name is written }. */
+export function cleanPeople(people) {
+  return list(people)
     .map((o) => ({
       name: str(o?.name),
       email: isEmail(o?.email) ? o.email.trim() : "",
+      area: str(o?.area),
       spellings: list(o?.spellings).map(str).filter(Boolean),
     }))
     .filter((o) => o.name);
 }
+
+export const TASK_COLUMNS = ["id", "area", "task", "owner", "due_date", "status", "waiting_on", "blocked_by",
+  "decision_type", "last_updated"];
 
 function cleanRows(rows) {
   return list(rows)
@@ -121,28 +160,27 @@ function cleanRows(rows) {
     .map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v == null ? "" : String(v)])));
 }
 
+/** Tasks always carry an id. */
+export function cleanTasks(rows) {
+  return cleanRows(rows)
+    .map((r) => ({ ...Object.fromEntries(TASK_COLUMNS.map((c) => [c, r[c] ?? ""])), id: r.id || newId() }))
+    .filter((r) => r.task || r.owner);
+}
+
 export function cleanWeeks(weeks) {
   return list(weeks)
     .filter((w) => ISO.test(w?.weekEnding))
     .map((w) => ({
       weekEnding: w.weekEnding,
-      tasks: cleanRows(w.tasks),
+      tasks: Array.isArray(w.tasks) ? cleanTasks(w.tasks) : null,
       metrics: cleanRows(w.metrics),
-      files: list(w.files).map(str).filter(Boolean),
+      received: {
+        metrics: list(w.received?.metrics).map(str).filter(Boolean),
+        tasks: list(w.received?.tasks).map(str).filter(Boolean),
+      },
     }))
-    .sort((a, b) => (a.weekEnding < b.weekEnding ? -1 : 1));
-}
-
-/** Remembered column matches: { header signature: { kind, columns, area } }. */
-export function cleanMappings(m) {
-  const out = {};
-  for (const [sig, v] of Object.entries(m && typeof m === "object" ? m : {})) {
-    if (!v || !["tasks", "metrics"].includes(v.kind)) continue;
-    const columns = {};
-    for (const [field, header] of Object.entries(v.columns ?? {})) if (typeof header === "string") columns[field] = header;
-    out[sig] = { kind: v.kind, columns, area: str(v.area) };
-  }
-  return out;
+    .sort((a, b) => (a.weekEnding < b.weekEnding ? -1 : 1))
+    .map((w, i, all) => (i < all.length - 1 && w.tasks == null ? { ...w, tasks: [] } : w));
 }
 
 /** Keep only well-formed edits, so a hand-edited or damaged file can't break the page. */

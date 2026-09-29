@@ -171,18 +171,18 @@ test("roadmap workshop needs a deadline", () => {
 // --- Customer health -----------------------------------------------------------------
 
 function health(b, area) {
-  return b.customerHealth.find((r) => r.area === area);
+  return b.metricResults.find((r) => r.area === area && r.metric === "Customer rating");
 }
 
 test("mart blended rating miss triggers", () => {
   const r = health(briefing, "Wasla Mart");
-  assert.ok(r.rating.toFixed(2) === "3.93" && r.triggered);
+  assert.ok(r.value.toFixed(2) === "3.93" && r.triggered);
 });
 
 test("eats and pay small misses do not trigger", () => {
   for (const area of ["Wasla Eats", "Wasla Pay"]) {
     const r = health(briefing, area);
-    assert.ok(r.miss.toFixed(2) === "0.10" && !r.triggered);
+    assert.ok(r.shortfall.toFixed(2) === "0.10" && !r.triggered);
   }
 });
 
@@ -192,14 +192,14 @@ test("express big miss suppressed by sample floor", () => {
 });
 
 test("central has no customer metric", () => {
-  assert.ok(!briefing.customerHealth.some((r) => r.area === "Wasla Central"));
+  assert.ok(!briefing.metricResults.some((r) => r.area === "Wasla Central" && r.metric === "Customer rating"));
 });
 
 test("rating miss lifts importance", () => {
   // Mart's miss is listed as an importance reason on its items.
   const item = findCommitment(briefing, { descriptionContains: "stockout alerting" });
   const reasons = briefing.classified.get(item).importanceReasons;
-  assert.ok(reasons.some((r) => r.includes("customer-rating")));
+  assert.ok(reasons.includes("Wasla Mart missed its Customer rating target this week"));
 });
 
 test("rating miss changes quadrant for non flagship area", () => {
@@ -241,9 +241,9 @@ test("a decision names who it waits on", () => {
 });
 
 test("mart reports its rating per city", () => {
-  const r = briefing.customerHealth.find((x) => x.area === "Wasla Mart");
+  const r = health(briefing, "Wasla Mart");
   assert.deepEqual(r.segments.map((x) => x.segment), ["Dubai", "Abu Dhabi", "Sharjah"]);
-  assert.equal(r.segments[2].rating, 3.7);
+  assert.equal(r.segments[2].value, 3.7);
 });
 
 test("every area in the files is in the setup", () => {

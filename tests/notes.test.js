@@ -27,9 +27,9 @@ test("a name missing from the alias table has no email", () => {
 
 test("a note stays with its item from the week it was written", () => {
   const note = newNote({ ...LEASE, from: "CEO", text: "Who is chasing the landlord?", week: W2 });
-  assert.deepEqual(notesFor([note], LEASE.area, LEASE.title, W2), [note]);
-  assert.deepEqual(notesFor([note], LEASE.area, LEASE.title, W3), [note]);
-  assert.deepEqual(notesFor([note], LEASE.area, LEASE.title, "2026-09-27"), []);
+  assert.deepEqual(notesFor([note], LEASE, W2), [note]);
+  assert.deepEqual(notesFor([note], LEASE, W3), [note]);
+  assert.deepEqual(notesFor([note], LEASE, "2026-09-27"), []);
 });
 
 test("the email draft carries the note and the card's facts, nothing more", () => {

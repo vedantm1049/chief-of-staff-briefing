@@ -3,7 +3,8 @@ week. history.js compares several of these week to week.
 */
 import { WASLA_SETUP } from "./config.js";
 import { AliasTable } from "./normalize.js";
-import { loadTasks, loadRatings } from "./loaders.js";
+import { loadTasks } from "./loaders.js";
+import { evaluateMetrics } from "./metrics.js";
 import {
   itemKey,
   isStale,
@@ -11,7 +12,6 @@ import {
   needsDeadlineSet,
   findConflicts,
   blockedItems,
-  evaluateCustomerHealth,
 } from "./rules.js";
 import { classifyCommitment, sortQuadrant, QUADRANT_ORDER } from "./classify.js";
 import { parseIsoDate } from "./dates.js";
@@ -26,7 +26,7 @@ export function flaggedCommitments(b) {
 
 week: { weekEnding: "YYYY-MM-DD", tasks: [row], metrics: [row] }, rows in
   the template's columns (loaders.js).
-options.setup: { boss, areas: [{ name, tier }] }. Defaults to the Wasla sample.
+options.setup: { boss, areas: [{ name, tier, leader, metrics }] }. Defaults to the Wasla sample.
 options.aliasText: the owner table as CSV, or options.aliases: its rows.
 options.today: a day number. Defaults to the day after weekEnding, the Monday
   the briefing is read.
@@ -60,8 +60,12 @@ export function buildBriefing(week, { setup = WASLA_SETUP, aliasText, aliases: a
   const needsDeadlineItems = commitments.filter(needsDeadlineSet);
   const needsDeadline = new Set(needsDeadlineItems);
 
-  const customerHealth = evaluateCustomerHealth(loadRatings(week.metrics ?? [], { areaNames }));
-  const ratingMissed = new Set(customerHealth.filter((r) => r.triggered).map((r) => r.area));
+  const metricResults = evaluateMetrics(setup.areas, week.metrics ?? []);
+  const missedMetrics = new Map();
+  for (const r of metricResults.filter((x) => x.triggered)) {
+    if (!missedMetrics.has(r.area)) missedMetrics.set(r.area, []);
+    missedMetrics.get(r.area).push(r.metric);
+  }
 
   const classified = new Map();
   const quadrants = Object.fromEntries(QUADRANT_ORDER.map((q) => [q, []]));
@@ -72,7 +76,7 @@ export function buildBriefing(week, { setup = WASLA_SETUP, aliasText, aliases: a
     if (stale.has(c)) flags.push("stale");
     if (partners.has(c)) flags.push("conflict");
     if (!flags.length || needsDeadline.has(c)) continue;
-    const item = classifyCommitment(c, today, blocksMap.get(c), ratingMissed, tiers);
+    const item = classifyCommitment(c, today, blocksMap.get(c), missedMetrics, tiers);
     item.flags = flags;
     item.conflictPartners = partners.get(c) ?? [];
     classified.set(c, item);
@@ -94,7 +98,7 @@ export function buildBriefing(week, { setup = WASLA_SETUP, aliasText, aliases: a
     needsDeadlineItems,
     classified,                     // commitment -> classified item
     quadrants,                      // group name -> [classified item], sorted
-    customerHealth,
+    metricResults,                  // one per tracked metric, see metrics.js
     unresolvedOwners: aliases.unresolved,   // [[raw name, area]] not in the owner table
     unknownAreas,                           // area names in the files but not in the setup
     ownerEmails: aliases.emails,            // canonical owner -> email

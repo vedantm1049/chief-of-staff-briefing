@@ -81,7 +81,7 @@ export function buildHistory(weeks, options = {}) {
       previousWeek: prev ? prev.weekEnding : null,
       items,
       closed,
-      prevHealth: prev ? Object.fromEntries(prev.customerHealth.map((r) => [r.area, r])) : {},
+      prevMetrics: prev ? Object.fromEntries(prev.metricResults.map((r) => [`${r.area}\u0000${r.metric}`, r])) : {},
       duplicateTitles: dupes[i],   // [[area, title]]: two items, one title, history can't tell them apart
       count(label) {
         let n = 0;
