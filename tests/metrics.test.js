@@ -7,28 +7,27 @@ import assert from "node:assert/strict";
 
 import { evaluateMetrics } from "../app/engine/metrics.js";
 import { METRIC_SUGGESTIONS } from "../app/engine/config.js";
-import { loadSample, history, W1, W2, W3, W4 } from "./helpers.js";
+import { loadExample, history, W1, W2, W3, W4 } from "./helpers.js";
 
 const suggested = (name, fields) => ({ ...METRIC_SUGGESTIONS.find((m) => m.name === name), ...fields });
 const area = (metrics) => [{ name: "Sales team", tier: "Core", metrics }];
 const one = (metrics, rows) => evaluateMetrics(area(metrics), rows.map((r) => ({ area: "Sales team", ...r })));
 
 test("example: only the designed metric misses trigger", async () => {
-  const weeks = history(await loadSample());
+  const weeks = history(await loadExample());
   const misses = (w) => weeks[w].metricResults.filter((r) => r.triggered).map((r) => `${r.area}: ${r.metric}`);
-  assert.deepEqual(misses(W1), ["Wasla Mart: Customer rating"]);
-  assert.deepEqual(misses(W2), ["Wasla Mart: Customer rating"]);
-  assert.deepEqual(misses(W3), ["Wasla Mart: Customer rating"]);
-  assert.deepEqual(misses(W4), ["Wasla Express: Customer rating"]);
-  for (const w of [W1, W2, W3, W4]) assert.ok(weeks[w].metricResults.every((r) => r.reported));
+  assert.deepEqual(misses(W1), ["Wasla Minutes: Average delivery time"]);
+  assert.deepEqual(misses(W2), ["Wasla Minutes: Average delivery time"]);
+  assert.deepEqual(misses(W3), []);
+  assert.deepEqual(misses(W4), ["Wasla Food: Customer rating"]);
 });
 
 test("example: every business reports the metrics set for it", async () => {
-  const b = history(await loadSample())[W1];
+  const b = history(await loadExample())[W1];
   const byArea = {};
   for (const r of b.metricResults) (byArea[r.area] ??= []).push(r.metric);
-  assert.deepEqual(byArea["Wasla Pay"], ["Transactions", "Dispute rate", "Customer rating"]);
-  assert.deepEqual(byArea["Wasla Central"], ["Roadmap items shipped"]);
+  assert.deepEqual(byArea["Wasla.com"], ["Sales", "Customer rating"]);
+  assert.deepEqual(byArea["Wasla Central"], ["Cash balance", "Net promoter score", "Staff attrition"]);
 });
 
 test("a percent margin: more than 5% short is a miss", () => {

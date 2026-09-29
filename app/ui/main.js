@@ -1,50 +1,69 @@
-/* The page: which screen to show, the reader's two workspaces (the example
-and their own company), and every click, change and drop.
+/* The page: which screen to show, the two companies (the Wasla example and
+the reader's own), and every click, change and drop. Both companies have the
+same screens and the same shape; the example starts from data/example.json.
 
 Screens, by the address after #:
   #/          the intro, or straight to the reader's own CEO view if they have one
-  #/example   the Wasla example                 (?week=YYYY-MM-DD)
   #/briefing  the reader's own CEO view          (?week=YYYY-MM-DD)
   #/setup     company, areas, leaders, metrics
   #/tasks     people and their tasks
   #/week      this week: requests, sheets, uploads
+  #/example, #/example/setup, #/example/tasks, #/example/week: the same, for the example
 */
-import { loadDataFolder } from "../engine/sample.js";
 import { buildHistory } from "../engine/history.js";
-import { WASLA_SETUP, WASLA_CHIEF_OF_STAFF_EMAIL, METRIC_SUGGESTIONS } from "../engine/config.js";
+import { METRIC_SUGGESTIONS } from "../engine/config.js";
 import { toIso } from "../engine/dates.js";
 import * as store from "./store.js";
 import { newNote, isEmail } from "./notes.js";
-import { renderPage, esc } from "./render.js";
+import { renderPage, esc, link } from "./render.js";
 import { intro, setupScreen, tasksScreen, sameNameQuestion, weekScreen } from "./screens.js";
 import { readTables, likelyMatches } from "./intake.js";
 import * as weekly from "./weekly.js";
 
 const root = document.getElementById("app");
 const saved = store.storageWorks();
-const ws = { example: store.loadWorkspace("example"), own: store.loadWorkspace("own") };
+const ws = { example: null, own: store.loadWorkspace("own") ?? store.cleanWorkspace("own", {}) };
 
-let sample = null;          // the Wasla data, loaded the first time the example opens
-let route = { screen: "", week: null };
-let mode = null;            // "example" or "own" while a CEO view is shown
+let route = { scope: "own", screen: "", week: null };
 let briefings = [];
 let message = "";
 let setupDraft = null;
 let matchQuestion = "";
 let uploads = [];
 
-const own = () => ws.own;
-const hasOwnSetup = () => own().setup.areas.length > 0;
-const hasOwnWeek = () => own().weeks.length > 0;
+/** The company on screen: the example or the reader's own. */
+const cur = () => ws[route.scope];
+const hasSetup = () => cur().setup.areas.length > 0;
+const hasWeek = () => cur().weeks.length > 0;
+const to = (screen, week) => link(route.scope, screen, week);
 
 function todayIso() {
   const d = new Date();
   return toIso(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
 }
 
-function saveOwn(note = message) {
-  if (!store.saveWorkspace("own", own())) message = "This browser is blocking storage. Export a backup to keep your work.";
+function save(note = message) {
+  if (!store.saveWorkspace(route.scope, cur())) message = "This browser is blocking storage. Export a backup to keep your work.";
   else message = note;
+}
+
+/** The example: the reader's changed copy if they have one, else the original. */
+async function ensureExample() {
+  if (ws.example) return true;
+  ws.example = store.loadWorkspace("example");
+  if (ws.example) return true;
+  root.innerHTML = '<p class="loading">Loading the example…</p>';
+  try {
+    const res = await fetch("data/example.json");
+    if (!res.ok) throw new Error(`data/example.json returned ${res.status}`);
+    ws.example = store.cleanWorkspace("example", await res.json());
+    return true;
+  } catch (err) {
+    root.innerHTML = `<div class="load-error"><h1>The example didn't load</h1>
+      <p>This page reads the example from the website it is served from. Open it from its GitHub Pages
+      address, not as a file on your computer.</p><p class="meta">${esc(err.message)}</p></div>`;
+    return false;
+  }
 }
 
 // --- Routing ----------------------------------------------------------------------
@@ -52,10 +71,13 @@ function saveOwn(note = message) {
 function parseRoute() {
   const hash = location.hash;
   const legacy = /^#week=(\d{4}-\d{2}-\d{2})/.exec(hash);   // links from before there were screens
-  if (legacy) return { screen: "example", week: legacy[1] };
-  const m = /^#\/([a-z]*)(?:\?week=(\d{4}-\d{2}-\d{2}))?/.exec(hash);
-  const screen = m ? m[1] : "";
-  return { screen: screen === "add" ? "week" : screen, week: m ? m[2] ?? null : null };
+  if (legacy) return { scope: "example", screen: "briefing", week: legacy[1] };
+  const m = /^#\/(example\/?)?([a-z]*)(?:\?week=(\d{4}-\d{2}-\d{2}))?/.exec(hash);
+  const scope = m?.[1] ? "example" : "own";
+  let screen = m?.[2] ?? "";
+  if (screen === "add") screen = "week";
+  if (scope === "example" && !screen) screen = "briefing";
+  return { scope, screen, week: m?.[3] ?? null };
 }
 
 function go(hash) {
@@ -64,58 +86,38 @@ function go(hash) {
 }
 
 async function show() {
-  const previous = route.screen;
+  const previous = route;
   route = parseRoute();
   const s = route.screen;
-  if (s !== previous) { message = ""; matchQuestion = ""; window.scrollTo(0, 0); }
-  if (s === "example") return showBriefing("example");
-  if (s === "briefing") return hasOwnWeek() ? showBriefing("own") : go(hasOwnSetup() ? "#/week" : "#/setup");
-  mode = null;
+  if (s !== previous.screen || route.scope !== previous.scope) {
+    message = ""; matchQuestion = ""; uploads = [];
+    window.scrollTo(0, 0);
+  }
+  if (route.scope === "example" && !(await ensureExample())) return;
+  if (s === "briefing") return hasWeek() ? showBriefing() : go(to(hasSetup() ? "week" : "setup"));
   if (s === "setup") {
-    setupDraft = draftFromOwn();
+    setupDraft = draftFrom(cur());
     return drawSetup();
   }
-  if (s === "tasks") return hasOwnSetup() ? drawTasks() : go("#/setup");
-  if (s === "week") {
-    if (s !== previous) uploads = [];
-    return hasOwnSetup() ? drawWeek() : go("#/setup");
-  }
-  if (hasOwnWeek()) return go("#/briefing");
-  root.innerHTML = intro({ hasOwn: hasOwnSetup() });
+  if (s === "tasks") return hasSetup() ? drawTasks() : go(to("setup"));
+  if (s === "week") return hasSetup() ? drawWeek() : go(to("setup"));
+  if (hasWeek()) return go("#/briefing");
+  root.innerHTML = intro({ hasOwn: hasSetup() });
   document.title = "Chief of Staff briefing";
 }
 
 // --- The CEO view -----------------------------------------------------------------
 
-async function showBriefing(which) {
-  if (which === "example" && !sample) {
-    root.innerHTML = '<p class="loading">Loading the example…</p>';
-    try {
-      sample = await loadDataFolder(async (rel) => {
-        const res = await fetch(`data/${rel}`);
-        if (!res.ok) throw new Error(`${rel} returned ${res.status}`);
-        return res.text();
-      });
-    } catch (err) {
-      root.innerHTML = `<div class="load-error"><h1>The example didn't load</h1>
-        <p>This page reads the example's files from the website it is served from. Open it from its GitHub
-        Pages address, not as a file on your computer.</p><p class="meta">${esc(err.message)}</p></div>`;
-      return;
-    }
-  }
-  mode = which;
+function showBriefing() {
   rescore();
   draw();
 }
 
 function rescore() {
-  briefings = mode === "example"
-    ? buildHistory(sample.weeks, { setup: WASLA_SETUP, aliasText: sample.aliasText, edits: store.byWeek(ws.example.edits) })
-    : buildHistory(weekly.weeksForEngine(own()), { setup: own().setup, aliases: weekly.peopleRows(own().people) });
+  briefings = buildHistory(weekly.weeksForEngine(cur()), { setup: cur().setup, aliases: weekly.peopleRows(cur().people) });
 }
 
-const currentSetup = () => (mode === "example" ? WASLA_SETUP : own().setup);
-const cosEmail = (which = mode) => ws[which].settings.cosEmail ?? (which === "example" ? WASLA_CHIEF_OF_STAFF_EMAIL : "");
+const cosEmail = () => cur().settings.cosEmail ?? "";
 
 function shownWeek() {
   const isos = briefings.map((b) => toIso(b.weekEnding));
@@ -125,20 +127,17 @@ function shownWeek() {
 function draw() {
   const week = shownWeek();
   const current = briefings.find((b) => toIso(b.weekEnding) === week);
-  const w = ws[mode];
   root.innerHTML = renderPage({
-    mode, setup: currentSetup(), briefings, current,
-    edits: w.edits, notes: w.notes, cosEmail: cosEmail(), saved, message,
-    weekEdits: mode === "example" ? w.edits.filter((e) => e.week === week) : [],
-    weekCount: mode === "own" ? own().weeks.length : 0,
+    scope: route.scope, setup: cur().setup, briefings, current,
+    notes: cur().notes, cosEmail: cosEmail(), saved, message,
   });
-  document.title = `${currentSetup().company || "Your company"} briefing, week ending ${week}`;
+  document.title = `${cur().setup.company || "Your company"} briefing, week ending ${week}`;
 }
 
-/** Save the shown workspace and redraw. Rescore only when a change could move an item. */
+/** Save the company on screen and redraw the CEO view. Rescore only when a
+change could move an item. */
 function commit(note = "", rescoreToo = true) {
-  message = note;
-  if (!store.saveWorkspace(mode, ws[mode])) message = "This browser is blocking storage. Export a backup to keep your work.";
+  save(note);
   if (rescoreToo) rescore();
   draw();
 }
@@ -154,13 +153,13 @@ function download(name, data, type) {
 
 // --- Setup ------------------------------------------------------------------------
 
-function draftFromOwn() {
-  const { setup, settings } = own();
+function draftFrom(company) {
+  const { setup, settings } = company;
   const blank = (tier) => ({ was: "", name: "", tier, leader: { name: "", email: "" }, metrics: [] });
   return {
     company: setup.company,
-    areaKind: hasOwnSetup() ? setup.areaKind : "",
-    boss: hasOwnSetup() ? setup.boss : "",
+    areaKind: hasSetup() ? setup.areaKind : "",
+    boss: hasSetup() ? setup.boss : "",
     cosEmail: settings.cosEmail ?? "",
     areas: setup.areas.length
       ? setup.areas.map((a) => ({ ...a, was: a.name, leader: { ...a.leader }, metrics: a.metrics.map((m) => ({ ...m })) }))
@@ -169,7 +168,7 @@ function draftFromOwn() {
 }
 
 function drawSetup(note = "") {
-  root.innerHTML = setupScreen(setupDraft, { firstTime: !hasOwnSetup(), message: note });
+  root.innerHTML = setupScreen(setupDraft, { firstTime: !hasSetup(), message: note, scope: route.scope });
   document.title = "Setup, Chief of Staff briefing";
 }
 
@@ -188,7 +187,7 @@ function saveSetup() {
     }
   }
   // A renamed area keeps its tasks, people and numbers.
-  const o = own();
+  const o = cur();
   for (const a of areas) {
     const was = a.was, now = a.name.trim();
     if (!was || was === now) continue;
@@ -200,12 +199,12 @@ function saveSetup() {
       w.received.metrics = w.received.metrics.map((x) => (x === was ? now : x));
     }
   }
-  const first = !hasOwnSetup();
+  const first = !hasSetup();
   o.setup = store.cleanSetup({ company: d.company, areaKind: d.areaKind, boss: d.boss, areas });
   o.settings = store.cleanSettings({ cosEmail: d.cosEmail });
   weekly.syncLeaders(o);
-  saveOwn("Setup saved.");
-  go(first || !o.people.length ? "#/tasks" : hasOwnWeek() ? "#/briefing" : "#/week");
+  save("Setup saved.");
+  go(to(first || !o.people.length ? "tasks" : hasWeek() ? "briefing" : "week"));
 }
 
 function setupInput(el) {
@@ -241,12 +240,12 @@ function setupClick(el) {
 // --- Tasks ------------------------------------------------------------------------
 
 function drawTasks() {
-  root.innerHTML = tasksScreen(own(), { message, matchQuestion });
+  root.innerHTML = tasksScreen(cur(), { message, matchQuestion, scope: route.scope });
   document.title = "Tasks, Chief of Staff briefing";
 }
 
 function taskChange(el) {
-  const o = own();
+  const o = cur();
   let m;
   if (el.dataset.id && ["task", "due_date", "status", "area", "owner", "waiting_on", "decision_type", "blocked_by"].includes(el.name)) {
     const t = o.tasks.find((x) => x.id === el.dataset.id);
@@ -269,26 +268,26 @@ function taskChange(el) {
   } else {
     return;
   }
-  saveOwn("");
+  save("");
   drawTasks();
 }
 
 function addPerson(name, email, area) {
-  own().people.push({ name, email: isEmail(email) ? email : "", area, spellings: [] });
+  cur().people.push({ name, email: isEmail(email) ? email : "", area, spellings: [] });
   matchQuestion = "";
-  saveOwn(`${name} added.`);
+  save(`${name} added.`);
   drawTasks();
 }
 
 function tasksClick(el) {
-  const o = own();
+  const o = cur();
   const p = o.people[Number(el.dataset.p)];
   switch (el.dataset.act) {
     case "add-task": {
       const t = { id: store.newId(), area: p.area || o.setup.areas[0]?.name || "", task: "", owner: p.name, due_date: "",
         status: "Open", waiting_on: "", blocked_by: "", decision_type: "", last_updated: todayIso() };
       o.tasks.push(t);
-      saveOwn("");
+      save("");
       drawTasks();
       root.querySelector(`input[name="task"][data-id="${t.id}"]`)?.focus();
       return;
@@ -308,7 +307,7 @@ function tasksClick(el) {
       const existing = o.people.find((x) => x.name === el.dataset.as);
       existing.spellings.push(el.dataset.name);
       matchQuestion = "";
-      saveOwn(`Noted: ${el.dataset.name} is ${existing.name}.`);
+      save(`Noted: ${el.dataset.name} is ${existing.name}.`);
       return drawTasks();
     }
     case "new-person": {
@@ -318,22 +317,22 @@ function tasksClick(el) {
     }
     default: return;
   }
-  saveOwn("");
+  save("");
   drawTasks();
 }
 
 // --- This week --------------------------------------------------------------------
 
 function drawWeek() {
-  root.innerHTML = weekScreen(own(), {
-    suggestedWeek: weekly.lastSunday(), message, uploads, cosEmail: cosEmail("own"),
-    googleLink: weekly.reminderGoogleLink(own(), cosEmail("own")),
+  root.innerHTML = weekScreen(cur(), {
+    suggestedWeek: weekly.lastSunday(), message, uploads, cosEmail: cosEmail(), scope: route.scope,
+    googleLink: weekly.reminderGoogleLink(cur(), cosEmail()),
   });
   document.title = "This week, Chief of Staff briefing";
 }
 
 async function readUploads(files) {
-  const o = own();
+  const o = cur();
   for (const f of files) {
     let tables;
     try {
@@ -377,7 +376,7 @@ async function readUploads(files) {
 }
 
 function applyUpload(u) {
-  const o = own();
+  const o = cur();
   const week = o.weeks.at(-1);
   if (u.kind === "metrics") {
     const areas = new Set(u.read.areas);
@@ -388,12 +387,12 @@ function applyUpload(u) {
     week.received.tasks = [...new Set([...week.received.tasks, u.diff.person.name])];
   }
   u.applied = true;
-  saveOwn("");
+  save("");
   drawWeek();
 }
 
 function weekClick(el, ev) {
-  const o = own();
+  const o = cur();
   const week = o.weeks.at(-1);
   const safe = (s) => s.replace(/[\\/:*?"<>|]/g, " ");
   switch (el.dataset.act) {
@@ -414,7 +413,7 @@ function weekClick(el, ev) {
       return download(`${safe(p.name)} tasks ${week.weekEnding}.xlsx`, weekly.taskSheet(o, p), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
     case "reminder-ics":
-      return download("weekly-reminder.ics", weekly.reminderIcs(o, cosEmail("own")), "text/calendar");
+      return download("weekly-reminder.ics", weekly.reminderIcs(o, cosEmail()), "text/calendar");
     case "apply-upload":
       return applyUpload(uploads[Number(el.dataset.i)]);
     default:
@@ -423,35 +422,31 @@ function weekClick(el, ev) {
 
 // --- Events -----------------------------------------------------------------------
 
+const onBriefing = () => route.screen === "briefing";
+
 root.addEventListener("input", (ev) => {
   if (route.screen === "setup") setupInput(ev.target);
 });
 
 root.addEventListener("change", (ev) => {
   const el = ev.target;
-  if (!mode && el.dataset.act === "import-file" && el.files[0]) return importBackup(el.files[0]);
+  if (el.dataset.act === "import-file" && el.files[0]) return importBackup(el.files[0]);
   if (route.screen === "setup") return setupInput(el);
   if (route.screen === "tasks") return taskChange(el);
   if (route.screen === "week") {
     if (el.name === "files") readUploads([...el.files]);
     return;
   }
-  if (!mode) return;
-  const { act, id, area, title, label } = el.dataset;
-  const w = ws[mode];
-  if (act === "import-file" && el.files[0]) return importBackup(el.files[0]);
+  if (!onBriefing()) return;
+  const { act, id } = el.dataset;
   if (act !== "done" && act !== "due") return;
   if (!(act === "done" ? el.checked : el.value)) return;
-  if (mode === "own") {
-    // The reader's own tasks are changed where they live.
-    const t = own().tasks.find((x) => x.id === id);
-    if (!t) return;
-    if (act === "done") t.status = "Done";
-    else t.due_date = el.value;
-    t.last_updated = todayIso();
-  } else {
-    w.edits = store.upsert(w.edits, shownWeek(), area, title, act === "done" ? { done: true, label } : { due: el.value, label });
-  }
+  // A task is changed where it lives: in the live list.
+  const t = cur().tasks.find((x) => x.id === id);
+  if (!t) return;
+  if (act === "done") t.status = "Done";
+  else t.due_date = el.value;
+  t.last_updated = todayIso();
   commit();
 });
 
@@ -465,9 +460,9 @@ root.addEventListener("submit", (ev) => {
     const name = String(f.get("name") ?? "").trim();
     const email = String(f.get("email") ?? "").trim();
     if (!name) return;
-    if (own().people.some((p) => p.name === name)) { message = `${name} is already on the list.`; return drawTasks(); }
+    if (cur().people.some((p) => p.name === name)) { message = `${name} is already on the list.`; return drawTasks(); }
     if (email && !isEmail(email)) { message = "That doesn't look like an email address."; return drawTasks(); }
-    const matches = likelyMatches(name, own().people);
+    const matches = likelyMatches(name, cur().people);
     if (matches.length) {
       matchQuestion = sameNameQuestion(name, matches);
       drawTasks();
@@ -479,116 +474,102 @@ root.addEventListener("submit", (ev) => {
   }
   if (kind === "start-week") {
     try {
-      weekly.startWeek(own(), String(f.get("week")));
+      weekly.startWeek(cur(), String(f.get("week")));
     } catch (err) {
       message = err.message;
       return drawWeek();
     }
     uploads = [];
-    saveOwn("Week started. Send the requests below.");
+    save("Week started. Send the requests below.");
     return drawWeek();
   }
-  if (!mode) return;
-  const w = ws[mode];
-  if (kind === "cos-email") {
-    w.settings = store.cleanSettings({ cosEmail: String(f.get("email") ?? "") });
-    return commit(w.settings.cosEmail ? `Drafts will copy ${w.settings.cosEmail}.` : "That doesn't look like an email address.", false);
-  }
+  if (!onBriefing()) return;
   const text = String(f.get("text") ?? "").trim();
   if (!text) return;
   if (kind === "note") {
     const { taskId, area, title, label, owner } = form.dataset;
-    w.notes = [...w.notes, newNote({ taskId, area, title, label, owner, from: String(f.get("from")), text, week: shownWeek() })];
+    cur().notes = [...cur().notes, newNote({ taskId, area, title, label, owner, from: String(f.get("from")), text, week: shownWeek() })];
     commit("", false);
   } else if (kind === "reply") {
-    w.notes = w.notes.map((n) => (n.id === form.dataset.id ? { ...n, reply: { text, at: new Date().toISOString() } } : n));
+    cur().notes = cur().notes.map((n) => (n.id === form.dataset.id ? { ...n, reply: { text, at: new Date().toISOString() } } : n));
     commit("", false);
   }
 });
 
 root.addEventListener("click", (ev) => {
   const draft = ev.target.closest('a[data-act="email"]');
-  if (draft && mode) {
+  if (draft && onBriefing()) {
     // Let the link open the reader's email app, then record that a draft was opened.
     const id = draft.dataset.id;
     setTimeout(() => {
-      ws[mode].notes = ws[mode].notes.map((n) => (n.id === id ? { ...n, emailed: true } : n));
+      cur().notes = cur().notes.map((n) => (n.id === id ? { ...n, emailed: true } : n));
       commit("", false);
     }, 0);
     return;
   }
   const el = ev.target.closest("button, a[data-act]");
   if (!el) return;
-  if (!mode && el.dataset.act === "export") {
-    return download(`briefing-backup-${todayIso()}.json`, store.backupBlob("own", own()));
+  const { act } = el.dataset;
+  if (act === "export") {
+    const name = route.scope === "own" ? "briefing-backup" : "briefing-example-backup";
+    download(`${name}-${todayIso()}.json`, store.backupBlob(route.scope, cur()));
+    return;
   }
-  if (!mode && el.dataset.act === "import") return root.querySelector('[data-act="import-file"]').click();
+  if (act === "import") return root.querySelector('[data-act="import-file"]').click();
+  if (act === "reset") return reset();
   if (route.screen === "setup") return setupClick(el);
   if (route.screen === "tasks") return tasksClick(el);
   if (route.screen === "week") return weekClick(el, ev);
-  if (!mode) return;
+  if (!onBriefing()) return;
 
-  const w = ws[mode];
-  const { act, area, title } = el.dataset;
   if (el.dataset.week) {
-    go(`#/${mode === "example" ? "example" : "briefing"}?week=${el.dataset.week}`);
+    go(to("briefing", el.dataset.week));
     window.scrollTo(0, 0);
   } else if (act === "delete-note") {
     if (confirm("Delete this note and its reply?")) {
-      w.notes = w.notes.filter((n) => n.id !== el.dataset.id);
+      cur().notes = cur().notes.filter((n) => n.id !== el.dataset.id);
       commit("", false);
     }
   } else if (act === "delete-reply") {
-    w.notes = w.notes.map((n) => (n.id === el.dataset.id ? { ...n, reply: null } : n));
+    cur().notes = cur().notes.map((n) => (n.id === el.dataset.id ? { ...n, reply: null } : n));
     commit("", false);
-  } else if (act === "undo") {
-    w.edits = store.upsert(w.edits, shownWeek(), area, title, { done: false, due: null });
-    commit();
   } else if (act === "remove-week") {
     if (!confirm(`Undo starting the week ending ${el.dataset.target}? Its numbers are dropped; tasks stay as they are now.`)) return;
-    const o = own();
+    const o = cur();
     o.weeks.pop();
     if (o.weeks.length) o.weeks.at(-1).tasks = null;
-    saveOwn("");
-    go(hasOwnWeek() ? "#/briefing" : "#/week");
-  } else if (act === "export") {
-    const name = mode === "own" ? "briefing-backup" : "briefing-example-backup";
-    download(`${name}-${todayIso()}.json`, store.backupBlob(mode, ws[mode]));
-    message = "Backup saved to your downloads.";
-    draw();
-  } else if (act === "import") {
-    root.querySelector('[data-act="import-file"]').click();
-  } else if (act === "reset") {
-    const ask = mode === "own"
-      ? "Delete your setup, people, tasks, weeks and notes from this browser? This can't be undone unless you exported a backup."
-      : "Clear all your changes and notes on the example? This can't be undone unless you exported a backup.";
-    if (!confirm(ask)) return;
-    if (mode === "own") {
-      store.deleteWorkspace("own");
-      ws.own = store.loadWorkspace("own");
-      go("#/");
-    } else {
-      ws.example = store.cleanWorkspace("example", {});
-      commit("All changes and notes cleared.");
-    }
+    save("");
+    go(to(hasWeek() ? "briefing" : "week"));
   }
 });
+
+function reset() {
+  if (route.scope === "example") {
+    if (!confirm("Reset the example to how it started? Your changes to it are lost.")) return;
+    store.deleteWorkspace("example");
+    ws.example = null;
+    return go("#/example");
+  }
+  if (!confirm("Delete your setup, people, tasks, weeks and notes from this browser? This can't be undone unless you exported a backup.")) return;
+  store.deleteWorkspace("own");
+  ws.own = store.cleanWorkspace("own", {});
+  go("#/");
+}
 
 async function importBackup(file) {
   let incoming;
   try {
     incoming = store.parseBackup(await file.text());
   } catch (err) {
-    message = err.message;
-    if (mode) return draw();
     alert(err.message);
     return;
   }
-  const where = incoming.id === "own" ? "your company's data" : "your changes and notes on the example";
+  const where = incoming.id === "own" ? "your company's data" : "the example";
   if (!confirm(`Replace ${where} in this browser with the backup?`)) return;
   ws[incoming.id] = incoming.state;
   store.saveWorkspace(incoming.id, incoming.state);
-  go(incoming.id === "own" ? (hasOwnWeek() ? "#/briefing" : "#/tasks") : "#/example");
+  const scope = incoming.id;
+  go(link(scope, incoming.state.weeks.length ? "briefing" : "tasks"));
 }
 
 // Returned sheets dropped on This week.

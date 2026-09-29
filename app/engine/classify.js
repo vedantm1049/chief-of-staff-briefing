@@ -16,7 +16,6 @@ Only Flagship lifts importance. Inside each group, items are ordered by tier,
 Flagship, then Core, then Experimental.
 */
 import {
-  WASLA_TIERS,
   FAN_OUT_THRESHOLD,
   DECISION_PENDING_URGENT_DAYS,
   DUE_SOON_DAYS,
@@ -42,7 +41,7 @@ function days(n) {
 
 /** tiers: { area name: tier }. missedMetrics: Map of area name to the metrics it
 missed this week. */
-export function classifyCommitment(commitment, today, blocks, missedMetrics, tiers = WASLA_TIERS) {
+export function classifyCommitment(commitment, today, blocks, missedMetrics, tiers = {}) {
   const c = commitment;
   const fanOut = blocks.length;
 
@@ -96,7 +95,7 @@ function cmp(a, b) {
 before High, so a quick confirm/reject sits above anything that needs real
 thought. Everything else, in every group, is ordered by tier (Flagship,
 Core, Experimental), then most overdue first. */
-export function sortQuadrant(quadrant, items, today, tiers = WASLA_TIERS) {
+export function sortQuadrant(quadrant, items, today, tiers = {}) {
   const tierRank = (i) => TIER_ORDER[tiers[i.commitment.area]] ?? 99;
   const byDue = (i) => (i.commitment.dueDate != null ? today - i.commitment.dueDate : -1e6);
   // Owner as the last tie-break keeps one person's same-day items side by side.

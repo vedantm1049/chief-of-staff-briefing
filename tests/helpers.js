@@ -1,64 +1,40 @@
-/* Shared fixtures for the tests. The sample data is read from data/ once per
-test file. Tests that change a field work on a deep copy of the loaded rows,
-never on disk.
+/* Shared fixtures for the tests. The example company is read from
+data/example.json once per test file. Tests that change something work on a
+fresh copy, never on disk.
 */
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { loadDataFolder } from "../app/engine/sample.js";
-import { buildBriefing } from "../app/engine/briefing.js";
+import { cleanWorkspace } from "../app/ui/store.js";
+import { weeksForEngine, peopleRows } from "../app/ui/weekly.js";
 import { buildHistory } from "../app/engine/history.js";
-import { day, toIso } from "../app/engine/dates.js";
+import { toIso } from "../app/engine/dates.js";
 
-export const DATA_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data");
-export const TODAY = day(2026, 9, 28);   // week 1 is read on Monday 28 Sep 2026
+export const EXAMPLE = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "example.json");
 export const W1 = "2026-09-27", W2 = "2026-10-04", W3 = "2026-10-11", W4 = "2026-10-18";
 
-export async function loadSample() {
-  return loadDataFolder((rel) => readFile(path.join(DATA_ROOT, rel), "utf8"));
+/** The example as the page keeps it. Each call is a fresh copy. */
+export async function loadExample() {
+  return cleanWorkspace("example", JSON.parse(await readFile(EXAMPLE, "utf8")));
 }
 
-/** A copy that can be edited without touching the shared sample. */
-export function copySample(sample) {
-  return {
-    aliasText: sample.aliasText,
-    weeks: sample.weeks.map((w) => ({
-      weekEnding: w.weekEnding,
-      tasks: w.tasks.map((r) => ({ ...r })),
-      metrics: w.metrics.map((r) => ({ ...r })),
-    })),
-  };
-}
-
-export function week(sample, weekEnding) {
-  return sample.weeks.find((w) => w.weekEnding === weekEnding);
-}
-
-export function briefWeek(sample, weekEnding, today) {
-  return buildBriefing(week(sample, weekEnding), { aliasText: sample.aliasText, today });
-}
-
-/** All weeks, oldest first, keyed by week-ending date. */
-export function history(sample, options = {}) {
+/** Every week scored, oldest first, keyed by week-ending date. */
+export function history(company) {
   return Object.fromEntries(
-    buildHistory(sample.weeks, { aliasText: sample.aliasText, ...options }).map((b) => [toIso(b.weekEnding), b]));
+    buildHistory(weeksForEngine(company), { setup: company.setup, aliases: peopleRows(company.people) })
+      .map((b) => [toIso(b.weekEnding), b]));
 }
 
-/** Set `updates` on every row where all `match` fields are equal. */
-export function editRows(rows, match, updates) {
-  for (const row of rows) {
-    if (Object.entries(match).every(([k, v]) => row[k] === v)) Object.assign(row, updates);
-  }
+/** The task list of one week: frozen for a past week, live for the current one. */
+export function tasksOf(company, weekEnding) {
+  const w = company.weeks.find((x) => x.weekEnding === weekEnding);
+  return w.tasks ?? company.tasks;
 }
 
-export function findCommitment(briefing, { owner, descriptionContains, area } = {}) {
-  const matches = briefing.allCommitments.filter((c) =>
-    (owner == null || c.owner === owner)
-    && (area == null || c.area === area)
-    && (descriptionContains == null || c.description.toLowerCase().includes(descriptionContains.toLowerCase())));
-  assert.equal(matches.length, 1,
-    `expected 1 match for owner=${owner} area=${area} descriptionContains=${descriptionContains}, got ${matches.length}`);
+export function byId(briefing, id) {
+  const matches = briefing.allCommitments.filter((c) => c.id === id);
+  assert.equal(matches.length, 1, `expected task ${id} once, got ${matches.length}`);
   return matches[0];
 }

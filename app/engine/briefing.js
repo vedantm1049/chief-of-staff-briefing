@@ -1,12 +1,10 @@
 /* Wires load, normalize, detect and classify into one briefing for a single
 week. history.js compares several of these week to week.
 */
-import { WASLA_SETUP } from "./config.js";
 import { AliasTable } from "./normalize.js";
 import { loadTasks } from "./loaders.js";
 import { evaluateMetrics } from "./metrics.js";
 import {
-  itemKey,
   isStale,
   isOverdue,
   needsDeadlineSet,
@@ -25,13 +23,12 @@ export function flaggedCommitments(b) {
 /** Score one week.
 
 week: { weekEnding: "YYYY-MM-DD", tasks: [row], metrics: [row] }, rows in
-  the template's columns (loaders.js).
-options.setup: { boss, areas: [{ name, tier, leader, metrics }] }. Defaults to the Wasla sample.
+  the columns of docs/data_contract.md section 3.
+options.setup: { boss, areas: [{ name, tier, leader, metrics }] }.
 options.aliasText: the owner table as CSV, or options.aliases: its rows.
 options.today: a day number. Defaults to the day after weekEnding, the Monday
-  the briefing is read.
-options.edits: the reader's own changes for this week, see applyEdits. */
-export function buildBriefing(week, { setup = WASLA_SETUP, aliasText, aliases: aliasRows, today = null, edits = [] } = {}) {
+  the briefing is read. */
+export function buildBriefing(week, { setup, aliasText, aliases: aliasRows, today = null } = {}) {
   const aliases = aliasRows ? new AliasTable(aliasRows) : AliasTable.fromCsv(aliasText ?? "");
   const weekEnding = parseIsoDate(week.weekEnding);
   if (today == null) {
@@ -42,7 +39,6 @@ export function buildBriefing(week, { setup = WASLA_SETUP, aliasText, aliases: a
   const areaNames = setup.areas.map((a) => a.name);
   const tiers = Object.fromEntries(setup.areas.map((a) => [a.name, a.tier]));
   const { commitments, unknownAreas } = loadTasks(week.tasks ?? [], { areaNames, aliases, today, boss: setup.boss });
-  applyEdits(commitments, edits);
 
   const stale = new Set(commitments.filter((c) => isStale(c, today, commitments)));
   const overdue = new Set(commitments.filter((c) => isOverdue(c, today, commitments)));
@@ -104,32 +100,4 @@ export function buildBriefing(week, { setup = WASLA_SETUP, aliasText, aliases: a
     ownerEmails: aliases.emails,            // canonical owner -> email
     comparison: null,               // set by history.js
   };
-}
-
-/** The reader's own changes, made on the page: an item ticked done, or a due
-date changed. Each edit is { area, title, done, due } where title is the
-item's title (rules.js: itemTitle) and due is "YYYY-MM-DD". An edit belongs
-to one week only. Next week's files from the teams replace it: new data
-wins. The item keeps a note of what was changed, so the page can say so. */
-export function applyEdits(commitments, edits) {
-  if (!edits.length) return;
-  const byKey = new Map(edits.map((e) => [`${e.area}\u0000${e.title}`, e]));
-  for (const c of commitments) {
-    const e = byKey.get(itemKey(c));
-    if (!e) continue;
-    c.edited = { done: false, dueFrom: null };
-    if (e.due != null && parseIsoDate(e.due) != null) {
-      c.edited.dueFrom = c.dueDateRaw;
-      c.dueDate = parseIsoDate(e.due);
-      c.dueDateRaw = e.due;
-      c.dueDateApprox = false;
-    }
-    if (e.done) {
-      c.edited.done = true;
-      c.status = "done";
-      c.statusInferred = false;
-      c.decisionPending = false;
-      c.principalBlocked = false;
-    }
-  }
 }

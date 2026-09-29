@@ -8,22 +8,19 @@ Working spec. Fictional scenario, real deterministic engine, same posture as `sc
 
 **Principal:** Group CEO. The briefing is what a Chief of Staff prepares for the Group CEO every week. "Wasla" is a placeholder name, swap freely.
 
-## 2. The six areas
+## 2. The example's five businesses
 
-The example calls its areas businesses. A user's own setup names its areas and what kind they are (departments, businesses, brands, markets).
+The example calls its areas businesses. A user's own setup names its areas and what kind they are (departments, businesses, brands, markets). The example's structure follows a real setup made on the page, with every name, email, product and number changed.
 
-| Area | Business line | Priority tier | Why this tier |
-|---|---|---|---|
-| Wasla Eats | Food delivery marketplace/aggregator | Flagship | The anchor business, largest and most established |
-| Wasla Mart | Dark-store rapid grocery delivery | Flagship | The other major growth bet, alongside Eats |
-| Wasla Table | Dine-out reservations and in-restaurant payments | Core | Mature, stable, not a primary growth engine |
-| Wasla Express | 1-2 hour delivery from third-party listed stores | Experimental | Newest bet, still proving itself |
-| Wasla Pay | Payments and wallet services | Core | Important infrastructure, not itself the growth story |
-| Wasla Central | Shared services: legal, design, investor relations, tech/product, and group-wide growth/loyalty programs | Core | Bundled, serves every other area, doesn't compete for growth |
+| Business | What it does | Tier |
+|---|---|---|
+| Wasla Minutes | Quick-commerce delivery in minutes | Flagship |
+| Wasla.com | The marketplace | Core |
+| Wasla Food | Food delivery | Core |
+| Wasla Labs | New ventures: Wasla Wash, Wasla Business, pilots | Experimental |
+| Wasla Central | Investor relations, legal, the CEO's office, brand, finance | Core |
 
-2 Flagship, 3 Core, 1 Experimental. Keeps the tier doing real classification work instead of everything landing in one bucket.
-
-Wasla Central's staff show up as owners on other areas' items, because their job is to serve every area at once. The same legal counsel owns a Table contract review and a Pay compliance item due the same week; the same growth lead owns the Eats side and the Mart side of one loyalty pilot. Every cross-area owner in the example is Central staff for exactly this reason.
+1 Flagship, 3 Core, 1 Experimental. Central's staff own work that other businesses wait on: the brand team's campaign holds up the Wasla Wash branding, the people team's visa block holds up hiring for Minutes.
 
 ## 3. Setup, tasks and metrics
 
@@ -48,7 +45,7 @@ Wasla Central's staff show up as owners on other areas' items, because their job
 
 **The weekly sheets.** Each area leader gets an Excel sheet listing their area's metrics with a value column to fill; the same sheet serves every week. Each person gets an Excel sheet of their open tasks, made fresh each week. A returned person's sheet is compared with the page before anything changes: a changed row counts as touched on the day it is uploaded, unless it gives a later last-updated date; a new row is a new task; a missing row is removed, and if it was flagged it shows as removed, not done.
 
-**The owner table** (`data/alias_table.csv` in the example; the people list in a user's setup): each spelling of a name, the person it belongs to, and their email.
+**The people list**: each person, their email and area, and any other spelling of their name that has been confirmed.
 
 ## 4. What a fixed format doesn't clean up
 
@@ -123,3 +120,11 @@ Rebuilt so the Chief of Staff sets everything up in the browser:
 - **Weekly sheets and requests.** Each leader gets a metrics sheet and each person a tasks sheet (Excel), with an email draft each, due Wednesday, and a recurring Monday calendar reminder for all of them. Returned sheets are uploaded together and checked before they change anything. The page sends nothing itself.
 - **Weeks.** Starting a new week freezes the week before as it stood, and drops tasks already done from the live list.
 - Removed: uploading files in a team's own format with column matching. It solved a problem this flow no longer has.
+
+The example rebuilt on a real setup:
+
+- **The example is a whole company**, `data/example.json`, in the same shape the page keeps a reader's own, written by `scripts/generate_example.py`. It replaces the six Wasla units, their per-unit files and the hand-reviewed alias table. Visitors can click through every screen and change it; it resets to the original.
+- **Its structure follows a real Chief of Staff's setup**, anonymised: five businesses, their leaders and metrics, and tasks that wait on each other in a chain. Four weeks of weekly numbers and task changes are made up to show each rule. docs/dataset_key.md is rewritten for it.
+- **The file-based example's stories that depended on files** (a status word a unit invented, an unseen owner spelling in an upload) are gone from the example; the rules that handle them keep their tests in rules.test.js.
+- **Edits scoped to one week are gone.** Ticking a task done or changing its date changes the task itself, in the current week.
+- **The card of a blocking item shows the whole chain behind it.** Importance still counts only the items it holds up directly.

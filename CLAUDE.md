@@ -21,12 +21,9 @@ The company (Wasla Group), people and numbers are fictional and hand-designed. I
 
 ## Where things are
 
-- data/weeks/<week_ending>/<area>/: the example's tasks.csv and metrics.csv per area (docs/data_contract.md section 3), four weeks. Each week is scored as of the Monday after it. The example's setup (leaders, metrics, targets) is WASLA_SETUP in app/engine/config.js.
-- data/alias_table.csv: hand-reviewed owner-name matches and fictional owner emails (.example domain), shared across weeks. "L. Haddad" is deliberately missing (week 4 story).
+- data/example.json: the example company, Wasla Group, as the page keeps a company: setup, people, tasks, four weeks. Written by scripts/generate_example.py. Its structure follows Vedant's real setup, anonymised; never put real names, emails or numbers in it. Each week is scored as of the Monday after it.
 - index.html: the page. app/engine/: the rules as JavaScript modules (parse, loaders, normalize, rules, classify, briefing, history). app/engine/metrics.js is the metric rule. app/ui/: main (screens and events), screens (intro, setup, tasks, this week), weekly (sheets, reading them back, requests, reminder, starting a week), render (the CEO view), store (the two workspaces, backup), intake (reading files, likely name matches), notes. app/vendor/: SheetJS for Excel.
-- data/manifest.json: the list of files the page loads, written by the generator.
-- scripts/generate_dataset.py: rebuilds data/ (plain Python, no packages). Its alias table carries hand-written review notes; don't let a rerun lose them.
-- tests/: scenarios.test.js (week 1) and history.test.js (weeks 2 to 4) map one to one to dataset_key.md rows. rules.test.js (edge cases the data doesn't contain), parse.test.js (CSV reader), edits.test.js (the reader's edits), notes.test.js (notes, emails, drafts), weekly.test.js (the weekly routine) and most of metrics.test.js have no rows. Run with npm test.
+- tests/: scenarios.test.js (week 1) and history.test.js (weeks 2 to 4) map one to one to dataset_key.md rows. rules.test.js (edge cases the data doesn't contain), parse.test.js (CSV reader), notes.test.js (notes, emails, drafts), weekly.test.js (the weekly routine) and most of metrics.test.js have no rows. Run with npm test.
 
 ## Rules as they stand
 
@@ -36,7 +33,7 @@ The company (Wasla Group), people and numbers are fictional and hand-designed. I
 - Four groups: needs decision now, on your radar, flag don't escalate, omit. Inside the top group, decisions first, Low effort before High. Inside every group, Flagship, then Core, then Experimental, then most overdue.
 - Week over week: an item's identity is its task id when it has one (tasks kept on the page), otherwise its area plus its title (text before the first comma). Each flag is marked new, back after a gap, or Nth week running. Closed items are done, cleared (with the reason) or removed without being marked done. Due dates that keep moving are shown.
 - A name missing from the owner table is reported at the top of the page, never guessed. Adding a person whose name looks like someone's already there asks "same person as...?".
-- The reader can tick an item done or set its due date. The edit applies to that week only; next week's files win.
+- Ticking a task done or changing its date on the CEO view changes the task itself, on the current week. Past weeks are a record.
 - The CEO decides, the Chief of Staff maintains the page. Notes (from the CEO or the Chief of Staff) stay with an item across weeks. "Draft email" opens a mailto draft in the reader's own email app, always copying the Chief of Staff (address set on the page); the page never sends anything and the draft holds only the note and the card's facts. Replies are pasted in by hand. Notes never change a score.
 
 ## Open questions for Vedant

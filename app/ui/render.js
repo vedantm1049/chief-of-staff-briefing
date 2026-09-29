@@ -79,10 +79,6 @@ function dueMoves(h) {
 }
 
 function dueText(c) {
-  if (c.edited?.dueFrom != null) {
-    const from = c.edited.dueFrom ? `"${esc(c.edited.dueFrom)}"` : "no date";
-    return `${fmtLong(c.dueDate)} <span class="yours">(you changed this from ${from})</span>`;
-  }
   if (c.dueDateApprox && c.dueDate != null) {
     return `≈ ${fmtLong(c.dueDate)} <span class="approx">(written as "${esc(c.dueDateRaw)}")</span>`;
   }
@@ -156,6 +152,21 @@ function notesBlock(c, flags, ctx) {
         </div>`;
 }
 
+/** What waits behind the items this one holds up, further down the chain.
+Shown on the card only; importance still counts the items held up directly. */
+function chainText(b, direct) {
+  const seen = new Set(direct);
+  const next = [];
+  let frontier = direct;
+  while (frontier.length) {
+    const more = frontier.flatMap((x) => b.blocksMap.get(x) ?? []).filter((x) => !seen.has(x));
+    more.forEach((x) => seen.add(x));
+    next.push(...more);
+    frontier = more;
+  }
+  return next.length ? `, and through it: ${next.map((x) => `${esc(short(x.description))} (${esc(x.owner)})`).join(", then ")}` : "";
+}
+
 function itemCard(b, item, showEffort, tiers, ctx) {
   const c = item.commitment;
   const h = hist(b, c);
@@ -167,7 +178,7 @@ function itemCard(b, item, showEffort, tiers, ctx) {
   let extra = dueMoves(h);
   if (item.blocks.length) {
     extra += `<div class="note note-blocks">Holding up: ${item.blocks
-      .map((x) => `${esc(short(x.description))} (${esc(x.owner)})`).join("; ")}</div>`;
+      .map((x) => `${esc(short(x.description))} (${esc(x.owner)})`).join("; ")}${chainText(b, item.blocks)}</div>`;
   }
   if (item.conflictPartners.length) {
     extra += `<div class="note note-conflict">Same owner also has: ${item.conflictPartners
@@ -230,11 +241,11 @@ function summary(b) {
   return `<div class="summary">${line}</div>`;
 }
 
-function dataCheck(b, mode) {
+function dataCheck(b) {
   const notes = [];
   if (b.unresolvedOwners.length) {
     const names = b.unresolvedOwners.map(([n, a]) => `${esc(n)} (${esc(a)})`).join(", ");
-    const where = mode === "example" ? "the reviewed owner table" : "your owner list";
+    const where = "your people list";
     notes.push(`Owner names not in ${where}: <strong>${names}</strong>. A conflict involving them can't be seen until someone says who they are.`);
   }
   if (b.unknownAreas.length) {
@@ -414,108 +425,70 @@ function otherNotesSection(b, shown, ctx) {
   </section>`;
 }
 
-/** The reader's changes for this week, each with a way to undo it. */
-function yourChanges(weekEdits) {
-  if (!weekEdits.length) return "";
-  const rows = weekEdits.map((e) => {
-    const what = [e.done ? "marked done" : "", e.due ? `due date set to ${fmtLong(parseIsoDate(e.due))}` : ""]
-      .filter(Boolean).join(", ");
-    return `
-      <li class="change">
-        <span><strong>${esc(e.area)}</strong>, ${esc(e.label ?? e.title)}: ${what}.</span>
-        <button type="button" class="link" data-act="undo" data-area="${esc(e.area)}" data-title="${esc(e.title)}">Undo</button>
-      </li>`;
-  }).join("");
-  return `
-  <section>
-    <h2>Your changes this week</h2>
-    <p class="section-note">Applied to this week only. When next week's files come in, they replace
-    these: new data wins.</p>
-    <ul class="changes">${rows}</ul>
-  </section>`;
-}
-
-function storageBar(state) {
-  const count = state.edits.length + state.notes.length + (state.mode === "own" ? state.weekCount : 0);
-  const what = state.mode === "own" ? "Your setup, weekly files, changes and notes are" : "Your changes and notes are";
-  const status = state.saved
-    ? `${what} saved in this browser only. There is no server: nothing you do here leaves your computer.
-       It stays in this one browser until you export a backup. An email draft opens in your own email app
-       and is sent only if you send it.`
-    : `This browser is blocking storage, so your work will be lost when you close the page. Export a
-       backup to keep it. Nothing you do here leaves your computer.`;
-  const clear = state.mode === "own" ? "Delete everything for this company" : "Clear all changes and notes";
-  return `
-    <div class="storage" id="your-data">
-      <p>${status}</p>
-      <div class="storage-actions">
-        <button type="button" data-act="export"${count ? "" : " disabled"}>Export backup</button>
-        <button type="button" data-act="import">Import backup</button>
-        ${count ? `<button type="button" class="link" data-act="reset">${clear}</button>` : ""}
-        <input type="file" accept="application/json,.json" data-act="import-file" hidden>
-      </div>
-      <form class="cos-email" data-form="cos-email">
-        <label for="cos-email">Chief of Staff email, copied on every email draft</label>
-        <div><input id="cos-email" name="email" type="email" required value="${esc(state.cosEmail)}">
-        <button type="submit">Save</button></div>
-      </form>
-      ${state.message ? `<p class="message" role="status">${esc(state.message)}</p>` : ""}
-    </div>`;
-}
-
 function capital(s) {
   return s ? s[0].toUpperCase() + s.slice(1) : s;
 }
 
-/** The bar above an example or a company's briefing: where else to go. */
-function topBar(state) {
-  if (state.mode === "example") {
-    return `
-    <div class="example-bar">
-      <span>This is an example: a made-up company with four weeks of made-up reports.</span>
-      <a class="primary" href="#/setup">Set up for your company</a>
-    </div>`;
-  }
-  return ownNav("briefing");
+/** A screen's address, in the example or the reader's own company. */
+export function link(scope, screen, week) {
+  const base = scope === "example" ? "#/example" : "#";
+  const path = screen === "briefing" && scope === "example" ? base : `${base}/${screen}`;
+  return week ? `${path}?week=${week}` : path;
 }
 
-/** Backup and import, at the foot of every screen of the reader's own company. */
-export function backupBar({ hasData }) {
+/** Navigation between the screens of one company, with the example's banner. */
+export function nav(current, scope) {
+  const links = [["briefing", "CEO view"], ["week", "This week"], ["tasks", "Tasks"], ["setup", "Setup"]];
+  const items = links.map(([k, label]) => (k === current
+    ? `<strong aria-current="page">${label}</strong>` : `<a href="${link(scope, k)}">${label}</a>`)).join("");
+  if (scope === "example") {
+    return `
+    <div class="example-bar">
+      <span>This is an example: a made-up company, Wasla Group, with four weeks of reports. Click around and
+      change anything; reset it at any time.</span>
+      <a class="primary" href="#/setup">Set up for your company</a>
+    </div>
+    <nav class="toolbar" aria-label="The example">${items}</nav>`;
+  }
+  return `<nav class="toolbar" aria-label="Your company">${items}<a href="#/example">See the example</a></nav>`;
+}
+
+/** Backup, import and reset, at the foot of every screen. */
+export function backupBar({ scope, hasData, saved = true, message = "" }) {
+  const status = !saved
+    ? "This browser is blocking storage, so your work will be lost when you close the page. Export a backup to keep it."
+    : scope === "example"
+      ? "Changes you make to the example are kept in this browser only. Reset it to start again from the original."
+      : "Everything here is saved in this browser only and never leaves your computer. There is no server. Export a backup to keep a copy or move to another computer.";
+  const reset = scope === "example"
+    ? '<button type="button" class="link" data-act="reset">Reset the example</button>'
+    : hasData ? '<button type="button" class="link" data-act="reset">Delete everything for this company</button>' : "";
   return `
     <div class="storage backup-bar" id="your-data">
-      <p>Everything here is saved in this browser only and never leaves your computer. Export a backup to keep
-      a copy or move to another computer.</p>
+      <p>${status}</p>
       <div class="storage-actions">
         ${hasData ? '<button type="button" data-act="export">Export backup</button>' : ""}
         <button type="button" data-act="import">Import backup</button>
+        ${reset}
         <input type="file" accept="application/json,.json" data-act="import-file" hidden>
       </div>
+      ${message ? `<p class="message" role="status">${esc(message)}</p>` : ""}
     </div>`;
 }
 
-/** Navigation between the reader's own screens. */
-export function ownNav(current) {
-  const links = [["briefing", "#/briefing", "CEO view"], ["week", "#/week", "This week"], ["tasks", "#/tasks", "Tasks"],
-    ["setup", "#/setup", "Setup"], ["example", "#/example", "See the example"]];
-  return `
-    <nav class="toolbar" aria-label="Your company">
-      ${links.map(([k, href, label]) => (k === current ? `<strong aria-current="page">${label}</strong>` : `<a href="${href}">${label}</a>`)).join("")}
-    </nav>`;
-}
-
-/** state: { mode, setup, briefings, current, edits, notes, cosEmail, weekEdits, weekCount, saved, message } */
+/** state: { scope, setup, briefings, current, notes, cosEmail, saved, message } */
 export function renderPage(state) {
   const { briefings, current: b, setup } = state;
   const tiers = b.tiers;
   const kindTitle = capital(setup.areaKind || "area");
   const ctx = { notes: state.notes, week: toIso(b.weekEnding), emails: b.ownerEmails, cosEmail: state.cosEmail,
-    areaKind: setup.areaKind, editable: state.mode === "example" || b === briefings.at(-1) };
+    areaKind: setup.areaKind, editable: b === briefings.at(-1) };
   const shown = [...[...b.classified.values()].map((i) => i.commitment), ...b.needsDeadlineItems];
   const week = fmtLong(b.weekEnding);
-  const removeWeek = state.mode === "own" && b === briefings.at(-1)
+  const removeWeek = b === briefings.at(-1) && briefings.length > 1
     ? `<button type="button" class="link" data-act="remove-week" data-target="${toIso(b.weekEnding)}">Undo starting this week</button>` : "";
   return `
-  ${topBar(state)}
+  ${nav("briefing", state.scope)}
   <header>
     <div class="eyebrow">Chief of Staff · Weekly briefing</div>
     <h1>${esc(setup.company || "Your company")}</h1>
@@ -525,7 +498,7 @@ export function renderPage(state) {
     saved in this browser only and never leaves your computer. <a href="#your-data">Backup and import</a>
     are at the bottom.</p>
     ${summary(b)}
-    ${dataCheck(b, state.mode)}
+    ${dataCheck(b)}
   </header>
 
   <section>
@@ -537,17 +510,15 @@ export function renderPage(state) {
     ${ctx.editable ? "" : '<p class="meta">A past week is a record. Change tasks on the current week.</p>'}
   </section>
   ${metricsSection(b, kindTitle)}
-  ${yourChanges(state.weekEdits)}
   ${closedSection(b, tiers)}
   ${conflictsSection(b, tiers)}
   ${needsDeadlineSection(b, tiers, ctx)}
   ${otherNotesSection(b, shown, ctx)}
 
   <footer>
-    ${storageBar(state)}
+    ${backupBar({ scope: state.scope, hasData: true, saved: state.saved, message: state.message })}
     <p>Rules only, no AI model. How a task is worded is never scored: its last-updated date is trusted
-    over how it is described. Items are matched from week to week by ${esc(setup.areaKind || "area")} and
-    title (the text before the first comma). ${removeWeek}</p>
+    over how it is described. ${removeWeek}</p>
     <p><a href="https://github.com/vedantm1049/chief-of-staff-briefing">Source and rules on GitHub</a></p>
   </footer>`;
 }

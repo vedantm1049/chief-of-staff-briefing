@@ -18,16 +18,15 @@ Everything is kept in the browser you use, until you export a backup. That is th
 
 ## See it on an example first
 
-The example is Wasla Group, a made-up Dubai holding company with six businesses, modeled on the mix of regional aggregators such as Talabat, noon and Careem, not on any one company's internals. Four weeks of task lists and metrics, ending 27 Sep to 18 Oct 2026. Every row was written by hand to test one rule. Over the four weeks decisions get made, work gets done, one item quietly disappears from a tracker, and one untouched item climbs to the top while its owner describes it as having "huge momentum". [`docs/dataset_key.md`](docs/dataset_key.md) walks through every case. Full spec: [`docs/data_contract.md`](docs/data_contract.md).
+The example is Wasla Group, a made-up Dubai holding company with five businesses. Its structure follows a setup a real Chief of Staff made on this page, with every name, email, product and number changed. It is a whole company you can click through, Setup, Tasks, This week and the CEO view, with four weeks of history, and change as you like; reset it at any time. Over the four weeks the CEO clears a chain of blocked work one decision at a time, a task written up as having "huge momentum" sits untouched until a customer-rating miss lifts it to the top, a pilot quietly disappears from the tracker, and one business stops sending its numbers. [`docs/dataset_key.md`](docs/dataset_key.md) walks through every case. Full spec: [`docs/data_contract.md`](docs/data_contract.md).
 
-| Business | What it does | Tier | Metrics |
-|---|---|---|---|
-| Wasla Eats | Food delivery marketplace | Flagship | Orders, on-time delivery, customer rating |
-| Wasla Mart | Dark-store grocery delivery | Flagship | Sales, customer rating (per city) |
-| Wasla Table | Dine-out reservations and payments | Core | Reservations, customer rating |
-| Wasla Express | 1 to 2 hour delivery from partner stores | Experimental | Orders, customer rating |
-| Wasla Pay | Payments and wallet | Core | Transactions, dispute rate, customer rating |
-| Wasla Central | Shared legal, design, investor relations, tech and growth | Core | Roadmap items shipped |
+| Business | Tier | Metrics |
+|---|---|---|
+| Wasla Minutes (quick commerce) | Flagship | Orders, customer rating, average delivery time |
+| Wasla.com (marketplace) | Core | Sales, customer rating |
+| Wasla Food (food delivery) | Core | Orders, on-time delivery, customer rating |
+| Wasla Labs (new ventures) | Experimental | New customers, live projects, customer churn |
+| Wasla Central (investor relations, legal, CEO office, brand, finance) | Core | Cash balance, net promoter score, staff attrition |
 
 ## What gets flagged
 
@@ -48,7 +47,7 @@ Importance is high if the area is Flagship, the item waits on the boss, it block
 
 Each flagged item is marked **new**, **back** after a gap, or its **Nth week running**. Anything flagged last week but not this week is listed as **done**, **cleared** (with the reason: deadline set, date moved, updated) or **removed, not done**, meaning it vanished from its tracker without ever being marked done. Due dates that keep moving are shown on the card, which is how a free-text "next Tuesday" that rolls forward every week gets caught.
 
-A task kept on the page is recognised across weeks by its id, so it can be renamed or reassigned. In the example, an item is its area and its title: owner changes don't break the link, renaming does.
+A task is recognised across weeks by its id, so it can be renamed or reassigned without losing its history.
 
 ## How it is built
 
@@ -57,8 +56,8 @@ index.html                 the page
 app/engine/                the rules: parse, loaders, normalize, rules, classify, briefing, history
 app/ui/                    intro, setup, tasks, this week (sheets, requests, uploads), the CEO view, notes, backup
 app/vendor/                SheetJS, for reading Excel
-data/                      the example: four weeks of task lists and metrics, owner table, file list
-scripts/generate_dataset.py  rebuilds data/ (plain Python, no packages)
+data/example.json          the example company
+scripts/generate_example.py  writes it (plain Python, no packages)
 ```
 
 Plain JavaScript modules, no build step and no packages to install. No AI model anywhere: scoring is plain rules against stated fields.
@@ -67,7 +66,7 @@ Plain JavaScript modules, no build step and no packages to install. No AI model 
 npm test          # Node 20 or later, no install needed
 ```
 
-`tests/scenarios.test.js` covers the example's week 1 and `tests/history.test.js` weeks 2 to 4, one test per row of [`docs/dataset_key.md`](docs/dataset_key.md). `tests/rules.test.js` and `tests/metrics.test.js` cover cases the example doesn't contain. `tests/weekly.test.js` covers setup, the leaders' and people's sheets, reading them back, requests and the reminder; `tests/parse.test.js` the CSV reader, `tests/edits.test.js` ticks and date changes on the example, and `tests/notes.test.js` notes, owner emails and email drafts.
+`tests/scenarios.test.js` covers the example's week 1 and `tests/history.test.js` weeks 2 to 4, one test per row of [`docs/dataset_key.md`](docs/dataset_key.md). `tests/rules.test.js` and `tests/metrics.test.js` cover cases the example doesn't contain, including owner names written two ways. `tests/weekly.test.js` covers setup, the leaders' and people's sheets, reading them back, requests and the reminder; `tests/parse.test.js` the CSV reader and `tests/notes.test.js` notes, owner emails and email drafts.
 
 ## Known limits
 
@@ -76,7 +75,6 @@ npm test          # Node 20 or later, no install needed
 - The page can't send the Monday emails itself. It drafts them in your email app, and the calendar reminder does the nudging.
 - Metrics are judged one week at a time against a fixed weekly target. Last week is shown beside them, not scored.
 - Only the Flagship tier changes which group an item lands in. Core and Experimental differ only in the order inside a group.
-- In the example, renaming an item breaks its history. Tasks kept on the page don't have this problem.
 - "Next Tuesday" is read as the nearest coming Tuesday. The page shows the original text beside every date it had to interpret.
 
 ## Why it exists

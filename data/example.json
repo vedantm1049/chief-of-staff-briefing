@@ -1,0 +1,1538 @@
+{
+  "format": "chief-of-staff-briefing backup",
+  "version": 3,
+  "workspace": "example",
+  "setup": {
+    "company": "Wasla Group",
+    "areaKind": "business",
+    "boss": "CEO",
+    "areas": [
+      {
+        "name": "Wasla Minutes",
+        "tier": "Flagship",
+        "leader": {
+          "name": "Farah Al Mansoori",
+          "email": "farah.al.mansoori@wasla.example"
+        },
+        "metrics": [
+          {
+            "name": "Orders",
+            "unit": "",
+            "target": 400000,
+            "better": "higher",
+            "margin": 5,
+            "marginKind": "percent",
+            "minCount": null
+          },
+          {
+            "name": "Customer rating",
+            "unit": "out of 5",
+            "target": 4.5,
+            "better": "higher",
+            "margin": 0.2,
+            "marginKind": "points",
+            "minCount": 10
+          },
+          {
+            "name": "Average delivery time",
+            "unit": "minutes",
+            "target": 20,
+            "better": "lower",
+            "margin": 10,
+            "marginKind": "percent",
+            "minCount": null
+          }
+        ]
+      },
+      {
+        "name": "Wasla.com",
+        "tier": "Core",
+        "leader": {
+          "name": "Rahul Mehta",
+          "email": "rahul.mehta@wasla.example"
+        },
+        "metrics": [
+          {
+            "name": "Sales",
+            "unit": "AED",
+            "target": 30000000,
+            "better": "higher",
+            "margin": 5,
+            "marginKind": "percent",
+            "minCount": null
+          },
+          {
+            "name": "Customer rating",
+            "unit": "out of 5",
+            "target": 4.7,
+            "better": "higher",
+            "margin": 0.1,
+            "marginKind": "points",
+            "minCount": 10
+          }
+        ]
+      },
+      {
+        "name": "Wasla Food",
+        "tier": "Core",
+        "leader": {
+          "name": "Ahmed El-Sayed",
+          "email": "ahmed.elsayed@wasla.example"
+        },
+        "metrics": [
+          {
+            "name": "Orders",
+            "unit": "",
+            "target": 200000,
+            "better": "higher",
+            "margin": 5,
+            "marginKind": "percent",
+            "minCount": null
+          },
+          {
+            "name": "On-time delivery",
+            "unit": "%",
+            "target": 85,
+            "better": "higher",
+            "margin": 2,
+            "marginKind": "points",
+            "minCount": null
+          },
+          {
+            "name": "Customer rating",
+            "unit": "out of 5",
+            "target": 4.5,
+            "better": "higher",
+            "margin": 0.2,
+            "marginKind": "points",
+            "minCount": 10
+          }
+        ]
+      },
+      {
+        "name": "Wasla Labs",
+        "tier": "Experimental",
+        "leader": {
+          "name": "Omar Siddiqui",
+          "email": "omar.siddiqui@wasla.example"
+        },
+        "metrics": [
+          {
+            "name": "New customers",
+            "unit": "",
+            "target": 8000,
+            "better": "higher",
+            "margin": 10,
+            "marginKind": "percent",
+            "minCount": null
+          },
+          {
+            "name": "Live projects",
+            "unit": "",
+            "target": 5,
+            "better": "higher",
+            "margin": 5,
+            "marginKind": "percent",
+            "minCount": null
+          },
+          {
+            "name": "Customer churn",
+            "unit": "%",
+            "target": 5,
+            "better": "lower",
+            "margin": 0.5,
+            "marginKind": "points",
+            "minCount": null
+          }
+        ]
+      },
+      {
+        "name": "Wasla Central",
+        "tier": "Core",
+        "leader": {
+          "name": "Layla Haddad",
+          "email": "layla.haddad@wasla.example"
+        },
+        "metrics": [
+          {
+            "name": "Cash balance",
+            "unit": "AED",
+            "target": 25000000,
+            "better": "higher",
+            "margin": 5,
+            "marginKind": "percent",
+            "minCount": null
+          },
+          {
+            "name": "Net promoter score",
+            "unit": "points",
+            "target": 70,
+            "better": "higher",
+            "margin": 5,
+            "marginKind": "points",
+            "minCount": null
+          },
+          {
+            "name": "Staff attrition",
+            "unit": "%",
+            "target": 0.5,
+            "better": "lower",
+            "margin": 25,
+            "marginKind": "percent",
+            "minCount": null
+          }
+        ]
+      }
+    ]
+  },
+  "people": [
+    {
+      "name": "Farah Al Mansoori",
+      "email": "farah.al.mansoori@wasla.example",
+      "area": "Wasla Minutes",
+      "spellings": []
+    },
+    {
+      "name": "Zayd",
+      "email": "zayd@wasla.example",
+      "area": "Wasla Minutes",
+      "spellings": []
+    },
+    {
+      "name": "Rahul Mehta",
+      "email": "rahul.mehta@wasla.example",
+      "area": "Wasla.com",
+      "spellings": []
+    },
+    {
+      "name": "Raj Mehta",
+      "email": "raj.mehta@wasla.example",
+      "area": "Wasla.com",
+      "spellings": []
+    },
+    {
+      "name": "Ahmed El-Sayed",
+      "email": "ahmed.elsayed@wasla.example",
+      "area": "Wasla Food",
+      "spellings": []
+    },
+    {
+      "name": "Mina",
+      "email": "mina@wasla.example",
+      "area": "Wasla Food",
+      "spellings": []
+    },
+    {
+      "name": "Omar Siddiqui",
+      "email": "omar.siddiqui@wasla.example",
+      "area": "Wasla Labs",
+      "spellings": []
+    },
+    {
+      "name": "Layla Haddad",
+      "email": "layla.haddad@wasla.example",
+      "area": "Wasla Central",
+      "spellings": []
+    },
+    {
+      "name": "Reem Qassim",
+      "email": "reem.qassim@wasla.example",
+      "area": "Wasla Central",
+      "spellings": []
+    },
+    {
+      "name": "Priya Nair",
+      "email": "priya.nair@wasla.example",
+      "area": "Wasla Central",
+      "spellings": [
+        "P. Nair"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t-hiring",
+      "area": "Wasla Central",
+      "task": "Ramp up hiring for Wasla Minutes",
+      "owner": "Reem Qassim",
+      "due_date": "2026-10-31",
+      "status": "In progress",
+      "waiting_on": "",
+      "blocked_by": "Clear the visa block with immigration",
+      "decision_type": "",
+      "last_updated": "2026-10-16"
+    },
+    {
+      "id": "t-branding",
+      "area": "Wasla Central",
+      "task": "Finish branding for Wasla Wash",
+      "owner": "Priya Nair",
+      "due_date": "2026-09-25",
+      "status": "Done",
+      "waiting_on": "",
+      "blocked_by": "Finish and launch the ice-cream summer campaign",
+      "decision_type": "",
+      "last_updated": "2026-10-14"
+    },
+    {
+      "id": "t-workshop",
+      "area": "Wasla Central",
+      "task": "Q4 brand refresh workshop",
+      "owner": "Priya Nair",
+      "due_date": "2026-10-22",
+      "status": "In progress",
+      "waiting_on": "",
+      "blocked_by": "",
+      "decision_type": "",
+      "last_updated": "2026-10-09"
+    },
+    {
+      "id": "t-wash",
+      "area": "Wasla Labs",
+      "task": "Launch Wasla Wash",
+      "owner": "Omar Siddiqui",
+      "due_date": "2026-10-05",
+      "status": "In progress",
+      "waiting_on": "",
+      "blocked_by": "Finish branding for Wasla Wash",
+      "decision_type": "",
+      "last_updated": "2026-10-16"
+    },
+    {
+      "id": "t-b2b",
+      "area": "Wasla Labs",
+      "task": "Show the prototype for Wasla Business",
+      "owner": "Omar Siddiqui",
+      "due_date": "2026-10-15",
+      "status": "Open",
+      "waiting_on": "",
+      "blocked_by": "Launch Wasla Wash",
+      "decision_type": "",
+      "last_updated": "2026-09-22"
+    },
+    {
+      "id": "t-payments",
+      "area": "Wasla.com",
+      "task": "Add instalment payments at checkout",
+      "owner": "Raj Mehta",
+      "due_date": "2026-10-20",
+      "status": "In progress",
+      "waiting_on": "",
+      "blocked_by": "",
+      "decision_type": "",
+      "last_updated": "2026-10-15"
+    },
+    {
+      "id": "t-riderapp",
+      "area": "Wasla Food",
+      "task": "Roll out the new rider app in Sharjah, huge momentum, on the verge of a big unlock",
+      "owner": "Mina",
+      "due_date": "next Tuesday",
+      "status": "In progress",
+      "waiting_on": "",
+      "blocked_by": "",
+      "decision_type": "",
+      "last_updated": "2026-09-12"
+    },
+    {
+      "id": "t-menu",
+      "area": "Wasla Food",
+      "task": "Menu price review with the top 50 restaurants",
+      "owner": "Ahmed El-Sayed",
+      "due_date": "2026-10-26",
+      "status": "In progress",
+      "waiting_on": "",
+      "blocked_by": "",
+      "decision_type": "",
+      "last_updated": "2026-10-15"
+    },
+    {
+      "id": "t-sameday",
+      "area": "Wasla.com",
+      "task": "Launch same-day delivery in Abu Dhabi, three options in the memo",
+      "owner": "Rahul Mehta",
+      "due_date": "2026-10-16",
+      "status": "Waiting on decision",
+      "waiting_on": "CEO",
+      "blocked_by": "",
+      "decision_type": "Pick an option",
+      "last_updated": "2026-10-02"
+    },
+    {
+      "id": "t-provider",
+      "area": "Wasla.com",
+      "task": "Extend the payments provider contract by 12 months",
+      "owner": "Raj Mehta",
+      "due_date": "2026-10-23",
+      "status": "Waiting on decision",
+      "waiting_on": "CEO",
+      "blocked_by": "",
+      "decision_type": "Yes or no",
+      "last_updated": "2026-10-08"
+    },
+    {
+      "id": "t-guidelines",
+      "area": "Wasla Central",
+      "task": "Brand guidelines for Wasla Business",
+      "owner": "Priya Nair",
+      "due_date": "2026-10-22",
+      "status": "Open",
+      "waiting_on": "",
+      "blocked_by": "",
+      "decision_type": "",
+      "last_updated": "2026-10-16"
+    }
+  ],
+  "weeks": [
+    {
+      "weekEnding": "2026-09-27",
+      "tasks": [
+        {
+          "id": "t-visa",
+          "area": "Wasla Central",
+          "task": "Clear the visa block with immigration, pay AED 150K in fines",
+          "owner": "Reem Qassim",
+          "due_date": "2026-10-01",
+          "status": "Waiting on decision",
+          "waiting_on": "CEO",
+          "blocked_by": "",
+          "decision_type": "Yes or no",
+          "last_updated": "2026-09-21"
+        },
+        {
+          "id": "t-office",
+          "area": "Wasla Central",
+          "task": "Approve the office move to a new Dubai floor, AED 90K fit-out",
+          "owner": "Reem Qassim",
+          "due_date": "2026-10-09",
+          "status": "Waiting on decision",
+          "waiting_on": "CEO",
+          "blocked_by": "",
+          "decision_type": "Yes or no",
+          "last_updated": "2026-09-25"
+        },
+        {
+          "id": "t-hiring",
+          "area": "Wasla Central",
+          "task": "Ramp up hiring for Wasla Minutes",
+          "owner": "Reem Qassim",
+          "due_date": "2026-10-31",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "Clear the visa block with immigration",
+          "decision_type": "",
+          "last_updated": "2026-09-15"
+        },
+        {
+          "id": "t-icecream",
+          "area": "Wasla Central",
+          "task": "Finish and launch the ice-cream summer campaign, three options for the CEO",
+          "owner": "Priya Nair",
+          "due_date": "2026-09-15",
+          "status": "Waiting on decision",
+          "waiting_on": "CEO",
+          "blocked_by": "",
+          "decision_type": "Pick an option",
+          "last_updated": "2026-09-10"
+        },
+        {
+          "id": "t-branding",
+          "area": "Wasla Central",
+          "task": "Finish branding for Wasla Wash",
+          "owner": "Priya Nair",
+          "due_date": "2026-09-25",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "Finish and launch the ice-cream summer campaign",
+          "decision_type": "",
+          "last_updated": "2026-09-12"
+        },
+        {
+          "id": "t-workshop",
+          "area": "Wasla Central",
+          "task": "Q4 brand refresh workshop",
+          "owner": "Priya Nair",
+          "due_date": "",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-20"
+        },
+        {
+          "id": "t-seller",
+          "area": "Wasla Central",
+          "task": "Refresh the seller contract template for Wasla.com",
+          "owner": "Layla Haddad",
+          "due_date": "2026-09-30",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-24"
+        },
+        {
+          "id": "t-board",
+          "area": "Wasla Central",
+          "task": "Board pack legal review",
+          "owner": "Layla Haddad",
+          "due_date": "2026-10-01",
+          "status": "Open",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-23"
+        },
+        {
+          "id": "t-books",
+          "area": "Wasla Central",
+          "task": "Close the September books",
+          "owner": "Layla Haddad",
+          "due_date": "2026-10-05",
+          "status": "Open",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-26"
+        },
+        {
+          "id": "t-wash",
+          "area": "Wasla Labs",
+          "task": "Launch Wasla Wash",
+          "owner": "Omar Siddiqui",
+          "due_date": "2026-10-05",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "Finish branding for Wasla Wash",
+          "decision_type": "",
+          "last_updated": "2026-09-22"
+        },
+        {
+          "id": "t-b2b",
+          "area": "Wasla Labs",
+          "task": "Show the prototype for Wasla Business",
+          "owner": "Omar Siddiqui",
+          "due_date": "2026-10-15",
+          "status": "Open",
+          "waiting_on": "",
+          "blocked_by": "Launch Wasla Wash",
+          "decision_type": "",
+          "last_updated": "2026-09-22"
+        },
+        {
+          "id": "t-laundry",
+          "area": "Wasla Labs",
+          "task": "Pilot corporate laundry pickups, waiting to hear back from the vendor",
+          "owner": "Omar Siddiqui",
+          "due_date": "2026-10-20",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-05"
+        },
+        {
+          "id": "t-stores",
+          "area": "Wasla Minutes",
+          "task": "Open three dark stores in Abu Dhabi",
+          "owner": "Farah Al Mansoori",
+          "due_date": "2026-10-10",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-26"
+        },
+        {
+          "id": "t-riders",
+          "area": "Wasla Minutes",
+          "task": "Sign the rider agency contract for Sharjah stores",
+          "owner": "Zayd",
+          "due_date": "2026-09-24",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-23"
+        },
+        {
+          "id": "t-returns",
+          "area": "Wasla.com",
+          "task": "Change the returns policy, waiting on Legal review",
+          "owner": "Rahul Mehta",
+          "due_date": "2026-10-08",
+          "status": "Waiting on decision",
+          "waiting_on": "Legal",
+          "blocked_by": "",
+          "decision_type": "Yes or no",
+          "last_updated": "2026-09-25"
+        },
+        {
+          "id": "t-payments",
+          "area": "Wasla.com",
+          "task": "Add instalment payments at checkout",
+          "owner": "Raj Mehta",
+          "due_date": "2026-10-20",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-26"
+        },
+        {
+          "id": "t-riderapp",
+          "area": "Wasla Food",
+          "task": "Roll out the new rider app in Sharjah, huge momentum, on the verge of a big unlock",
+          "owner": "Mina",
+          "due_date": "next Tuesday",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-12"
+        },
+        {
+          "id": "t-menu",
+          "area": "Wasla Food",
+          "task": "Menu price review with the top 50 restaurants",
+          "owner": "Ahmed El-Sayed",
+          "due_date": "2026-10-12",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-25"
+        }
+      ],
+      "metrics": [
+        {
+          "area": "Wasla Minutes",
+          "metric": "Orders",
+          "segment": "",
+          "value": "412000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Minutes",
+          "metric": "Customer rating",
+          "segment": "",
+          "value": "4.4",
+          "target": "",
+          "count": "21000"
+        },
+        {
+          "area": "Wasla Minutes",
+          "metric": "Average delivery time",
+          "segment": "",
+          "value": "23.5",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla.com",
+          "metric": "Sales",
+          "segment": "",
+          "value": "31200000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla.com",
+          "metric": "Customer rating",
+          "segment": "",
+          "value": "4.66",
+          "target": "",
+          "count": "8400"
+        },
+        {
+          "area": "Wasla Food",
+          "metric": "Orders",
+          "segment": "",
+          "value": "205000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Food",
+          "metric": "On-time delivery",
+          "segment": "",
+          "value": "84.1",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Food",
+          "metric": "Customer rating",
+          "segment": "",
+          "value": "4.4",
+          "target": "",
+          "count": "12000"
+        },
+        {
+          "area": "Wasla Central",
+          "metric": "Cash balance",
+          "segment": "",
+          "value": "26500000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Central",
+          "metric": "Net promoter score",
+          "segment": "",
+          "value": "72",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Central",
+          "metric": "Staff attrition",
+          "segment": "",
+          "value": "0.45",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Labs",
+          "metric": "New customers",
+          "segment": "",
+          "value": "8300",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Labs",
+          "metric": "Live projects",
+          "segment": "",
+          "value": "5",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Labs",
+          "metric": "Customer churn",
+          "segment": "",
+          "value": "4.8",
+          "target": "",
+          "count": ""
+        }
+      ],
+      "received": {
+        "metrics": [
+          "Wasla Minutes",
+          "Wasla.com",
+          "Wasla Food",
+          "Wasla Labs",
+          "Wasla Central"
+        ],
+        "tasks": [
+          "Farah Al Mansoori",
+          "Zayd",
+          "Rahul Mehta",
+          "Raj Mehta",
+          "Ahmed El-Sayed",
+          "Mina",
+          "Omar Siddiqui",
+          "Layla Haddad",
+          "Reem Qassim",
+          "Priya Nair"
+        ]
+      }
+    },
+    {
+      "weekEnding": "2026-10-04",
+      "tasks": [
+        {
+          "id": "t-visa",
+          "area": "Wasla Central",
+          "task": "Clear the visa block with immigration, fines paid",
+          "owner": "Reem Qassim",
+          "due_date": "2026-10-01",
+          "status": "Done",
+          "waiting_on": "CEO",
+          "blocked_by": "",
+          "decision_type": "Yes or no",
+          "last_updated": "2026-09-30"
+        },
+        {
+          "id": "t-office",
+          "area": "Wasla Central",
+          "task": "Approve the office move to a new Dubai floor, AED 90K fit-out",
+          "owner": "Reem Qassim",
+          "due_date": "2026-10-09",
+          "status": "Waiting on decision",
+          "waiting_on": "CEO",
+          "blocked_by": "",
+          "decision_type": "Yes or no",
+          "last_updated": "2026-09-25"
+        },
+        {
+          "id": "t-hiring",
+          "area": "Wasla Central",
+          "task": "Ramp up hiring for Wasla Minutes",
+          "owner": "Reem Qassim",
+          "due_date": "2026-10-31",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "Clear the visa block with immigration",
+          "decision_type": "",
+          "last_updated": "2026-10-02"
+        },
+        {
+          "id": "t-icecream",
+          "area": "Wasla Central",
+          "task": "Finish and launch the ice-cream summer campaign, three options for the CEO",
+          "owner": "Priya Nair",
+          "due_date": "2026-09-15",
+          "status": "Waiting on decision",
+          "waiting_on": "CEO",
+          "blocked_by": "",
+          "decision_type": "Pick an option",
+          "last_updated": "2026-09-10"
+        },
+        {
+          "id": "t-branding",
+          "area": "Wasla Central",
+          "task": "Finish branding for Wasla Wash",
+          "owner": "Priya Nair",
+          "due_date": "2026-09-25",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "Finish and launch the ice-cream summer campaign",
+          "decision_type": "",
+          "last_updated": "2026-09-12"
+        },
+        {
+          "id": "t-workshop",
+          "area": "Wasla Central",
+          "task": "Q4 brand refresh workshop",
+          "owner": "Priya Nair",
+          "due_date": "",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-20"
+        },
+        {
+          "id": "t-seller",
+          "area": "Wasla Central",
+          "task": "Refresh the seller contract template for Wasla.com",
+          "owner": "Layla Haddad",
+          "due_date": "2026-09-30",
+          "status": "Done",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-30"
+        },
+        {
+          "id": "t-board",
+          "area": "Wasla Central",
+          "task": "Board pack legal review",
+          "owner": "Layla Haddad",
+          "due_date": "2026-10-01",
+          "status": "Done",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-10-01"
+        },
+        {
+          "id": "t-books",
+          "area": "Wasla Central",
+          "task": "Close the September books",
+          "owner": "Layla Haddad",
+          "due_date": "2026-10-05",
+          "status": "Done",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-10-03"
+        },
+        {
+          "id": "t-wash",
+          "area": "Wasla Labs",
+          "task": "Launch Wasla Wash",
+          "owner": "Omar Siddiqui",
+          "due_date": "2026-10-05",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "Finish branding for Wasla Wash",
+          "decision_type": "",
+          "last_updated": "2026-09-22"
+        },
+        {
+          "id": "t-b2b",
+          "area": "Wasla Labs",
+          "task": "Show the prototype for Wasla Business",
+          "owner": "Omar Siddiqui",
+          "due_date": "2026-10-15",
+          "status": "Open",
+          "waiting_on": "",
+          "blocked_by": "Launch Wasla Wash",
+          "decision_type": "",
+          "last_updated": "2026-09-22"
+        },
+        {
+          "id": "t-laundry",
+          "area": "Wasla Labs",
+          "task": "Pilot corporate laundry pickups, waiting to hear back from the vendor",
+          "owner": "Omar Siddiqui",
+          "due_date": "2026-10-20",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-05"
+        },
+        {
+          "id": "t-stores",
+          "area": "Wasla Minutes",
+          "task": "Open three dark stores in Abu Dhabi",
+          "owner": "Farah Al Mansoori",
+          "due_date": "2026-10-10",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-10-02"
+        },
+        {
+          "id": "t-riders",
+          "area": "Wasla Minutes",
+          "task": "Sign the rider agency contract for Sharjah stores",
+          "owner": "Zayd",
+          "due_date": "2026-09-24",
+          "status": "Done",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-10-01"
+        },
+        {
+          "id": "t-returns",
+          "area": "Wasla.com",
+          "task": "Change the returns policy, waiting on Legal review",
+          "owner": "Rahul Mehta",
+          "due_date": "2026-10-08",
+          "status": "Waiting on decision",
+          "waiting_on": "Legal",
+          "blocked_by": "",
+          "decision_type": "Yes or no",
+          "last_updated": "2026-09-25"
+        },
+        {
+          "id": "t-payments",
+          "area": "Wasla.com",
+          "task": "Add instalment payments at checkout",
+          "owner": "Raj Mehta",
+          "due_date": "2026-10-20",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-10-02"
+        },
+        {
+          "id": "t-riderapp",
+          "area": "Wasla Food",
+          "task": "Roll out the new rider app in Sharjah, huge momentum, on the verge of a big unlock",
+          "owner": "Mina",
+          "due_date": "next Tuesday",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-12"
+        },
+        {
+          "id": "t-menu",
+          "area": "Wasla Food",
+          "task": "Menu price review with the top 50 restaurants",
+          "owner": "Ahmed El-Sayed",
+          "due_date": "2026-10-12",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-10-01"
+        },
+        {
+          "id": "t-sameday",
+          "area": "Wasla.com",
+          "task": "Launch same-day delivery in Abu Dhabi, three options in the memo",
+          "owner": "Rahul Mehta",
+          "due_date": "2026-10-16",
+          "status": "Waiting on decision",
+          "waiting_on": "CEO",
+          "blocked_by": "",
+          "decision_type": "Pick an option",
+          "last_updated": "2026-10-02"
+        }
+      ],
+      "metrics": [
+        {
+          "area": "Wasla Minutes",
+          "metric": "Orders",
+          "segment": "",
+          "value": "412000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Minutes",
+          "metric": "Customer rating",
+          "segment": "",
+          "value": "4.4",
+          "target": "",
+          "count": "21000"
+        },
+        {
+          "area": "Wasla Minutes",
+          "metric": "Average delivery time",
+          "segment": "",
+          "value": "22.8",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla.com",
+          "metric": "Sales",
+          "segment": "",
+          "value": "31200000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla.com",
+          "metric": "Customer rating",
+          "segment": "",
+          "value": "4.66",
+          "target": "",
+          "count": "8400"
+        },
+        {
+          "area": "Wasla Food",
+          "metric": "Orders",
+          "segment": "",
+          "value": "205000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Food",
+          "metric": "On-time delivery",
+          "segment": "",
+          "value": "84.1",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Food",
+          "metric": "Customer rating",
+          "segment": "",
+          "value": "4.4",
+          "target": "",
+          "count": "12000"
+        },
+        {
+          "area": "Wasla Central",
+          "metric": "Cash balance",
+          "segment": "",
+          "value": "26500000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Central",
+          "metric": "Net promoter score",
+          "segment": "",
+          "value": "72",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Central",
+          "metric": "Staff attrition",
+          "segment": "",
+          "value": "0.45",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Labs",
+          "metric": "New customers",
+          "segment": "",
+          "value": "8300",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Labs",
+          "metric": "Live projects",
+          "segment": "",
+          "value": "5",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Labs",
+          "metric": "Customer churn",
+          "segment": "",
+          "value": "4.8",
+          "target": "",
+          "count": ""
+        }
+      ],
+      "received": {
+        "metrics": [
+          "Wasla Minutes",
+          "Wasla.com",
+          "Wasla Food",
+          "Wasla Labs",
+          "Wasla Central"
+        ],
+        "tasks": [
+          "Farah Al Mansoori",
+          "Zayd",
+          "Rahul Mehta",
+          "Raj Mehta",
+          "Ahmed El-Sayed",
+          "Mina",
+          "Omar Siddiqui",
+          "Layla Haddad",
+          "Reem Qassim",
+          "Priya Nair"
+        ]
+      }
+    },
+    {
+      "weekEnding": "2026-10-11",
+      "tasks": [
+        {
+          "id": "t-office",
+          "area": "Wasla Central",
+          "task": "Approve the office move to a new Dubai floor, AED 90K fit-out",
+          "owner": "Reem Qassim",
+          "due_date": "2026-10-09",
+          "status": "Done",
+          "waiting_on": "CEO",
+          "blocked_by": "",
+          "decision_type": "Yes or no",
+          "last_updated": "2026-10-06"
+        },
+        {
+          "id": "t-hiring",
+          "area": "Wasla Central",
+          "task": "Ramp up hiring for Wasla Minutes",
+          "owner": "Reem Qassim",
+          "due_date": "2026-10-31",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "Clear the visa block with immigration",
+          "decision_type": "",
+          "last_updated": "2026-10-09"
+        },
+        {
+          "id": "t-icecream",
+          "area": "Wasla Central",
+          "task": "Finish and launch the ice-cream summer campaign, CEO chose option two",
+          "owner": "Priya Nair",
+          "due_date": "2026-09-15",
+          "status": "Done",
+          "waiting_on": "CEO",
+          "blocked_by": "",
+          "decision_type": "Pick an option",
+          "last_updated": "2026-10-07"
+        },
+        {
+          "id": "t-branding",
+          "area": "Wasla Central",
+          "task": "Finish branding for Wasla Wash",
+          "owner": "Priya Nair",
+          "due_date": "2026-09-25",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "Finish and launch the ice-cream summer campaign",
+          "decision_type": "",
+          "last_updated": "2026-09-12"
+        },
+        {
+          "id": "t-workshop",
+          "area": "Wasla Central",
+          "task": "Q4 brand refresh workshop",
+          "owner": "Priya Nair",
+          "due_date": "2026-10-22",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-10-09"
+        },
+        {
+          "id": "t-wash",
+          "area": "Wasla Labs",
+          "task": "Launch Wasla Wash",
+          "owner": "Omar Siddiqui",
+          "due_date": "2026-10-05",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "Finish branding for Wasla Wash",
+          "decision_type": "",
+          "last_updated": "2026-09-22"
+        },
+        {
+          "id": "t-b2b",
+          "area": "Wasla Labs",
+          "task": "Show the prototype for Wasla Business",
+          "owner": "Omar Siddiqui",
+          "due_date": "2026-10-15",
+          "status": "Open",
+          "waiting_on": "",
+          "blocked_by": "Launch Wasla Wash",
+          "decision_type": "",
+          "last_updated": "2026-09-22"
+        },
+        {
+          "id": "t-stores",
+          "area": "Wasla Minutes",
+          "task": "Open three dark stores in Abu Dhabi",
+          "owner": "Farah Al Mansoori",
+          "due_date": "2026-10-10",
+          "status": "Done",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-10-09"
+        },
+        {
+          "id": "t-returns",
+          "area": "Wasla.com",
+          "task": "Change the returns policy, Legal approved",
+          "owner": "Rahul Mehta",
+          "due_date": "2026-10-08",
+          "status": "Done",
+          "waiting_on": "Legal",
+          "blocked_by": "",
+          "decision_type": "Yes or no",
+          "last_updated": "2026-10-08"
+        },
+        {
+          "id": "t-payments",
+          "area": "Wasla.com",
+          "task": "Add instalment payments at checkout",
+          "owner": "Raj Mehta",
+          "due_date": "2026-10-20",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-10-09"
+        },
+        {
+          "id": "t-riderapp",
+          "area": "Wasla Food",
+          "task": "Roll out the new rider app in Sharjah, huge momentum, on the verge of a big unlock",
+          "owner": "Mina",
+          "due_date": "next Tuesday",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-09-12"
+        },
+        {
+          "id": "t-menu",
+          "area": "Wasla Food",
+          "task": "Menu price review with the top 50 restaurants",
+          "owner": "Ahmed El-Sayed",
+          "due_date": "2026-10-26",
+          "status": "In progress",
+          "waiting_on": "",
+          "blocked_by": "",
+          "decision_type": "",
+          "last_updated": "2026-10-08"
+        },
+        {
+          "id": "t-sameday",
+          "area": "Wasla.com",
+          "task": "Launch same-day delivery in Abu Dhabi, three options in the memo",
+          "owner": "Rahul Mehta",
+          "due_date": "2026-10-16",
+          "status": "Waiting on decision",
+          "waiting_on": "CEO",
+          "blocked_by": "",
+          "decision_type": "Pick an option",
+          "last_updated": "2026-10-02"
+        },
+        {
+          "id": "t-provider",
+          "area": "Wasla.com",
+          "task": "Extend the payments provider contract by 12 months",
+          "owner": "Raj Mehta",
+          "due_date": "2026-10-23",
+          "status": "Waiting on decision",
+          "waiting_on": "CEO",
+          "blocked_by": "",
+          "decision_type": "Yes or no",
+          "last_updated": "2026-10-08"
+        }
+      ],
+      "metrics": [
+        {
+          "area": "Wasla Minutes",
+          "metric": "Orders",
+          "segment": "",
+          "value": "412000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Minutes",
+          "metric": "Customer rating",
+          "segment": "",
+          "value": "4.4",
+          "target": "",
+          "count": "21000"
+        },
+        {
+          "area": "Wasla Minutes",
+          "metric": "Average delivery time",
+          "segment": "",
+          "value": "20.5",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla.com",
+          "metric": "Sales",
+          "segment": "",
+          "value": "31200000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla.com",
+          "metric": "Customer rating",
+          "segment": "",
+          "value": "4.66",
+          "target": "",
+          "count": "8400"
+        },
+        {
+          "area": "Wasla Food",
+          "metric": "Orders",
+          "segment": "",
+          "value": "205000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Food",
+          "metric": "On-time delivery",
+          "segment": "",
+          "value": "84.1",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Food",
+          "metric": "Customer rating",
+          "segment": "",
+          "value": "4.4",
+          "target": "",
+          "count": "12000"
+        },
+        {
+          "area": "Wasla Central",
+          "metric": "Cash balance",
+          "segment": "",
+          "value": "26500000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Central",
+          "metric": "Net promoter score",
+          "segment": "",
+          "value": "72",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Central",
+          "metric": "Staff attrition",
+          "segment": "",
+          "value": "0.45",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Labs",
+          "metric": "New customers",
+          "segment": "",
+          "value": "8300",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Labs",
+          "metric": "Live projects",
+          "segment": "",
+          "value": "5",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Labs",
+          "metric": "Customer churn",
+          "segment": "",
+          "value": "4.8",
+          "target": "",
+          "count": ""
+        }
+      ],
+      "received": {
+        "metrics": [
+          "Wasla Minutes",
+          "Wasla.com",
+          "Wasla Food",
+          "Wasla Labs",
+          "Wasla Central"
+        ],
+        "tasks": [
+          "Farah Al Mansoori",
+          "Zayd",
+          "Rahul Mehta",
+          "Raj Mehta",
+          "Ahmed El-Sayed",
+          "Mina",
+          "Omar Siddiqui",
+          "Layla Haddad",
+          "Reem Qassim",
+          "Priya Nair"
+        ]
+      }
+    },
+    {
+      "weekEnding": "2026-10-18",
+      "tasks": null,
+      "metrics": [
+        {
+          "area": "Wasla Minutes",
+          "metric": "Orders",
+          "segment": "",
+          "value": "412000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Minutes",
+          "metric": "Customer rating",
+          "segment": "",
+          "value": "4.4",
+          "target": "",
+          "count": "21000"
+        },
+        {
+          "area": "Wasla Minutes",
+          "metric": "Average delivery time",
+          "segment": "",
+          "value": "20.1",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla.com",
+          "metric": "Sales",
+          "segment": "",
+          "value": "31200000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla.com",
+          "metric": "Customer rating",
+          "segment": "",
+          "value": "4.66",
+          "target": "",
+          "count": "8400"
+        },
+        {
+          "area": "Wasla Food",
+          "metric": "Orders",
+          "segment": "",
+          "value": "205000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Food",
+          "metric": "On-time delivery",
+          "segment": "",
+          "value": "84.1",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Food",
+          "metric": "Customer rating",
+          "segment": "",
+          "value": "4.1",
+          "target": "",
+          "count": "12000"
+        },
+        {
+          "area": "Wasla Central",
+          "metric": "Cash balance",
+          "segment": "",
+          "value": "26500000",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Central",
+          "metric": "Net promoter score",
+          "segment": "",
+          "value": "72",
+          "target": "",
+          "count": ""
+        },
+        {
+          "area": "Wasla Central",
+          "metric": "Staff attrition",
+          "segment": "",
+          "value": "0.45",
+          "target": "",
+          "count": ""
+        }
+      ],
+      "received": {
+        "metrics": [
+          "Wasla Minutes",
+          "Wasla.com",
+          "Wasla Food",
+          "Wasla Central"
+        ],
+        "tasks": [
+          "Farah Al Mansoori",
+          "Zayd",
+          "Rahul Mehta",
+          "Raj Mehta",
+          "Ahmed El-Sayed",
+          "Mina",
+          "Omar Siddiqui",
+          "Layla Haddad",
+          "Reem Qassim",
+          "Priya Nair"
+        ]
+      }
+    }
+  ],
+  "notes": [],
+  "settings": {
+    "cosEmail": "chief.of.staff@wasla.example"
+  }
+}

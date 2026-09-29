@@ -2,9 +2,9 @@
 else. Nothing here talks to a server. A backup is a JSON file the reader
 saves and can load again, in this browser or another.
 
-Two workspaces, kept apart:
-  example: the Wasla sample. Only the reader's edits, notes and settings are
-    stored; the sample itself is read from data/.
+Two workspaces, kept apart and the same shape:
+  example: Wasla Group, a made-up company, first read from data/example.json.
+    Once the reader changes anything it is kept here, until they reset it.
   own: the reader's company:
     setup    company, the boss's title, what areas are called, and each area
              with its tier, leader and metrics
@@ -17,14 +17,11 @@ Two workspaces, kept apart:
              finished week keeps a frozen copy, so history can be told.
     notes, settings
 
-An edit: { week, area, title, label, done, due, at }. week is the week-ending
-date, title the item's title as the engine matches it (engine/rules.js:
-itemTitle), label the same title as written, for showing on the page. due is
-"YYYY-MM-DD" or null, at when the change was made. Notes: see notes.js.
+A note: see notes.js.
 */
 import { cleanNotes, isEmail } from "./notes.js";
 
-const KEYS = { example: "cos-briefing:v1", own: "cos-briefing:own:v1" };
+const KEYS = { example: "cos-briefing:example:v2", own: "cos-briefing:own:v1" };
 const FORMAT = "chief-of-staff-briefing backup";
 const TIERS = ["Flagship", "Core", "Experimental"];
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -43,24 +40,14 @@ export function storageWorks() {
   }
 }
 
-export function hasOwn() {
-  try {
-    return localStorage.getItem(KEYS.own) != null;
-  } catch {
-    return false;
-  }
-}
-
-/** A workspace's stored state, cleaned, with defaults for anything missing. */
+/** A workspace's stored state, cleaned, or null if nothing is stored. */
 export function loadWorkspace(id) {
-  let body = {};
   try {
     const raw = localStorage.getItem(KEYS[id]);
-    body = raw ? JSON.parse(raw) : {};
+    return raw ? cleanWorkspace(id, JSON.parse(raw)) : null;
   } catch {
-    body = {};   // blocked or damaged: start clean rather than break the page
+    return null;   // blocked or damaged: start clean rather than break the page
   }
-  return cleanWorkspace(id, body);
 }
 
 export function saveWorkspace(id, state) {
@@ -80,13 +67,8 @@ export function deleteWorkspace(id) {
   }
 }
 
-export function cleanWorkspace(id, body) {
-  const base = {
-    edits: cleanEdits(body.edits),
-    notes: cleanNotes(body.notes),
-    settings: cleanSettings(body.settings),
-  };
-  if (id !== "own") return base;
+export function cleanWorkspace(id, body = {}) {
+  const base = { notes: cleanNotes(body.notes), settings: cleanSettings(body.settings) };
   const people = cleanPeople(body.people ?? body.owners);
   const weeks = cleanWeeks(body.weeks);
   let tasks = cleanTasks(body.tasks);
@@ -190,42 +172,12 @@ export function cleanWeeks(weeks) {
     .map((w, i, all) => (i < all.length - 1 && w.tasks == null ? { ...w, tasks: [] } : w));
 }
 
-/** Keep only well-formed edits, so a hand-edited or damaged file can't break the page. */
-function cleanEdits(edits) {
-  return list(edits)
-    .map((e) => (e && e.area == null && typeof e.unit === "string" ? { ...e, area: e.unit } : e))
-    .filter((e) => e && typeof e.week === "string" && typeof e.area === "string" && typeof e.title === "string")
-    .map((e) => ({
-      week: e.week, area: e.area, title: e.title,
-      label: typeof e.label === "string" ? e.label : e.title,
-      done: e.done === true,
-      due: typeof e.due === "string" && ISO.test(e.due) ? e.due : null,
-      at: typeof e.at === "string" ? e.at : null,
-    }))
-    .filter((e) => e.done || e.due);
-}
-
-/** Add or change one item's edit. Passing done: false and due: null removes it. */
-export function upsert(edits, week, area, title, change) {
-  const rest = edits.filter((e) => !(e.week === week && e.area === area && e.title === title));
-  const old = edits.find((e) => e.week === week && e.area === area && e.title === title);
-  const next = { week, area, title, done: false, due: null, ...old, ...change, at: new Date().toISOString() };
-  return next.done || next.due ? [...rest, next] : rest;
-}
-
-/** { week ending: [edit] }, the shape the engine takes. */
-export function byWeek(edits) {
-  const out = {};
-  for (const e of edits) (out[e.week] ??= []).push(e);
-  return out;
-}
-
 export function backupBlob(id, state) {
   const body = { format: FORMAT, version: 3, workspace: id, exported: new Date().toISOString(), ...state };
   return new Blob([JSON.stringify(body, null, 2) + "\n"], { type: "application/json" });
 }
 
-/** Returns { id, state }. Backups from before workspaces existed belong to the example. */
+/** Returns { id, state }. A backup of the example goes back to the example. */
 export function parseBackup(text) {
   let body;
   try {
@@ -235,5 +187,6 @@ export function parseBackup(text) {
   }
   if (body?.format !== FORMAT) throw new Error("That file isn't a backup from this page.");
   const id = body.workspace === "own" ? "own" : "example";
+  if (!body.setup) throw new Error("That backup is from an older version of the example and can't be loaded.");
   return { id, state: cleanWorkspace(id, body) };
 }

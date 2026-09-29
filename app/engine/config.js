@@ -1,4 +1,5 @@
-/* Thresholds, status words and the Wasla sample's setup.
+/* Thresholds, status words and the list of suggested metrics. The example
+company's setup is in data/example.json.
 
 Every number here is tied to a specific row in docs/dataset_key.md. Change a
 threshold and run the tests to see which scenario it breaks.
@@ -104,36 +105,3 @@ export const METRIC_SUGGESTIONS = [
   { name: "Response time", unit: "hours", better: "lower", margin: 10, marginKind: "percent" },
   { name: "Defect rate", unit: "%", better: "lower", margin: 0.5, marginKind: "points" },
 ];
-
-const metric = (name, fields) => ({ ...(METRIC_SUGGESTIONS.find((m) => m.name === name) ?? {}), name, ...fields });
-const rating = (target) => metric("Customer rating", { target });
-
-// The Wasla example: its areas, who leads each, how much each matters, the
-// metrics each reports, and who the briefing is for. A user's own setup has
-// the same shape. Leaders' emails are in data/alias_table.csv.
-export const WASLA_SETUP = {
-  company: "Wasla Group",
-  areaKind: "business",
-  boss: "CEO",
-  areas: [
-    { name: "Wasla Eats", tier: "Flagship", leader: { name: "Farah Al Mansoori", email: "farah.almansoori@wasla.example" },
-      metrics: [metric("Orders", { target: 80000 }), metric("On-time delivery", { target: 92 }), rating(4.5)] },
-    { name: "Wasla Mart", tier: "Flagship", leader: { name: "Ahmed El-Sayed", email: "ahmed.elsayed@wasla.example" },
-      metrics: [metric("Sales", { unit: "AED", target: 6000000 }), rating(4.5)] },
-    { name: "Wasla Table", tier: "Core", leader: { name: "Reem Qassim", email: "reem.qassim@wasla.example" },
-      metrics: [metric("Reservations", { unit: "", better: "higher", margin: 5, marginKind: "percent", target: 4000 }), rating(4.5)] },
-    { name: "Wasla Express", tier: "Experimental", leader: { name: "Rahul Mehta", email: "rahul.mehta@wasla.example" },
-      metrics: [metric("Orders", { target: 1200 }), rating(4.3)] },
-    { name: "Wasla Pay", tier: "Core", leader: { name: "Raj Mehta", email: "raj.mehta@wasla.example" },
-      metrics: [metric("Transactions", { unit: "", better: "higher", margin: 5, marginKind: "percent", target: 300000 }),
-        metric("Dispute rate", { unit: "%", better: "lower", margin: 0.2, marginKind: "points", target: 0.8 }), rating(4.3)] },
-    { name: "Wasla Central", tier: "Core", leader: { name: "Omar Siddiqui", email: "omar.siddiqui@wasla.example" },
-      metrics: [metric("Roadmap items shipped", { unit: "", better: "higher", margin: 0, marginKind: "points", target: 4 })] },
-  ],
-};
-
-export const WASLA_TIERS = Object.fromEntries(WASLA_SETUP.areas.map((a) => [a.name, a.tier]));
-
-// Copied on every email draft to an owner. Fictional, on the reserved
-// .example domain. The reader can change it on the page.
-export const WASLA_CHIEF_OF_STAFF_EMAIL = "chief.of.staff@wasla.example";

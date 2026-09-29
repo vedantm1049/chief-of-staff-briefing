@@ -2,7 +2,7 @@
 routine. Everything here is HTML built from state; main.js owns the state
 and the events.
 */
-import { esc, ownNav, backupBar } from "./render.js";
+import { esc, nav, link, backupBar } from "./render.js";
 import { METRIC_SUGGESTIONS } from "../engine/config.js";
 import { fmtLong, parseIsoDate } from "../engine/dates.js";
 import { openTasksOf } from "./weekly.js";
@@ -40,7 +40,7 @@ export function intro({ hasOwn }) {
     </div>
     <p class="meta">The example is a made-up company, Wasla Group, with four weeks of reports.</p>
   </section>
-  ${backupBar({ hasData: false })}`;
+  ${backupBar({ scope: "own", hasData: false })}`;
 }
 
 // --- Setup ------------------------------------------------------------------------
@@ -82,10 +82,10 @@ function areaCard(a, i, kind) {
 }
 
 /** draft: { company, areaKind, boss, cosEmail, areas: [{ name, tier, leader, metrics }] } */
-export function setupScreen(draft, { firstTime, message }) {
+export function setupScreen(draft, { firstTime, message, scope }) {
   const kind = draft.areaKind || "area";
   return `
-  ${firstTime ? '<nav class="toolbar"><a href="#/">Back</a></nav>' : ownNav("setup")}
+  ${firstTime ? '<nav class="toolbar"><a href="#/">Back</a></nav>' : nav("setup", scope)}
   <form class="setup" data-form="setup">
     <h1>${firstTime ? "Set up for your company" : "Setup"}</h1>
     <p class="lede">Once. You can change any of it later. Saved in this browser only.</p>
@@ -114,7 +114,7 @@ export function setupScreen(draft, { firstTime, message }) {
     <div class="form-actions"><button type="submit" class="primary">Save setup</button>
       ${firstTime ? '<span class="meta">Next: the people who own work, and their tasks.</span>' : ""}</div>
   </form>
-  ${backupBar({ hasData: !firstTime })}`;
+  ${backupBar({ scope, hasData: !firstTime })}`;
 }
 
 // --- Tasks ------------------------------------------------------------------------
@@ -143,7 +143,7 @@ function taskRow(t, areas, people, titles) {
 }
 
 /** own: the reader's workspace. draftPerson: the add-a-person form's values. */
-export function tasksScreen(own, { message, matchQuestion }) {
+export function tasksScreen(own, { message, matchQuestion, scope }) {
   const { setup, people, tasks } = own;
   const titles = [...new Set(tasks.map((t) => t.task.split(",", 1)[0].trim()).filter(Boolean))];
   const cards = people.map((p, i) => {
@@ -161,11 +161,11 @@ export function tasksScreen(own, { message, matchQuestion }) {
     </li>`;
   }).join("");
   return `
-  ${ownNav("tasks")}
+  ${nav("tasks", scope)}
   <section class="tasks">
     <h1>People and their tasks</h1>
     <p class="lede">Everyone who owns work, and what they own. Changes save as you go. Each person can also
-    update their own sheet from <a href="#/week">This week</a>, and you upload it.</p>
+    update their own sheet from <a href="${link(scope, "week")}">This week</a>, and you upload it.</p>
     ${message ? `<p class="message" role="alert">${esc(message)}</p>` : ""}
     <ul class="person-cards">${cards}</ul>
     <form class="add-person" data-form="add-person">
@@ -178,9 +178,9 @@ export function tasksScreen(own, { message, matchQuestion }) {
       </div>
       ${matchQuestion ?? ""}
     </form>
-    <div class="form-actions"><a class="primary" href="#/week">Next: this week</a></div>
+    <div class="form-actions"><a class="primary" href="${link(scope, "week")}">Next: this week</a></div>
   </section>
-  ${backupBar({ hasData: true })}`;
+  ${backupBar({ scope, hasData: true })}`;
 }
 
 /** "Is X the same person as Y?", asked before a similar name is added. */
@@ -196,7 +196,7 @@ export function sameNameQuestion(name, matches) {
 // --- This week --------------------------------------------------------------------
 
 /** week: the current week or null. uploads: files dropped this visit, read and checked. */
-export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, googleLink }) {
+export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, googleLink, scope }) {
   const { setup, people } = own;
   const week = own.weeks.at(-1) ?? null;
   const kind = setup.areaKind;
@@ -208,7 +208,7 @@ export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, goo
     </form>`;
   if (!week) {
     return `
-  ${ownNav("week")}
+  ${nav("week", scope)}
   <section class="week">
     <h1>This week</h1>
     <p class="lede">Each week has the same rhythm: on Monday, ask each ${esc(kind)} leader for last week's numbers
@@ -216,7 +216,7 @@ export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, goo
     ${message ? `<p class="message" role="alert">${esc(message)}</p>` : ""}
     ${start}
   </section>
-  ${backupBar({ hasData: true })}`;
+  ${backupBar({ scope, hasData: true })}`;
   }
   const w = week.weekEnding;
   const due = fmtLong(parseIsoDate(w) + 3);
@@ -252,7 +252,7 @@ export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, goo
           ${u.applied ? '<span class="ok">Applied</span>' : ""}
         </li>`).join("")}</ul>` : "";
   return `
-  ${ownNav("week")}
+  ${nav("week", scope)}
   <section class="week">
     <h1>Week ending ${fmtLong(parseIsoDate(w))}</h1>
     <p class="lede">Ask on Monday, back by ${due}. Drafts open in your own email app; nothing is sent from
@@ -264,7 +264,7 @@ export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, goo
 
     <h2>2. Task updates from each person</h2>
     ${people.length ? `<div class="table-wrap"><table class="checklist"><tbody>${personRows}</tbody></table></div>`
-      : '<p class="meta">No people yet. Add them in <a href="#/tasks">Tasks</a>.</p>'}
+      : `<p class="meta">No people yet. Add them in <a href="${link(scope, "tasks")}">Tasks</a>.</p>`}
 
     <div class="reminder">
       <strong>Reminder every Monday, set once.</strong> A recurring calendar event inviting every leader and
@@ -284,9 +284,9 @@ export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, goo
     </div>
     ${uploadList}
 
-    <div class="form-actions"><a class="primary" href="#/briefing">Open the CEO view</a></div>
+    <div class="form-actions"><a class="primary" href="${link(scope, "briefing")}">Open the CEO view</a></div>
 
     <details class="next-week"><summary>Start the next week</summary>${start}</details>
   </section>
-  ${backupBar({ hasData: true })}`;
+  ${backupBar({ scope, hasData: true })}`;
 }

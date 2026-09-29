@@ -1,4 +1,4 @@
-/* One test per row of docs/dataset_key.md, week 1. The dataset was designed
+/* Week 1 of docs/dataset_key.md, one test per row. The example was designed
 as a test plan; this file makes it executable. Each comment states the row
 it proves.
 */
@@ -7,249 +7,129 @@ import assert from "node:assert/strict";
 
 import {
   QUADRANT_NEEDS_DECISION_NOW,
+  QUADRANT_ON_YOUR_RADAR,
   QUADRANT_FLAG_DONT_ESCALATE,
   QUADRANT_OMIT,
 } from "../app/engine/classify.js";
-import { toIso } from "../app/engine/dates.js";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import { loadExample, history, byId, W1 } from "./helpers.js";
 
-import { csvRecords } from "../app/engine/parse.js";
-import { loadSample, copySample, week, briefWeek, editRows, findCommitment, DATA_ROOT, TODAY, W1 } from "./helpers.js";
+const company = await loadExample();
+const b = history(company)[W1];
+const item = (id) => b.classified.get(byId(b, id));
+const top = () => b.quadrants[QUADRANT_NEEDS_DECISION_NOW].map((i) => i.commitment.id);
 
-const sample = await loadSample();
-const briefing = briefWeek(sample, W1, TODAY);
+// --- Waiting on the CEO --------------------------------------------------------------
 
-/** A week-1 copy with some rows edited, scored again. kind: "tasks" or "metrics". */
-function rebuiltWith(kind, match, updates) {
-  const copy = copySample(sample);
-  editRows(week(copy, W1)[kind], match, updates);
-  return briefWeek(copy, W1, TODAY);
-}
-
-// --- Conflicts ------------------------------------------------------------------
-
-test("layla haddad same day conflict", () => {
-  // Layla Haddad: Table's lease renewal and Pay's compliance amendment, both
-  // due 2026-09-29. Same day, no alias resolution needed.
-  const lease = findCommitment(briefing, { owner: "Layla Haddad", area: "Wasla Table" });
-  const compliance = findCommitment(briefing, { owner: "Layla Haddad", area: "Wasla Pay" });
-  assert.ok((briefing.conflictPartnerMap.get(lease) ?? []).includes(compliance));
-  assert.ok((briefing.conflictPartnerMap.get(compliance) ?? []).includes(lease));
+test("visa fines: a yes or no for the CEO, first in the top group", () => {
+  const visa = byId(b, "t-visa");
+  assert.ok(visa.decisionPending && visa.principalBlocked);
+  assert.equal(item("t-visa").effort, "Low");
+  assert.equal(top()[0], "t-visa");
+  assert.deepEqual(item("t-visa").blocks.map((c) => c.id), ["t-hiring"]);
 });
 
-test("priya nair conflict depends on alias merge", () => {
-  // Priya Nair / P. Nair: Eats' and Mart's loyalty-pilot items, one day apart.
-  // Only visible if "P. Nair" merges into "Priya Nair".
-  const eats = findCommitment(briefing, { owner: "Priya Nair", area: "Wasla Eats", descriptionContains: "loyalty-points" });
-  const mart = findCommitment(briefing, { owner: "Priya Nair", area: "Wasla Mart" });
-  assert.equal(mart.rawOwner, "P. Nair");
-  assert.ok((briefing.conflictPartnerMap.get(eats) ?? []).includes(mart));
+test("ice-cream campaign: overdue, three options, second below the quicker decision", () => {
+  const i = item("t-icecream");
+  assert.deepEqual(i.flags, ["decision-pending", "overdue"]);
+  assert.equal(i.effort, "Medium");
+  assert.equal(top()[1], "t-icecream");
+  assert.deepEqual(i.blocks.map((c) => c.id), ["t-branding"]);
 });
 
-test("priya sla item outside conflict window", () => {
-  // Priya's SLA item (due 2026-10-05) is 2 to 3 days from the loyalty pair
-  // and must not be pulled into the conflict.
-  const sla = findCommitment(briefing, { owner: "Priya Nair", descriptionContains: "SLA" });
-  assert.ok(!briefing.conflictPartnerMap.has(sla));
+test("office move: waits on the CEO, not yet urgent, on your radar", () => {
+  const i = item("t-office");
+  assert.ok(i.importance && !i.urgency);
+  assert.equal(i.quadrant, QUADRANT_ON_YOUR_RADAR);
 });
 
-test("exactly two conflicts", () => {
-  assert.deepEqual(briefing.conflicts.map((p) => p.owner).sort(), ["Layla Haddad", "Priya Nair"]);
-});
+// --- A chain of blocked work ------------------------------------------------------------
 
-// --- Alias resolution -------------------------------------------------------------
-
-test("rahul and raj mehta stay distinct", () => {
-  // False-positive trap: reviewed in the alias table and not merged.
-  const rahul = findCommitment(briefing, { descriptionContains: "commission floor" });
-  const raj = findCommitment(briefing, { descriptionContains: "acquiring bank" });
-  assert.deepEqual([rahul.owner, raj.owner], ["Rahul Mehta", "Raj Mehta"]);
-});
-
-test("nadia osman and nadia farouk stay distinct", () => {
-  assert.equal(findCommitment(briefing, { descriptionContains: "Wallet KYC" }).owner, "Nadia Osman");
-  assert.equal(findCommitment(briefing, { descriptionContains: "forecast model" }).owner, "Nadia Farouk");
-});
-
-test("every owner resolved this week", () => {
-  assert.deepEqual(briefing.unresolvedOwners, []);
-});
-
-test("unseen shorthand is reported not guessed", () => {
-  // If Mart writes "P Nair" (no dot), the table has never seen it. The engine
-  // must report it, and the Priya conflict disappears until the table is
-  // fixed. That lost conflict is why an unresolved name is surfaced, not ignored.
-  const b = rebuiltWith("tasks", { owner: "P. Nair" }, { owner: "P Nair" });
-  assert.ok(b.unresolvedOwners.some(([raw, area]) => raw === "P Nair" && area === "Wasla Mart"));
-  assert.deepEqual(b.conflicts.map((p) => p.owner), ["Layla Haddad"]);
-});
-
-// --- Staleness ------------------------------------------------------------------
-
-test("mart stockout stale and top quadrant", () => {
-  // Due 2026-09-19 (9 days overdue), last touched 2026-09-20, blocks 2 open
-  // items. Lands in needs decision now, on a staleness flag.
-  const item = findCommitment(briefing, { descriptionContains: "stockout alerting" });
-  assert.ok(briefing.stale.has(item));
-  assert.equal(briefing.blocksMap.get(item).length, 2);
-  const classified = briefing.classified.get(item);
-  assert.equal(classified.quadrant, QUADRANT_NEEDS_DECISION_NOW);
-  assert.ok(classified.flags.includes("stale"));
-});
-
-test("items blocked by stockout are not stale", () => {
-  // SOP rewrite (7 days) and Q4 forecast model (10 days) are past the
-  // threshold by date, but they are waiting on the stockout fix. Listed on the
-  // blocker's card, not flagged as stale in their own right.
-  const blocker = findCommitment(briefing, { descriptionContains: "stockout alerting" });
-  for (const text of ["SOP rewrite", "forecast model"]) {
-    const item = findCommitment(briefing, { descriptionContains: text });
-    assert.ok(!briefing.stale.has(item));
-    assert.ok(!briefing.classified.has(item));
-    assert.ok(briefing.blocksMap.get(blocker).includes(item));
+test("the blocked chain is listed on its blockers, never flagged itself", () => {
+  // Branding is overdue and untouched 16 days, hiring untouched 13 days: both
+  // would be flagged if they weren't waiting on an open item.
+  for (const id of ["t-branding", "t-wash", "t-b2b", "t-hiring"]) {
+    const c = byId(b, id);
+    assert.ok(!b.classified.has(c), id);
+    assert.ok(!b.stale.has(c) && !b.overdue.has(c), id);
   }
+  assert.deepEqual(b.blocksMap.get(byId(b, "t-branding")).map((c) => c.id), ["t-wash"]);
+  assert.deepEqual(b.blocksMap.get(byId(b, "t-wash")).map((c) => c.id), ["t-b2b"]);
 });
 
-test("blocked item goes stale once blocker closes", () => {
-  // The exemption only holds while the blocker is open.
-  const b = rebuiltWith("tasks", { task: "Fix stockout alerting for Sharjah dark stores" }, { status: "Done" });
-  const forecast = findCommitment(b, { descriptionContains: "forecast model" });
-  assert.ok(b.stale.has(forecast));
+// --- Overdue in a Flagship business -------------------------------------------------------
+
+test("rider agency contract: overdue in a Flagship business, after the decisions", () => {
+  assert.deepEqual(item("t-riders").flags, ["overdue"]);
+  assert.deepEqual(top(), ["t-visa", "t-icecream", "t-riders"]);
 });
 
-test("express mall retail stale despite hype", () => {
-  // Last touched 2026-09-14 (14 days) while the status update calls it
-  // "huge momentum". lastUpdated wins over prose.
-  const item = findCommitment(briefing, { owner: "Mina" });
-  assert.equal(briefing.today - item.lastUpdated, 14);
-  assert.ok(briefing.stale.has(item));
-  assert.ok(briefing.classified.has(item));
+// --- Stalled work -----------------------------------------------------------------------
+
+test("rider app: stale despite 'huge momentum', due next Tuesday, flag don't escalate", () => {
+  const c = byId(b, "t-riderapp");
+  assert.equal(b.today - c.lastUpdated, 16);
+  assert.ok(c.dueDateApprox);
+  assert.deepEqual(item("t-riderapp").flags, ["stale"]);
+  assert.deepEqual(item("t-riderapp").urgencyReasons, ["due in 1 day"]);
+  assert.equal(item("t-riderapp").quadrant, QUADRANT_FLAG_DONT_ESCALATE);
 });
 
-test("table no show fee resolved not stale", () => {
-  // Status left blank; the task says "resolved, live since last week".
-  // Reading done from the text must suppress an item that looks overdue and stale.
-  const item = findCommitment(briefing, { descriptionContains: "no-show fee" });
-  assert.ok(item.statusInferred && item.status === "done");
-  assert.ok(!briefing.stale.has(item));
-  assert.ok(!briefing.classified.has(item));
+test("laundry pilot: stale but Experimental and not urgent, omit", () => {
+  assert.deepEqual(item("t-laundry").flags, ["stale"]);
+  assert.equal(item("t-laundry").quadrant, QUADRANT_OMIT);
 });
 
-// --- Decision pending ------------------------------------------------------------
+// --- One person, two deadlines -----------------------------------------------------------
 
-test("zayd ceo decision tops the briefing", () => {
-  // Waiting on CEO sign-off, pending 6 days, confirm/reject. First item in
-  // the top group.
-  const item = findCommitment(briefing, { owner: "Zayd" });
-  assert.ok(item.decisionPending && item.principalBlocked);
-  const classified = briefing.classified.get(item);
-  assert.equal(classified.quadrant, QUADRANT_NEEDS_DECISION_NOW);
-  assert.equal(classified.effort, "Low");
-  assert.equal(briefing.quadrants[QUADRANT_NEEDS_DECISION_NOW][0].commitment, item);
+test("Layla: seller contract and board pack a day apart, a conflict", () => {
+  assert.deepEqual(b.conflicts.map((p) => [p.owner, p.a.id, p.b.id, p.daysApart]),
+    [["Layla Haddad", "t-seller", "t-board", 1]]);
+  assert.equal(item("t-seller").quadrant, QUADRANT_FLAG_DONT_ESCALATE);
 });
 
-test("nadia osman legal decision omitted", () => {
-  // Blocked on Central Legal, pending 3 days, Core tier, no fan-out, due more
-  // than 3 days out. Low importance, low urgency: omit.
-  const item = findCommitment(briefing, { owner: "Nadia Osman" });
-  assert.ok(item.decisionPending && !item.principalBlocked);
-  const classified = briefing.classified.get(item);
-  assert.ok(!classified.importance && !classified.urgency);
-  assert.equal(classified.quadrant, QUADRANT_OMIT);
+// --- Waiting on someone else ---------------------------------------------------------------
+
+test("returns policy: waiting on Legal, not the CEO, omit", () => {
+  const c = byId(b, "t-returns");
+  assert.ok(c.decisionPending && !c.principalBlocked);
+  assert.equal(item("t-returns").quadrant, QUADRANT_OMIT);
 });
 
-// --- No due date ------------------------------------------------------------------
+// --- No deadline ----------------------------------------------------------------------------
 
-test("roadmap workshop needs a deadline", () => {
-  const item = findCommitment(briefing, { descriptionContains: "roadmap prioritization" });
-  assert.equal(item.dueDate, null);
-  assert.ok(briefing.needsDeadlineItems.includes(item));
-  assert.ok(!briefing.classified.has(item));
+test("brand refresh workshop: no due date, needs a deadline set", () => {
+  const c = byId(b, "t-workshop");
+  assert.ok(b.needsDeadlineItems.includes(c));
+  assert.ok(!b.classified.has(c));
 });
 
-// --- Customer health -----------------------------------------------------------------
+// --- Metrics --------------------------------------------------------------------------------
 
-function health(b, area) {
-  return b.metricResults.find((r) => r.area === area && r.metric === "Customer rating");
-}
+const metric = (area, name) => b.metricResults.find((r) => r.area === area && r.metric === name);
 
-test("mart blended rating miss triggers", () => {
-  const r = health(briefing, "Wasla Mart");
-  assert.ok(r.value.toFixed(2) === "3.93" && r.triggered);
+test("Minutes' delivery time misses, lower is better, and moves nothing", () => {
+  const r = metric("Wasla Minutes", "Average delivery time");
+  assert.ok(r.triggered);
+  assert.equal(r.reason, "17.5% above target, more than the 10% margin");
+  assert.ok(item("t-riders").importanceReasons.includes("Wasla Minutes is Flagship tier"));
 });
 
-test("eats and pay small misses do not trigger", () => {
-  for (const area of ["Wasla Eats", "Wasla Pay"]) {
-    const r = health(briefing, area);
-    assert.ok(r.shortfall.toFixed(2) === "0.10" && !r.triggered);
-  }
+test("Wasla.com's rating is within its 0.1 margin", () => {
+  const r = metric("Wasla.com", "Customer rating");
+  assert.ok(!r.triggered && r.shortfall.toFixed(2) === "0.04");
 });
 
-test("express big miss suppressed by sample floor", () => {
-  const r = health(briefing, "Wasla Express");
-  assert.ok(r.count === 6 && r.lowSample && !r.triggered);
+test("every other metric is met", () => {
+  assert.deepEqual(b.metricResults.filter((r) => r.triggered).map((r) => r.metric), ["Average delivery time"]);
+  assert.ok(b.metricResults.every((r) => r.reported));
 });
 
-test("central has no customer metric", () => {
-  assert.ok(!briefing.metricResults.some((r) => r.area === "Wasla Central" && r.metric === "Customer rating"));
-});
+// --- People ---------------------------------------------------------------------------------
 
-test("rating miss lifts importance", () => {
-  // Mart's miss is listed as an importance reason on its items.
-  const item = findCommitment(briefing, { descriptionContains: "stockout alerting" });
-  const reasons = briefing.classified.get(item).importanceReasons;
-  assert.ok(reasons.includes("Wasla Mart missed its Customer rating target this week"));
-});
-
-test("rating miss changes quadrant for non flagship area", () => {
-  // In the shipped snapshot only Mart misses, and Mart is already Flagship,
-  // so the signal moves nothing. Make Table miss (4.0 vs 4.5 on 1,150
-  // ratings): Layla's lease renewal must move up from flag-don't-escalate.
-  const before = findCommitment(briefing, { owner: "Layla Haddad", area: "Wasla Table" });
-  assert.equal(briefing.classified.get(before).quadrant, QUADRANT_FLAG_DONT_ESCALATE);
-
-  const b = rebuiltWith("metrics", { area: "Wasla Table" }, { value: "4.0" });
-  const after = findCommitment(b, { owner: "Layla Haddad", area: "Wasla Table" });
-  assert.equal(b.classified.get(after).quadrant, QUADRANT_NEEDS_DECISION_NOW);
-});
-
-// --- The template ------------------------------------------------------------------
-
-test("every area sends the same template", async () => {
-  const manifest = JSON.parse(await readFile(path.join(DATA_ROOT, "manifest.json"), "utf8"));
-  const headers = new Set();
-  for (const [w, areas] of Object.entries(manifest.weeks)) {
-    for (const [folder, names] of Object.entries(areas)) {
-      for (const name of names) {
-        const text = await readFile(path.join(DATA_ROOT, "weeks", w, folder, name), "utf8");
-        headers.add(`${name}: ${csvRecords(text).fields.join(",")}`);
-      }
-    }
-  }
-  assert.deepEqual([...headers].sort(), [
-    "metrics.csv: area,metric,segment,value,target,count",
-    "tasks.csv: area,task,owner,due_date,status,waiting_on,blocked_by,decision_type,last_updated",
-  ]);
-});
-
-test("a decision names who it waits on", () => {
-  // Zayd's waits on the CEO, Nadia Osman's on Central Legal. The waiting_on
-  // column says so; only the CEO's counts as waiting on the principal.
-  assert.equal(findCommitment(briefing, { owner: "Zayd" }).waitingOn, "CEO");
-  assert.equal(findCommitment(briefing, { owner: "Nadia Osman" }).waitingOn, "Central Legal");
-});
-
-test("mart reports its rating per city", () => {
-  const r = health(briefing, "Wasla Mart");
-  assert.deepEqual(r.segments.map((x) => x.segment), ["Dubai", "Abu Dhabi", "Sharjah"]);
-  assert.equal(r.segments[2].value, 3.7);
-});
-
-test("every area in the files is in the setup", () => {
-  assert.deepEqual(briefing.unknownAreas, []);
-});
-
-test("week ending read from data", () => {
-  assert.equal(toIso(briefing.weekEnding), "2026-09-27");
+test("every owner is known, the Mehtas stay two people, P. Nair is Priya", () => {
+  assert.deepEqual(b.unresolvedOwners, []);
+  assert.deepEqual(b.unknownAreas, []);
+  assert.equal(byId(b, "t-returns").owner, "Rahul Mehta");
+  assert.equal(byId(b, "t-payments").owner, "Raj Mehta");
+  assert.deepEqual(company.people.find((p) => p.name === "Priya Nair").spellings, ["P. Nair"]);
 });

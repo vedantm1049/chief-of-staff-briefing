@@ -106,7 +106,7 @@ test("overdue decision is urgent even if recently pending", () => {
   // entered Pending Decision only 2 days ago is still urgent.
   const item = make({ area: "Wasla Eats", status: "pending_decision", decisionPending: true,
     dueDate: TODAY - 4, lastUpdated: TODAY - 2 });
-  const classified = classifyCommitment(item, TODAY, [], new Set());
+  const classified = classifyCommitment(item, TODAY, [], new Set(), { "Wasla Eats": "Flagship" });
   assert.ok(classified.urgency);
   assert.equal(classified.quadrant, QUADRANT_NEEDS_DECISION_NOW);
 });
@@ -157,4 +157,35 @@ test("a pending decision is never stale", () => {
   // Its wait is measured by the pending clock, not blamed on the owner.
   const item = make({ status: "pending_decision", decisionPending: true, lastUpdated: TODAY - 30 });
   assert.ok(!isStale(item, TODAY, [item]));
+});
+
+// --- Owner names ---------------------------------------------------------------------
+
+import { AliasTable } from "../app/engine/normalize.js";
+import { findConflicts } from "../app/engine/rules.js";
+
+const OWNERS = [
+  { raw_name: "Priya Nair", area: "", normalized_owner: "Priya Nair" },
+  { raw_name: "P. Nair", area: "", normalized_owner: "Priya Nair" },
+  { raw_name: "Rahul Mehta", area: "", normalized_owner: "Rahul Mehta" },
+  { raw_name: "Raj Mehta", area: "", normalized_owner: "Raj Mehta" },
+];
+
+test("another spelling on file merges, and reveals a clash", () => {
+  const aliases = new AliasTable(OWNERS);
+  const a = make({ owner: aliases.resolve("Priya Nair", "Eats"), dueDate: TODAY + 3 });
+  const b = make({ owner: aliases.resolve("P. Nair", "Mart"), dueDate: TODAY + 4 });
+  assert.equal(b.owner, "Priya Nair");
+  assert.equal(findConflicts([a, b]).length, 1);
+});
+
+test("similar names on file stay two people", () => {
+  const aliases = new AliasTable(OWNERS);
+  assert.notEqual(aliases.resolve("Rahul Mehta", ""), aliases.resolve("Raj Mehta", ""));
+});
+
+test("a spelling nobody has confirmed is reported, not guessed", () => {
+  const aliases = new AliasTable(OWNERS);
+  assert.equal(aliases.resolve("P Nair", "Mart"), "P Nair");
+  assert.deepEqual(aliases.unresolved, [["P Nair", "Mart"]]);
 });
