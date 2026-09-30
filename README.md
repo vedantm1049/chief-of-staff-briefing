@@ -1,6 +1,6 @@
 # Chief of Staff Briefing
 
-A weekly briefing a Chief of Staff runs for their own company, all in the browser. Set up the company's areas, who leads each, the numbers each one reports and who owns what work. Each week the page asks the leaders for their numbers and people for their task updates, and turns what comes back into one view for the CEO: metrics against target, and only the work that needs them. It flags. It never resolves, reassigns, decides or suggests.
+A weekly briefing that a Chief of Staff runs for their own company, all in the browser. Set up the company's areas, who leads each, the numbers each one reports and who owns what work. Each week the page asks the leaders for their numbers and people for their task updates, and turns what comes back into one view for the CEO: metrics against target, and only the work that needs them. It flags. It never resolves, reassigns, decides or suggests.
 
 **Open it: https://vedantm1049.github.io/chief-of-staff-briefing/**
 
