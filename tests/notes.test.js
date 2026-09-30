@@ -26,7 +26,7 @@ test("a name nobody has said who it is gets no email", () => {
 });
 
 test("a note stays with its item from the week it was written", () => {
-  const note = newNote({ ...ICE_CREAM, from: "CEO", text: "Which option costs least?", week: W2 });
+  const note = newNote({ ...ICE_CREAM, from: "boss", text: "Which option costs least?", week: W2 });
   assert.deepEqual(notesFor([note], ICE_CREAM, W2), [note]);
   assert.deepEqual(notesFor([note], ICE_CREAM, W3), [note]);
   assert.deepEqual(notesFor([note], ICE_CREAM, "2026-09-27"), []);
@@ -36,7 +36,7 @@ test("a note stays with its item from the week it was written", () => {
 
 test("the email draft carries the note and the card's facts, nothing more", () => {
   const item = byId(weeks[W2], "t-icecream");
-  const note = newNote({ ...ICE_CREAM, from: "CEO", text: "Which option costs least?", week: W2 });
+  const note = newNote({ ...ICE_CREAM, from: "boss", text: "Which option costs least?", week: W2 });
   const href = emailDraft({ to: "priya.nair@wasla.example", owner: "Priya Nair", item, note,
     weekEnding: W2, flags: ["Decision pending", "Overdue"], areaKind: "business" });
   const url = new URL(href);
@@ -59,7 +59,7 @@ test("the email draft carries the note and the card's facts, nothing more", () =
 
 test("the chief of staff is copied on every draft", () => {
   const item = byId(weeks[W2], "t-icecream");
-  const note = newNote({ ...ICE_CREAM, from: "CEO", text: "Status?", week: W2 });
+  const note = newNote({ ...ICE_CREAM, from: "boss", text: "Status?", week: W2 });
   const draft = (to, cc) => new URL(emailDraft({ to, cc, owner: "Layla Haddad", item, note, weekEnding: W2, flags: [] }));
   assert.equal(draft("layla.haddad@wasla.example", "chief.of.staff@wasla.example").searchParams.get("cc"),
     "chief.of.staff@wasla.example");
@@ -79,7 +79,20 @@ test("notes and replies survive a backup and import", async () => {
 });
 
 test("a damaged note is dropped, not trusted", () => {
-  const good = newNote({ ...ICE_CREAM, from: "CEO", text: "ok", week: W3 });
+  const good = newNote({ ...ICE_CREAM, from: "boss", text: "ok", week: W3 });
   const kept = cleanNotes([good, { id: "x", text: "no area" }, null, { ...good, id: "y", week: "soon", from: "Board" }]);
   assert.deepEqual(kept.map((n) => n.id), [good.id]);
+});
+
+test("notes speak of the boss by the title in setup", async () => {
+  const { fromLabel } = await import("../app/ui/notes.js");
+  const item = byId(weeks[W2], "t-icecream");
+  const note = newNote({ ...ICE_CREAM, from: "boss", text: "Go with two.", week: W2 });
+  const body = new URL(emailDraft({ to: "priya.nair@wasla.example", owner: "Priya Nair", item, note, weekEnding: W2,
+    flags: [], boss: "Managing Director" })).searchParams.get("body");
+  assert.match(body, /From the Managing Director: Go with two\./);
+  assert.equal(fromLabel("boss", "Managing Director"), "Managing Director");
+  assert.equal(fromLabel("cos", "Managing Director"), "Chief of Staff");
+  // Notes saved before roles keep their meaning.
+  assert.deepEqual(cleanNotes([{ ...note, from: "CEO" }, { ...note, id: "n2", from: "Chief of Staff" }]).map((n) => n.from), ["boss", "cos"]);
 });

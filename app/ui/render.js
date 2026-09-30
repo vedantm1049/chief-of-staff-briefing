@@ -13,7 +13,7 @@ import {
 } from "../engine/classify.js";
 import { itemTitle } from "../engine/rules.js";
 import { fmtLong, fmtShort, toIso, parseIsoDate } from "../engine/dates.js";
-import { notesFor, noteMatches, emailDraft, NOTE_FROM } from "./notes.js";
+import { notesFor, noteMatches, emailDraft, fromLabel } from "./notes.js";
 
 const QUADRANT_META = {
   [QUADRANT_NEEDS_DECISION_NOW]: ["needs", "Important and urgent"],
@@ -133,7 +133,8 @@ function noteEntry(n, ctx, item, flags) {
   if (!item) {
     action = "";
   } else if (email) {
-    const href = emailDraft({ to: email, cc: ctx.cosEmail, owner: n.owner, item, note: n, weekEnding: ctx.week, flags, areaKind: ctx.areaKind });
+    const href = emailDraft({ to: email, cc: ctx.cosEmail, owner: n.owner, item, note: n, weekEnding: ctx.week, flags,
+      areaKind: ctx.areaKind, boss: ctx.boss });
     const copied = ctx.cosEmail && ctx.cosEmail.toLowerCase() !== email.toLowerCase()
       ? `<span class="meta">copies ${esc(ctx.cosEmail)}</span>` : "";
     action = `<a class="button-link" href="${esc(href)}" data-act="email" data-id="${esc(n.id)}">Draft email to ${esc(n.owner)}</a>${copied}`
@@ -151,7 +152,7 @@ function noteEntry(n, ctx, item, flags) {
         </form></details>`;
   return `
           <li class="note-entry">
-            <div><span class="note-from">${esc(n.from)}</span> <span class="meta">week ending ${fmtShort(parseIsoDate(n.week))}</span></div>
+            <div><span class="note-from">${esc(fromLabel(n.from, ctx.boss))}</span> <span class="meta">week ending ${fmtShort(parseIsoDate(n.week))}</span></div>
             <div class="note-text">${esc(n.text)}</div>
             <div class="note-actions">${action}
               <button type="button" class="link" data-act="delete-note" data-id="${esc(n.id)}">Delete note</button></div>
@@ -165,7 +166,7 @@ function notesBlock(c, flags, ctx) {
   const label = c.description.split(",", 1)[0].trim();
   const list = notesFor(ctx.notes, { id: c.id, area: c.area, title }, ctx.week);
   const entries = list.length ? `<ul class="note-list">${list.map((n) => noteEntry(n, ctx, c, flags)).join("")}</ul>` : "";
-  const options = NOTE_FROM.map((f) => `<option>${esc(f)}</option>`).join("");
+  const options = `<option value="boss">${esc(ctx.boss)}</option><option value="cos">Chief of Staff</option>`;
   return `
         <div class="notes">
           ${entries}

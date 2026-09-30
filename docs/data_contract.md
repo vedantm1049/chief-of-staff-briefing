@@ -135,3 +135,4 @@ The example rebuilt on a real setup:
 - **`waiting_on`, when filled in, settles who a decision waits on**, whatever the task's wording says. Before, a task saying "for the CEO" counted as waiting on the CEO even with someone else in `waiting_on`.
 - **Decided, in the week's history.** A decision that leaves the briefing because the boss answered closes as "Decided", with the answer and its date, not "Done" or "Cleared". In the example, the visa block (week 2), the ice-cream campaign and the office move (week 3).
 - A leader's upload preview says when a number that needs a count (a customer rating) came without one.
+- Notes and email drafts call the boss by the title in setup ("From the Managing Director: ..."), not always "CEO". A note stores who it is from as a role, the boss or the Chief of Staff; notes saved as "CEO" read as the boss.

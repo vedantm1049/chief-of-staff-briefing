@@ -569,8 +569,8 @@ function draftToOwner(t, text) {
   const email = cur().people.find((p) => p.name === t.owner)?.email;
   const item = briefings.at(-1)?.allCommitments.find((c) => c.id === t.id);
   if (!email || !item) return null;
-  return emailDraft({ to: email, cc: cosEmail(), owner: t.owner, item, note: { from: "CEO", text },
-    weekEnding: toIso(briefings.at(-1).weekEnding), flags: [], areaKind: cur().setup.areaKind });
+  return emailDraft({ to: email, cc: cosEmail(), owner: t.owner, item, note: { from: "boss", text },
+    weekEnding: toIso(briefings.at(-1).weekEnding), flags: [], areaKind: cur().setup.areaKind, boss: cur().setup.boss });
 }
 
 /** The boss's answer, recorded. Yes or a choice: the owner carries it out.
@@ -595,7 +595,7 @@ function askQuestion(d, question) {
   const t = cur().tasks.find((x) => x.id === d.id);
   if (!t || !question) return;
   cur().notes = [...cur().notes, newNote({ taskId: t.id, area: t.area, title: d.title, label: d.label, owner: t.owner,
-    from: "CEO", text: question, week: shownWeek(), question: true })];
+    from: "boss", text: question, week: shownWeek(), question: true })];
   const href = draftToOwner(t, question);
   t.waiting_on = t.owner;
   t.last_updated = todayIso();

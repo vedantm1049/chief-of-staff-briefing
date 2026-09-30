@@ -12,13 +12,21 @@ reply: { text, at } or null.
 */
 import { fmtLong, parseIsoDate } from "../engine/dates.js";
 
-export const NOTE_FROM = ["CEO", "Chief of Staff"];
+// Who a note is from, as a role: the boss (whatever setup calls them) or the
+// Chief of Staff. Notes saved before roles said "CEO" or "Chief of Staff".
+export const NOTE_FROM = ["boss", "cos"];
+const FROM_ROLE = { boss: "boss", cos: "cos", CEO: "boss", "Chief of Staff": "cos" };
+
+/** The label for who a note is from, in this company's words. */
+export function fromLabel(from, boss = "CEO") {
+  return from === "cos" ? "Chief of Staff" : boss;
+}
 
 export function newNote({ taskId = "", area, title, label, owner, from, text, week, question = false }) {
   return {
     id: `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     taskId, area, title, label, owner,
-    from: NOTE_FROM.includes(from) ? from : NOTE_FROM[0],
+    from: FROM_ROLE[from] ?? "boss",
     text: text.trim(),
     week,
     at: new Date().toISOString(),
@@ -50,7 +58,7 @@ export function cleanNotes(list) {
       id: n.id, taskId: str(n.taskId), area: n.area, title: n.title,
       label: str(n.label) || n.title,
       owner: str(n.owner),
-      from: NOTE_FROM.includes(n.from) ? n.from : NOTE_FROM[0],
+      from: FROM_ROLE[n.from] ?? "boss",
       text: n.text, week: n.week, at: str(n.at),
       emailed: n.emailed === true,
       question: n.question === true,
@@ -67,12 +75,12 @@ export function isEmail(text) {
 is sent from the page. The body is the note and the facts on the card, no
 more: the page adds no advice of its own. The Chief of Staff is copied,
 unless they are the owner. */
-export function emailDraft({ to, cc, owner, item, note, weekEnding, flags, areaKind = "area" }) {
+export function emailDraft({ to, cc, owner, item, note, weekEnding, flags, areaKind = "area", boss = "CEO" }) {
   const c = item;
   const lines = [
     `Hi ${owner.split(" ")[0]},`,
     "",
-    note.from === "CEO" ? `From the CEO: ${note.text}` : note.text,
+    note.from === "boss" ? `From the ${boss}: ${note.text}` : note.text,
     "",
     `Item: ${c.description}`,
     `${areaKind[0].toUpperCase()}${areaKind.slice(1)}: ${c.area}`,

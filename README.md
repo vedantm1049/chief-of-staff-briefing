@@ -37,7 +37,7 @@ The example is Wasla Group, a made-up Dubai holding company with five businesses
 - **No deadline**: no usable due date, blank or unreadable. Listed so a date gets set, not scored as "not urgent" and dropped.
 - **Metric miss**: a metric is worse than its target by more than its margin, in the direction that counts as good. A number that rests on responses (a customer rating) is only judged on enough of them: the example uses 0.2 points and 10 ratings.
 
-An item waiting on another open item is neither stale nor overdue in its own right. It is listed on its blocker's card, so the briefing points at one root cause rather than several symptoms.
+An item waiting on another open item is neither stale nor overdue in its own right. It is listed on its blocker's card, with the whole chain behind it, so the briefing points at one root cause rather than several symptoms.
 
 ## How flagged items are ranked
 
@@ -45,7 +45,7 @@ Importance is high if the area is Flagship, the item waits on the boss, it holds
 
 ## Week over week
 
-Each flagged item is marked **new**, **back** after a gap, or its **Nth week running**. Anything flagged last week but not this week is listed as **done**, **cleared** (with the reason: deadline set, date moved, updated) or **removed, not done**, meaning it vanished from its tracker without ever being marked done. Due dates that keep moving are shown on the card, which is how a free-text "next Tuesday" that rolls forward every week gets caught.
+Each flagged item is marked **new**, **back** after a gap, or its **Nth week running**. Anything flagged last week but not this week is listed as **decided** (with the boss's answer), **done**, **cleared** (with the reason: deadline set, date moved, updated) or **removed, not done**, meaning it vanished from its tracker without ever being marked done. Due dates that keep moving are shown on the card, which is how a free-text "next Tuesday" that rolls forward every week gets caught.
 
 A task is recognised across weeks by its id, so it can be renamed or reassigned without losing its history.
 
@@ -55,7 +55,7 @@ A task is recognised across weeks by its id, so it can be renamed or reassigned 
 index.html                 the page
 app/engine/                the rules: parse, loaders, normalize, rules, classify, briefing, history
 app/ui/                    intro, setup, tasks, this week (sheets, requests, uploads), the CEO view, notes, backup
-app/vendor/                SheetJS, for reading Excel
+app/vendor/                SheetJS, for reading and writing Excel
 data/example.json          the example company
 scripts/generate_example.py  writes it (plain Python, no packages)
 ```
