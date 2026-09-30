@@ -84,26 +84,30 @@ export const OPEN_TEXT_HINTS = ["waiting", "no response", "still", "pending", "f
 // A customer rating: 1 to 5, a miss when more than 0.2 below target, and
 // only judged on 10 or more ratings, the same floor cafe-qc uses.
 export const RATING_DEFAULTS = { unit: "out of 5", better: "higher", margin: RATING_MISS_MARGIN,
-  marginKind: "points", minCount: MIN_RATED_SAMPLE };
+  marginKind: "points", minCount: MIN_RATED_SAMPLE, combine: "average" };
 
+// How several rows of one metric (cities, stores) combine: "sum" adds them up
+// (sales, orders), "average" averages them, weighted by count when every row
+// has one (ratings, percentages, times).
+//
 // Common metrics offered in setup. The Chief of Staff picks, edits or types
 // their own. A fixed list, never generated.
 export const METRIC_SUGGESTIONS = [
-  { name: "Sales", unit: "", better: "higher", margin: 5, marginKind: "percent" },
-  { name: "Orders", unit: "", better: "higher", margin: 5, marginKind: "percent" },
-  { name: "Customer rating", ...RATING_DEFAULTS },
-  { name: "Net promoter score", unit: "points", better: "higher", margin: 5, marginKind: "points" },
-  { name: "On-time delivery", unit: "%", better: "higher", margin: 2, marginKind: "points" },
-  { name: "Conversion rate", unit: "%", better: "higher", margin: 0.5, marginKind: "points" },
-  { name: "Gross margin", unit: "%", better: "higher", margin: 1, marginKind: "points" },
-  { name: "Costs", unit: "", better: "lower", margin: 5, marginKind: "percent" },
-  { name: "Cash balance", unit: "", better: "higher", margin: 10, marginKind: "percent" },
-  { name: "Pipeline value", unit: "", better: "higher", margin: 10, marginKind: "percent" },
-  { name: "New customers", unit: "", better: "higher", margin: 10, marginKind: "percent" },
-  { name: "Customer churn", unit: "%", better: "lower", margin: 0.5, marginKind: "points" },
-  { name: "Headcount", unit: "people", better: "higher", margin: 5, marginKind: "percent" },
-  { name: "Staff attrition", unit: "%", better: "lower", margin: 1, marginKind: "points" },
-  { name: "Open support tickets", unit: "", better: "lower", margin: 10, marginKind: "percent" },
-  { name: "Response time", unit: "hours", better: "lower", margin: 10, marginKind: "percent" },
-  { name: "Defect rate", unit: "%", better: "lower", margin: 0.5, marginKind: "points" },
+  { name: "Sales", unit: "", better: "higher", margin: 5, marginKind: "percent", combine: "sum" },
+  { name: "Orders", unit: "", better: "higher", margin: 5, marginKind: "percent", combine: "sum" },
+  { name: "Customer rating", ...RATING_DEFAULTS, combine: "average" },
+  { name: "Net promoter score", unit: "points", better: "higher", margin: 5, marginKind: "points", combine: "average" },
+  { name: "On-time delivery", unit: "%", better: "higher", margin: 2, marginKind: "points", combine: "average" },
+  { name: "Conversion rate", unit: "%", better: "higher", margin: 0.5, marginKind: "points", combine: "average" },
+  { name: "Gross margin", unit: "%", better: "higher", margin: 1, marginKind: "points", combine: "average" },
+  { name: "Costs", unit: "", better: "lower", margin: 5, marginKind: "percent", combine: "sum" },
+  { name: "Cash balance", unit: "", better: "higher", margin: 10, marginKind: "percent", combine: "sum" },
+  { name: "Pipeline value", unit: "", better: "higher", margin: 10, marginKind: "percent", combine: "sum" },
+  { name: "New customers", unit: "", better: "higher", margin: 10, marginKind: "percent", combine: "sum" },
+  { name: "Customer churn", unit: "%", better: "lower", margin: 0.5, marginKind: "points", combine: "average" },
+  { name: "Headcount", unit: "people", better: "higher", margin: 5, marginKind: "percent", combine: "sum" },
+  { name: "Staff attrition", unit: "%", better: "lower", margin: 1, marginKind: "points", combine: "average" },
+  { name: "Open support tickets", unit: "", better: "lower", margin: 10, marginKind: "percent", combine: "sum" },
+  { name: "Response time", unit: "hours", better: "lower", margin: 10, marginKind: "percent", combine: "average" },
+  { name: "Defect rate", unit: "%", better: "lower", margin: 0.5, marginKind: "points", combine: "average" },
 ];

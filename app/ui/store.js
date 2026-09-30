@@ -137,6 +137,7 @@ export function cleanMetric(m) {
     margin: num(m?.margin) ?? 5,
     marginKind: m?.marginKind === "points" ? "points" : "percent",
     minCount: num(m?.minCount) || null,
+    combine: m?.combine === "sum" || m?.combine === "average" ? m.combine : "",
   };
 }
 

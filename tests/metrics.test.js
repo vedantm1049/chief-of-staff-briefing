@@ -73,6 +73,34 @@ test("several rows without counts add up", () => {
   assert.equal(r.segments.length, 2);
 });
 
+test("percentages from several rows are averaged, never added up", () => {
+  // Two cities at 90% and 80% on-time: 85%, not 170%.
+  const [r] = one([suggested("On-time delivery", { target: 85 })],
+    [{ metric: "On-time delivery", segment: "North", value: 90 }, { metric: "On-time delivery", segment: "South", value: 80 }]);
+  assert.equal(r.value, 85);
+  assert.equal(r.triggered, false);
+});
+
+test("a rating from several rows without counts is a plain average", () => {
+  const rating = { ...suggested("Customer rating", { target: 4.5 }), minCount: null };
+  const [r] = one([rating], [{ metric: "Customer rating", value: 4.8 }, { metric: "Customer rating", value: 4.2 }]);
+  assert.ok(Math.abs(r.value - 4.5) < 1e-9);
+});
+
+test("orders from several rows add up even when counts are given", () => {
+  const [r] = one([suggested("Orders", { target: 100 })],
+    [{ metric: "Orders", value: 60, count: 5 }, { metric: "Orders", value: 70, count: 50 }]);
+  assert.equal(r.value, 130);
+});
+
+test("a metric typed in, not suggested, combines by its unit and name", async () => {
+  const { combineHow } = await import("../app/engine/metrics.js");
+  assert.equal(combineHow({ name: "Fill rate", unit: "%" }), "average");
+  assert.equal(combineHow({ name: "Average basket", unit: "AED" }), "average");
+  assert.equal(combineHow({ name: "Deliveries", unit: "" }), "sum");
+  assert.equal(combineHow({ name: "Deliveries", unit: "", combine: "average" }), "average");
+});
+
 test("a row for a metric setup doesn't track is ignored", () => {
   const results = one([suggested("Orders", { target: 10 })], [{ metric: "Orders", value: 12 }, { metric: "Mood", value: 1 }]);
   assert.deepEqual(results.map((r) => r.metric), ["Orders"]);

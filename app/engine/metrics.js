@@ -5,7 +5,7 @@ metric counts as good. A miss raises the priority of that area's items.
 
 A metric definition, from setup:
   { name, unit, target, better: "higher" | "lower",
-    margin, marginKind: "percent" | "points", minCount }
+    margin, marginKind: "percent" | "points", minCount, combine: "sum" | "average" }
 minCount, when set, is a floor on how many responses a number rests on (a
 customer rating from 6 reviews is noise). The weekly value then needs a count.
 
@@ -23,9 +23,18 @@ export function marginText(def) {
   return def.unit === "%" ? `${def.margin} points` : `${def.margin}`;
 }
 
-/** Several rows for one metric (cities, stores): averaged by count when every
-row has one, otherwise added up. */
-function combine(rows) {
+/** How a metric's rows combine when there are several (cities, stores). Set
+in setup; otherwise a rate, a score or a time averages and anything else adds
+up. A percentage or a rating must never be added up. */
+export function combineHow(def) {
+  if (def.combine === "sum" || def.combine === "average") return def.combine;
+  if (["%", "out of 5", "points"].includes(String(def.unit ?? "").trim().toLowerCase())) return "average";
+  return /rate|rating|score|time|margin|churn|attrition|average|percent|share/i.test(def.name) ? "average" : "sum";
+}
+
+/** Several rows for one metric (cities, stores). "sum" adds them up. "average"
+averages them, weighted by count when every row has one, plainly otherwise. */
+function combine(rows, how) {
   const parsed = rows.map((r) => ({
     segment: text(r.segment), value: toFloat(r.value), target: toFloat(r.target), count: toFloat(r.count),
   }));
@@ -33,13 +42,16 @@ function combine(rows) {
   if (!usable.length) return { value: null, target: null, count: null, segments: null };
   const segments = parsed.length > 1 || parsed[0].segment ? parsed : null;
   if (usable.length === 1) return { ...usable[0], segments };
+  const all = (f) => usable.every((r) => r[f] != null);
+  const sum = (f) => (all(f) ? usable.reduce((s, r) => s + r[f], 0) : null);
+  if (how === "sum") return { value: sum("value"), target: sum("target"), count: sum("count"), segments };
   if (usable.every((r) => r.count)) {
-    const total = usable.reduce((s, r) => s + r.count, 0);
-    const avg = (f) => (usable.every((r) => r[f] != null) ? usable.reduce((s, r) => s + r[f] * r.count, 0) / total : null);
+    const total = sum("count");
+    const avg = (f) => (all(f) ? usable.reduce((s, r) => s + r[f] * r.count, 0) / total : null);
     return { value: avg("value"), target: avg("target"), count: total, segments };
   }
-  const sum = (f) => (usable.every((r) => r[f] != null) ? usable.reduce((s, r) => s + r[f], 0) : null);
-  return { value: sum("value"), target: sum("target"), count: sum("count"), segments };
+  const mean = (f) => (all(f) ? sum(f) / usable.length : null);
+  return { value: mean("value"), target: mean("target"), count: sum("count"), segments };
 }
 
 /** One result per metric the setup tracks, area by area in setup order. */
@@ -57,7 +69,7 @@ export function evaluateMetrics(areas, rows) {
   for (const area of areas) {
     for (const def of area.metrics ?? []) {
       const rowsFor = byKey.get(`${area.name}\u0000${key(def.name)}`) ?? [];
-      const { value, target: rowTarget, count, segments } = rowsFor.length ? combine(rowsFor) : {};
+      const { value, target: rowTarget, count, segments } = rowsFor.length ? combine(rowsFor, combineHow(def)) : {};
       const target = rowTarget ?? toFloat(def.target);
       const base = { area: area.name, metric: def.name, unit: def.unit ?? "", better: def.better, def,
         value: value ?? null, target, count: count ?? null, segments: segments ?? null };

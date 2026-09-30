@@ -4,6 +4,7 @@ and the events.
 */
 import { esc, nav, link, backupBar } from "./render.js";
 import { METRIC_SUGGESTIONS } from "../engine/config.js";
+import { combineHow } from "../engine/metrics.js";
 import { fmtLong, parseIsoDate } from "../engine/dates.js";
 import { openTasksOf, setupSteps } from "./weekly.js";
 
@@ -69,6 +70,8 @@ function metricRow(ai, mi, m) {
           <span class="margin">Miss when worse by more than
             <input name="${n}-margin" value="${esc(m.margin)}" inputmode="decimal" aria-label="Margin">
             <select name="${n}-marginKind" aria-label="Margin kind">${opts(["percent", "points"], m.marginKind, (v) => (v === "percent" ? "%" : "points"))}</select></span>
+          <label class="mini combine" title="When a leader sends one row per city or store">Several rows
+            <select name="${n}-combine">${opts(["sum", "average"], m.combine || combineHow(m), (v) => (v === "sum" ? "add up" : "average"))}</select></label>
           <button type="button" class="link" data-act="remove-metric" data-a="${ai}" data-m="${mi}">Remove</button>
         </li>`;
 }

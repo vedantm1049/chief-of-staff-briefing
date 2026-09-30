@@ -4,6 +4,8 @@ A weekly briefing that a Chief of Staff runs for their own company, all in the b
 
 **Open it: https://vedantm1049.github.io/chief-of-staff-briefing/**
 
+[![The CEO view of the example company: this week's summary, who has sent their numbers, and the decisions that need the CEO now, each with its reasons and the CEO's answer buttons](docs/images/ceo-view.png)](https://vedantm1049.github.io/chief-of-staff-briefing/#/example)
+
 It runs in your browser. There is no server and no account, and nothing you enter leaves your computer.
 
 ## Use it for your company
