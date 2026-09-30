@@ -29,15 +29,25 @@ function names(commitment) {
 }
 
 /** The open tracked item this one is waiting on, if its blockedBy names one
-by title or full description. A free-text reason like "Central Legal review"
-matches nothing. */
+by id, title or full description. A free-text reason like "Central Legal
+review" matches nothing. */
 export function openBlocker(commitment, commitments) {
   const target = key(commitment.blockedBy);
   if (!target) return null;
   for (const other of commitments) {
-    if (other !== commitment && other.status !== "done" && names(other).has(target)) return other;
+    if (other !== commitment && other.status !== "done" && waitsOn(commitment, other)) return other;
   }
   return null;
+}
+
+/** Does this item's blockedBy point at that one? By the other task's id when
+it has one (tasks kept on the page), which survives renaming and tells two
+tasks with the same title apart. By its title or full text otherwise. */
+function waitsOn(item, other) {
+  const b = (item.blockedBy ?? "").trim();
+  if (!b) return false;
+  if (other.id && b === other.id) return true;
+  return names(other).has(key(b));
 }
 
 /** Everything waiting behind these items, further down the chain: what they
@@ -58,8 +68,7 @@ export function downstreamItems(direct, blocksMap, self = null) {
 
 /** Open items whose blockedBy names this item. */
 export function blockedItems(commitment, commitments) {
-  const own = names(commitment);
-  return commitments.filter((o) => o !== commitment && o.status !== "done" && own.has(key(o.blockedBy)));
+  return commitments.filter((o) => o !== commitment && o.status !== "done" && waitsOn(o, commitment));
 }
 
 /** Open item untouched for STALE_THRESHOLD_DAYS or more. Reads only

@@ -124,9 +124,25 @@ export function setupScreen(draft, { firstTime, message, scope }) {
 
 // --- Tasks ------------------------------------------------------------------------
 
-function taskRow(t, areas, people, titles) {
+const titleOf = (t) => t.task.split(",", 1)[0].trim();
+
+/** The Blocked by choices: every other open task, by id, shown as "Title (Owner)". */
+function blockerOptions(t, tasks) {
+  const others = tasks.filter((x) => x.id !== t.id && x.task.trim() && x.status !== "Done");
+  const known = others.some((x) => x.id === t.blocked_by);
+  const options = [`<option value="">(nothing)</option>`, ...others.map((x) =>
+    `<option value="${esc(x.id)}"${x.id === t.blocked_by ? " selected" : ""}>${esc(titleOf(x))} (${esc(x.owner)})</option>`)];
+  // Written as a title (from a file), or pointing at a task that is done or gone.
+  if (t.blocked_by && !known) {
+    const done = tasks.find((x) => x.id === t.blocked_by);
+    options.push(`<option value="${esc(t.blocked_by)}" selected>${esc(done ? `${titleOf(done)} (done)` : t.blocked_by)}</option>`);
+  }
+  return others.length || t.blocked_by ? `<select name="blocked_by" data-id="${esc(t.id)}">${options.join("")}</select>`
+    : '<span class="hint">no other tasks yet</span>';
+}
+
+function taskRow(t, areas, people, tasks) {
   const a = (f) => `name="${f}" data-id="${esc(t.id)}"`;
-  const others = titles.filter((x) => x !== t.task.split(",", 1)[0].trim());
   const waiting = t.status === "Waiting on decision";
   return `
         <li class="task-row${t.status === "Done" ? " done" : ""}">
@@ -138,9 +154,12 @@ function taskRow(t, areas, people, titles) {
             <label>Owner <select ${a("owner")}>${opts(people.map((p) => p.name), t.owner)}</select></label>
             ${waiting ? `<label>Waiting on <input ${a("waiting_on")} value="${esc(t.waiting_on)}" placeholder="e.g. CEO"></label>
             <label>Decision <select ${a("decision_type")}>${opts(DECISIONS, t.decision_type, (v) => v || "(type)")}</select></label>` : ""}
-            <label>Blocked by ${others.length || t.blocked_by
-              ? `<select ${a("blocked_by")}>${opts(["", ...others, ...(t.blocked_by && !others.includes(t.blocked_by) ? [t.blocked_by] : [])], t.blocked_by, (v) => v || "(nothing)")}</select>`
-              : '<span class="hint">no other tasks yet</span>'}</label>
+            <label>Blocked by ${blockerOptions(t, tasks)}</label>
+            ${(() => {
+              const metrics = areas.find((x) => x.name === t.area)?.metrics ?? [];
+              return metrics.length ? `<label title="A miss on this metric makes the task important">Moves <select ${a("moves_metric")}>${opts(["", ...metrics.map((m) => m.name)],
+                t.moves_metric, (v) => v || "(no metric)")}</select></label>` : "";
+            })()}
             <span class="meta">last touched ${t.last_updated ? fmtLong(parseIsoDate(t.last_updated)) : "never"}</span>
             <button type="button" class="link" data-act="delete-task" data-id="${esc(t.id)}">Delete</button>
           </div>
@@ -150,7 +169,6 @@ function taskRow(t, areas, people, titles) {
 /** own: the reader's workspace. draftPerson: the add-a-person form's values. */
 export function tasksScreen(own, { message, matchQuestion, scope }) {
   const { setup, people, tasks } = own;
-  const titles = [...new Set(tasks.map((t) => t.task.split(",", 1)[0].trim()).filter(Boolean))];
   const cards = people.map((p, i) => {
     const mine = tasks.filter((t) => t.owner === p.name);
     return `
@@ -166,7 +184,7 @@ export function tasksScreen(own, { message, matchQuestion, scope }) {
         <span class="hint warn">Their tasks sheet, uploaded to Google Sheets and published to the web as CSV.
         Anyone with the link can read it; for confidential work, use the Excel file.</span>
       </details>
-      ${mine.length ? `<ul class="task-rows">${mine.map((t) => taskRow(t, setup.areas, people, titles)).join("")}</ul>` : '<p class="meta">No tasks yet.</p>'}
+      ${mine.length ? `<ul class="task-rows">${mine.map((t) => taskRow(t, setup.areas, people, tasks)).join("")}</ul>` : '<p class="meta">No tasks yet.</p>'}
       <button type="button" data-act="add-task" data-p="${i}">Add a task for ${esc(p.name.split(" ")[0])}</button>
     </li>`;
   }).join("");

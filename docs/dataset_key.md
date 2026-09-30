@@ -30,7 +30,7 @@ People who own work: the five leaders, plus Zayd (Minutes), Raj Mehta (Wasla.com
 
 ### Overdue in a Flagship business
 
-- **Zayd, the rider agency contract for Sharjah stores**: 4 days overdue, Wasla Minutes is Flagship. "Needs decision now", after the two decisions.
+- **Zayd, the rider agency contract for Sharjah stores**: 4 days overdue, Wasla Minutes is Flagship. "Needs decision now", after the two decisions. It is linked to Minutes' average delivery time, the metric it is meant to move.
 
 ### Stalled work
 
@@ -39,7 +39,7 @@ People who own work: the five leaders, plus Zayd (Minutes), Raj Mehta (Wasla.com
 
 ### One person, two deadlines
 
-- **Layla Haddad**: the seller contract template for Wasla.com (due 30 Sep) and the board pack legal review (due 1 Oct), one day apart. A conflict: "flag, don't escalate".
+- **Layla Haddad**: the seller contract template for Wasla.com (due 30 Sep) and the board pack legal review (due 1 Oct), one day apart. Flagged as two deadlines a day apart: "flag, don't escalate".
 
 ### Waiting on someone else
 
@@ -51,7 +51,7 @@ People who own work: the five leaders, plus Zayd (Minutes), Raj Mehta (Wasla.com
 
 ### Metrics
 
-- **Wasla Minutes, average delivery time**: 23.5 minutes against 20, lower is better, 10% margin. A miss. Minutes is Flagship already, so no item moves.
+- **Wasla Minutes, average delivery time**: 23.5 minutes against 20, lower is better, 10% margin. A miss. It lifts only the task linked to it, the rider agency contract, which is Flagship and important already, so nothing moves.
 - **Wasla.com, customer rating**: 4.66 against 4.7 on a 0.1 margin. Within.
 - Every other metric is met.
 
@@ -86,7 +86,7 @@ People who own work: the five leaders, plus Zayd (Minutes), Raj Mehta (Wasla.com
 ## Week 4, ending 2026-10-18 (scored 2026-10-19). The landing page
 
 - **Top group order**: Raj's contract extension (yes or no, Low effort, 2nd week) above Rahul's same-day delivery (three options, Medium, 3rd week, now overdue), even though Rahul's has waited longer. Then the rider app.
-- **Wasla Food's customer rating**: 4.1 against 4.5 on 12,000 ratings. A miss, which makes Food's items important. The rider app, untouched for 37 days, due "next Tuesday" (20 Oct, tomorrow), moves up to "needs decision now", 4th week running, its due date moved four times (29 Sep, 6 Oct, 13 Oct, 20 Oct).
+- **Wasla Food's customer rating**: 4.1 against 4.5 on 12,000 ratings. A miss. It makes important only the Food task linked to the rating, not all of Food's work: the menu price review is not lifted. The rider app, linked to the rating, untouched for 37 days, due "next Tuesday" (20 Oct, tomorrow), moves up to "needs decision now", 4th week running, its due date moved four times (29 Sep, 6 Oct, 13 Oct, 20 Oct).
 - **Branding for Wasla Wash**: done 14 Oct, closed after 1 week flagged.
 - **Launch Wasla Wash**: unblocked, due 5 Oct, 14 days overdue, touched 16 Oct. Overdue, Experimental: "flag, don't escalate", holding up the Wasla Business prototype.
 - **The brand refresh workshop**: back, last flagged 4 Oct, in a same-day clash with Priya's brand guidelines for Wasla Business, both due 22 Oct. The guidelines are new.

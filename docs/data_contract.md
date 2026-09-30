@@ -37,7 +37,8 @@ The example calls its areas businesses. A user's own setup names its areas and w
 | `due_date` | ISO date, or free text the engine can read ("next Tuesday", "end of next week", "in 2 weeks"), or blank |
 | `status` | Open, In progress, Waiting on decision, or Done. Blank is read from the task text |
 | `waiting_on` | for a decision, who it waits on. Matching the boss's title makes it waiting on the boss |
-| `blocked_by` | the title (or full text) of another tracked task this one waits for |
+| `blocked_by` | the id of another tracked task this one waits for, or, for data without ids, its title or full text |
+| `moves_metric` | optional: the one of its area's metrics this task is meant to move. Set on the Tasks screen |
 | `decision_type` | Yes or no (Low effort), Pick an option (Medium), Open question (High) |
 | `last_updated` | ISO date of the last real change |
 | `decision`, `decided_on` | the boss's answer as recorded on the page, and its date. Not in people's sheets |
@@ -65,11 +66,11 @@ Decisions already locked, restated here for one place to check them:
 
 - Detection rules: staleness, overdue, conflict (same normalized owner, overlapping date windows), decision-pending (closed trigger-phrase vocabulary), each a boolean rule against stated fields. An open item waiting on another open tracked item is blocked, neither stale nor overdue, and is listed on its blocker instead. A pending decision is never called stale: its wait is measured by its own pending clock
 - Items with no usable due date (blank, or free text the engine can't read, like "TBD") are flagged "needs a deadline set," not scored as zero urgency
-- Classification: importance x urgency 2x2 grid. Importance from area priority tier, decision-pending-on-principal flag, or dependency fan-out (2+ open items held up by this one, counting the whole chain behind it). Urgency from overdue days, due-within-3-days, or pending-5+-days
+- Classification: importance x urgency 2x2 grid. Importance from area priority tier, decision-pending-on-principal flag, dependency fan-out (2+ open items held up by this one, counting the whole chain behind it), or a link to a metric its area missed this week. Urgency from overdue days, due-within-3-days, or pending-5+-days
 - Effort sort (Low/Medium/High from the `decision_type` column) applies only inside the "needs your decision now" quadrant, only to decision-pending items
 - Tier order: only Flagship lifts importance, but inside every quadrant items are ordered Flagship, then Core, then Experimental, then most overdue first. In the top quadrant, decision-pending items still come first by effort, with tier breaking ties
 - Waiting on the principal: a decision whose `waiting_on` names the boss's title from setup (whole words, any case), or whose task text does. "CEO" in the example
-- A third importance signal: any metric an area tracks misses its own target by more than its margin this week, in the direction that counts as good. Single week only, not a trend. A metric with a minimum count is only judged on at least that many responses, so a low-volume week doesn't trigger on noise. In the example, customer ratings use 0.2 points and 10 ratings, the floor cafe-qc uses; the other metrics use margins of a few percent and are always met, so only the ratings move a quadrant
+- A third importance signal: a metric misses its own target by more than its margin this week, in the direction that counts as good, and the task is linked to that metric (`moves_metric`). A miss no longer lifts every task in the area. Single week only, not a trend. A metric with a minimum count is only judged on at least that many responses, so a low-volume week doesn't trigger on noise. In the example, customer ratings use 0.2 points and 10 ratings, the floor cafe-qc uses; the other metrics use margins of a few percent and are always met, so only the ratings move a quadrant
 - Owner names are matched only by a person. In the example, the owner table was reviewed by hand while building the dataset. In a user's own setup, each new spelling in an uploaded file prompts "is this the same person as ...?" before the week can be saved. The engine never fuzzy-matches and never calls an AI model. A name the table has never seen is reported in the briefing, not guessed at, since a new shorthand could hide a conflict
 - An area name in the files that isn't in setup is reported at the top of the briefing; its items are scored as Core. On upload, the reader is asked which area it is first
 
@@ -136,3 +137,11 @@ The example rebuilt on a real setup:
 - **Decided, in the week's history.** A decision that leaves the briefing because the boss answered closes as "Decided", with the answer and its date, not "Done" or "Cleared". In the example, the visa block (week 2), the ice-cream campaign and the office move (week 3).
 - A leader's upload preview says when a number that needs a count (a customer rating) came without one.
 - Notes and email drafts call the boss by the title in setup ("From the Managing Director: ..."), not always "CEO". A note stores who it is from as a role, the boss or the Chief of Staff; notes saved as "CEO" read as the boss.
+
+After an outside review:
+
+- **A metric miss lifts only the tasks linked to that metric.** Before, a miss made every flagged task in the area important, which overstated it: a business missing its rating does not make its unrelated work strategic. A task can now name the metric it is meant to move (`moves_metric`, set on the Tasks screen); only those tasks are lifted. In the example, the rider app is linked to Food's rating and the rider agency contract to Minutes' delivery time; the dataset key's outcomes are unchanged, and Food's menu review is shown not to be lifted.
+- **Blocked by stores a task id.** On the Tasks screen it is picked as "Title (Owner)" and saved as the task's id, so renaming a task never breaks what waits on it and two tasks with the same title can be told apart. People's sheets still show the title and are read back to the id. Title matching remains for data without ids.
+- **"Conflict" is called "two deadlines a day apart".** The rule only knows two due dates are close, not that the person is overloaded; the page now says only what it knows.
+- **The CEO view is shorter.** Explanations moved into one "How this page decides" section at the foot; metrics show what needs attention first with the rest folded away; empty groups take one line.
+- **Tests run on GitHub** on every push, and check the example file is exactly what its generator writes.

@@ -11,8 +11,9 @@ import { fmtLong, parseIsoDate, toIso } from "../engine/dates.js";
 import { cleanTasks, newId, TASK_COLUMNS } from "./store.js";
 
 export const METRIC_SHEET_COLUMNS = ["area", "metric", "unit", "target", "better", "value", "count"];
-// A person's sheet: every task column except the CEO's recorded decision.
-export const TASK_SHEET_COLUMNS = TASK_COLUMNS.filter((c) => c !== "decision" && c !== "decided_on");
+// A person's sheet: every task column except the CEO's recorded decision and
+// the metric link, which the Chief of Staff sets.
+export const TASK_SHEET_COLUMNS = TASK_COLUMNS.filter((c) => !["decision", "decided_on", "moves_metric"].includes(c));
 const DONE = new Set(["done", "complete", "completed", "closed", "resolved"]);
 
 const firstName = (name) => String(name ?? "").trim().split(/\s+/)[0] || "there";
@@ -100,7 +101,10 @@ export function metricSheet(area) {
 
 /** A person's sheet: their open tasks, as they stand on the page now. */
 export function taskSheet(own, person) {
-  const rows = openTasksOf(own, person).map((t) => TASK_SHEET_COLUMNS.map((c) => t[c] ?? ""));
+  // blocked_by is kept as a task id; the sheet shows that task's title.
+  const title = (id) => own.tasks.find((x) => x.id === id)?.task.split(",", 1)[0].trim() ?? id;
+  const rows = openTasksOf(own, person).map((t) => TASK_SHEET_COLUMNS.map((c) =>
+    (c === "blocked_by" && t.blocked_by ? title(t.blocked_by) : t[c] ?? "")));
   return workbook(`Tasks`, TASK_SHEET_COLUMNS, rows, [
     `${person.name}: your open tasks.`,
     "Update status (Open, In progress, Waiting on decision, Done), due_date (YYYY-MM-DD) and last_updated (the last day you moved it).",
@@ -150,6 +154,12 @@ export function diffTaskSheet(own, table, today) {
   if (!person) return { person: null, owners, updated: [], added: [], removed: [], unchanged: 0 };
 
   const byId = new Map(own.tasks.map((t) => [t.id, t]));
+  // A blocker written as a title in the sheet goes back to that task's id.
+  const idOfTitle = (v) => {
+    const hits = own.tasks.filter((x) => x.task.split(",", 1)[0].trim().toLowerCase() === v.toLowerCase());
+    return hits.length === 1 ? hits[0].id : v;
+  };
+  for (const r of rows) if (r.blocked_by && !byId.has(r.blocked_by)) r.blocked_by = idOfTitle(r.blocked_by);
   const updated = [], added = [];
   let unchanged = 0;
   const seen = new Set();

@@ -307,3 +307,12 @@ button.decide-yes { font-size: 12px; padding: 4px 12px; border: 1px solid var(--
 .decided { margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--ok); }
 .notice { margin-top: 10px; padding: 10px 14px; font-size: 14px; background: #eef5ef; border: 1px solid #c7dfcc; border-radius: var(--radius); display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
 .chip-decided { background: var(--flag); }
+details.how { margin-top: 16px; font-size: 13px; color: var(--muted); }
+details.how summary { cursor: pointer; color: var(--flag); }
+details.how p { max-width: 72ch; }
+details.more-metrics { margin-top: 8px; font-size: 13px; }
+details.more-metrics summary { cursor: pointer; color: var(--flag); margin-bottom: 8px; }
+.quadrant-empty { padding: 10px 14px; }
+.quadrant-empty .subtitle { margin: 2px 0 0; }
+.example-bar { padding: 8px 12px; margin-bottom: 14px; }
+.example-bar a.primary { padding: 6px 12px; font-size: 13px; }

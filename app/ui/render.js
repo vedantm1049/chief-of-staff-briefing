@@ -26,7 +26,14 @@ const FLAG_LABELS = {
   "decision-pending": "Decision pending",
   overdue: "Overdue",
   stale: "Stale",
-  conflict: "Conflict",
+  conflict: "Two deadlines",
+};
+
+const CLOSED_MEANING = {
+  decided: "The boss answered.",
+  dropped: "It disappeared from the tracker without ever being marked done.",
+  done: "Marked done.",
+  cleared: "Still open, but no rule flags it any more.",
 };
 
 const CLOSED_CHIPS = {
@@ -221,6 +228,12 @@ function quadrant(b, name, tiers, ctx) {
     ? `<ul class="items">${items.map((i) => itemCard(b, i, name === QUADRANT_NEEDS_DECISION_NOW, tiers, ctx)).join("")}</ul>`
     : '<p class="empty">Nothing here this week.</p>';
   const head = `<h3>${esc(name)}</h3><span class="count">${items.length}</span>`;
+  if (!items.length) {
+    return `
+    <div class="quadrant quadrant-${slug} quadrant-empty">
+      <div class="quadrant-head">${head}</div><span class="subtitle">Nothing here this week.</span>
+    </div>`;
+  }
   if (name === QUADRANT_OMIT) {
     return `
     <details class="quadrant quadrant-${slug}">
@@ -240,7 +253,7 @@ function summary(b) {
   const top = b.quadrants[QUADRANT_NEEDS_DECISION_NOW].length;
   const misses = [...new Set(b.metricResults.filter((r) => r.triggered).map((r) => r.area))];
   const parts = [`<strong>${plural(top, "item")}</strong> need${top === 1 ? "s" : ""} you now`];
-  if (b.conflicts.length) parts.push(`<strong>${plural(b.conflicts.length, "owner conflict")}</strong>`);
+  if (b.conflicts.length) parts.push(`<strong>${plural(b.conflicts.length, "clash", "clashes")}</strong> of deadlines`);
   if (misses.length) {
     const n = b.metricResults.filter((r) => r.triggered).length;
     parts.push(`<strong>${plural(n, "metric miss", "metric misses")}</strong> (${esc(misses.join(", "))})`);
@@ -299,7 +312,7 @@ function closedSection(b, tiers) {
       const ran = x.weeksFlagged === 1 ? "Flagged last week." : `Flagged ${x.weeksFlagged} weeks running before this.`;
       return `
       <li class="item closed-${cls}">
-        <div class="item-head"><span class="chip chip-${cls}">${label}</span>${areaTag(c.area, tiers)}<span class="owner">${esc(c.owner)}</span></div>
+        <div class="item-head"><span class="chip chip-${cls}" title="${esc(CLOSED_MEANING[x.outcome])}">${label}</span>${areaTag(c.area, tiers)}<span class="owner">${esc(c.owner)}</span></div>
         <div class="desc">${esc(c.description)}</div>
         <div class="meta">${esc(x.detail)} ${ran}</div>
       </li>`;
@@ -308,8 +321,6 @@ function closedSection(b, tiers) {
   return `
   <section>
     <h2>Closed since ${fmtShort(comp.previousWeek)}</h2>
-    <p class="section-note">Flagged last week, not flagged this week. "Removed, not done" means the item
-    disappeared from its area's tracker without ever being marked done.</p>
     ${body}
   </section>`;
 }
@@ -327,9 +338,8 @@ function conflictsSection(b, tiers) {
   }).join("");
   return `
   <section>
-    <h2>Owner conflicts</h2>
-    <p class="section-note">One person, two open items, due within a day of each other. Nothing here has
-    been reassigned.</p>
+    <h2>Deadlines a day apart</h2>
+    <p class="section-note">One person, two open items due within a day of each other. Nothing has been reassigned.</p>
     <ul class="conflicts">${rows}</ul>
   </section>`;
 }
@@ -359,18 +369,15 @@ function metricsSection(b, kindTitle) {
   if (!b.metricResults.length) return "";
   const prev = b.comparison?.prevMetrics ?? {};
   const hasPrev = Object.keys(prev).length > 0;
-  let lastArea = null;
-  const rows = b.metricResults.map((r) => {
+  const row = (r, showArea) => {
     const [label, status] = metricStatus(r);
     const p = prev[`${r.area}\u0000${r.metric}`];
-    const areaCell = r.area === lastArea ? "" : esc(r.area);
-    lastArea = r.area;
     const unit = r.unit && /^[A-Z]{3}$/.test(r.unit) ? ` (${esc(r.unit)})` : "";
     const change = hasPrev && p?.value != null
       ? `${withUnit(p.value, r.unit)}${p.triggered ? ' <span class="last-miss">Miss</span>' : ""}` : "";
     return `
         <tr class="${status === "miss" ? "row-miss" : ""}">
-          <td class="area-cell">${areaCell}</td>
+          <td class="area-cell">${showArea ? esc(r.area) : ""}</td>
           <td>${esc(r.metric)}${unit}</td>
           <td class="num">${r.reported ? withUnit(r.value, r.unit) : "not reported"}</td>
           <td class="num">${withUnit(r.target, r.unit)}</td>
@@ -378,16 +385,21 @@ function metricsSection(b, kindTitle) {
           <td><span class="badge badge-health-${status}">${label}</span></td>
           <td class="why">${status === "ok" ? "" : esc(r.reason)}</td>
         </tr>`;
-  }).join("");
+  };
+  const table = (list) => {
+    let lastArea = null;
+    const body = list.map((r) => { const show = r.area !== lastArea; lastArea = r.area; return row(r, show); }).join("");
+    return `<div class="table-wrap"><table class="metrics">
+      <thead><tr><th>${esc(kindTitle)}</th><th>Metric</th><th>This week</th><th>Target</th>${hasPrev ? "<th>Last week</th>" : ""}<th></th><th></th></tr></thead>
+      <tbody>${body}</tbody></table></div>`;
+  };
+  const attention = b.metricResults.filter((r) => metricStatus(r)[1] !== "ok");
+  const fine = b.metricResults.filter((r) => metricStatus(r)[1] === "ok");
   return `
   <section>
-    <h2>Metrics vs. target</h2>
-    <p class="section-note">Judged on this week alone. A metric is a miss when it is worse than its target
-    by more than its margin. A miss raises the priority of that ${esc(kindTitle.toLowerCase())}'s items above.</p>
-    <div class="table-wrap"><table class="metrics">
-      <thead><tr><th>${esc(kindTitle)}</th><th>Metric</th><th>This week</th><th>Target</th>${hasPrev ? "<th>Last week</th>" : ""}<th></th><th></th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table></div>
+    <h2>Metrics</h2>
+    ${attention.length ? table(attention) : '<p class="empty">Every metric is on target or within its margin.</p>'}
+    ${fine.length ? `<details class="more-metrics"><summary>${fine.length} on target or within margin</summary>${table(fine)}</details>` : ""}
   </section>`;
 }
 
@@ -404,8 +416,6 @@ function needsDeadlineSection(b, tiers, ctx) {
   return `
   <section>
     <h2>Needs a deadline set</h2>
-    <p class="section-note">No usable due date, so urgency can't be judged. Listed so a date gets set,
-    not quietly treated as "not urgent".</p>
     <ul class="items">${rows}</ul>
   </section>`;
 }
@@ -436,8 +446,6 @@ function otherNotesSection(b, shown, ctx) {
   return `
   <section>
     <h2>Notes on items not flagged this week</h2>
-    <p class="section-note">Notes stay with their item from week to week. These items have no card this
-    week, so their notes are kept here.</p>
     <ul class="items">${rows}</ul>
   </section>`;
 }
@@ -461,8 +469,7 @@ export function nav(current, scope) {
   if (scope === "example") {
     return `
     <div class="example-bar">
-      <span>This is an example: a made-up company, Wasla Group, with four weeks of reports. Click around and
-      change anything; reset it at any time.</span>
+      <span><strong>Example:</strong> a made-up company. Change anything; reset it from the bottom of any page.</span>
       <a class="primary" href="#/setup">Set up for your company</a>
     </div>
     <nav class="toolbar" aria-label="The example">${items}</nav>`;
@@ -511,9 +518,6 @@ export function renderPage(state) {
     <h1>${esc(setup.company || "Your company")}</h1>
     <div class="header-meta">For the ${esc(setup.boss)} · week ending ${week} · scored as of ${fmtLong(b.today)}</div>
     ${weekNav(briefings, b)}
-    <p class="privacy">You can mark items done, change due dates, and add notes and replies. All of it is
-    saved in this browser only and never leaves your computer. <a href="#your-data">Backup and import</a>
-    are at the bottom.</p>
     ${summary(b)}
     ${dataCheck(b)}
     ${state.notice ? `<div class="notice" role="status">${esc(state.notice.text)}
@@ -522,9 +526,7 @@ export function renderPage(state) {
 
   <section>
     <h2>Priorities</h2>
-    <p class="section-note">Only items a rule flagged appear here: overdue, stale, in an owner conflict,
-    or waiting on a decision. Each is placed by importance and urgency, with the reasons listed on the
-    card. Nothing has been resolved or decided on your behalf.</p>
+
     <div class="grid">${QUADRANT_ORDER.map((q) => quadrant(b, q, tiers, ctx)).join("")}</div>
     ${ctx.editable ? "" : '<p class="meta">A past week is a record. Change tasks on the current week.</p>'}
   </section>
@@ -536,8 +538,20 @@ export function renderPage(state) {
 
   <footer>
     ${backupBar({ scope: state.scope, hasData: true, saved: state.saved, message: state.message })}
-    <p>Rules only, no AI model. How a task is worded is never scored: its last-updated date is trusted
-    over how it is described. ${removeWeek}</p>
+    <details class="how">
+      <summary>How this page decides</summary>
+      <p>Only items a rule flagged appear under Priorities: overdue, stale (untouched 7 days or more),
+      two deadlines a day apart for one person, or waiting on a decision. Each is placed by importance
+      (a Flagship ${esc(setup.areaKind || "area")}, waiting on the ${esc(setup.boss)}, holding up two or more
+      items, or linked to a missed metric) and urgency (overdue, due within 3 days, or a decision waiting 5
+      days or more). The reasons are on every card. Nothing is resolved or decided on anyone's behalf.</p>
+      <p>A metric is a miss when it is worse than its target by more than its margin, judged on this week
+      alone. How a task is worded is never scored: its last-updated date is trusted over how it is
+      described. An item waiting on another is listed on that item's card, not flagged itself.</p>
+      <p>Closed since last week: decided (the ${esc(setup.boss)} answered), done, cleared (still open, no longer
+      flagged) or removed, not done (it vanished from the tracker without being marked done).</p>
+      <p>Rules only, no AI model. ${removeWeek}</p>
+    </details>
     <p><a href="https://github.com/vedantm1049/chief-of-staff-briefing">Source and rules on GitHub</a></p>
   </footer>`;
 }

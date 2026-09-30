@@ -5,7 +5,7 @@ Importance is high if any of these hold:
   - the item's area is Flagship tier
   - it is a decision waiting on the principal (the boss named in setup)
   - it holds up FAN_OUT_THRESHOLD or more open items, counting the whole chain
-  - its area missed a metric target this week (metrics.js)
+  - it is linked to a metric its area missed this week (metrics.js)
 
 Urgency is high if any of these hold:
   - it is overdue
@@ -55,8 +55,10 @@ export function classifyCommitment(commitment, today, blocks, missedMetrics, tie
       ? `holds up ${fanOut} open items, ${blocks.length} directly and ${chain.length} down the chain`
       : `blocks ${fanOut} other open items`);
   }
-  const missed = missedMetrics.get?.(c.area);
-  if (missed?.length) importanceReasons.push(`${c.area} missed its ${missed.join(" and ")} target this week`);
+  // A miss lifts only the tasks meant to move that metric, not the whole area.
+  const missed = missedMetrics.get?.(c.area) ?? [];
+  const linked = c.movesMetric && missed.find((m) => m.toLowerCase() === c.movesMetric.toLowerCase());
+  if (linked) importanceReasons.push(`${c.area} missed its ${linked} target this week, which this task is meant to move`);
 
   const urgencyReasons = [];
   if (c.dueDate != null) {

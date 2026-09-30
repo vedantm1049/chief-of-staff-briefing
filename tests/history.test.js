@@ -158,11 +158,18 @@ test("w4 Food's rating miss lifts the rider app to the top", () => {
   const r = b.metricResults.find((x) => x.area === "Wasla Food" && x.metric === "Customer rating");
   assert.ok(r.triggered && r.count === 12000);
   const i = item(b, "t-riderapp");
-  assert.ok(i.importanceReasons.includes("Wasla Food missed its Customer rating target this week"));
+  assert.ok(i.importanceReasons.includes("Wasla Food missed its Customer rating target this week, which this task is meant to move"));
   assert.equal(b.today - byId(b, "t-riderapp").lastUpdated, 37);
   const h = hist(b, "t-riderapp");
   assert.equal(h.weeksRunning, 4);
   assert.deepEqual(h.dueDates, [day(2026, 9, 29), day(2026, 10, 6), day(2026, 10, 13), day(2026, 10, 20)]);
+});
+
+test("w4 Food's other open task, not linked to the rating, is not lifted", () => {
+  const b = weeks[W4];
+  const menu = byId(b, "t-menu");
+  assert.ok(!b.classified.has(menu));   // due 26 Oct, touched 15 Oct: nothing to flag, and no lift
+  assert.equal(menu.movesMetric, "");
 });
 
 test("w4 branding closes as done after one week", () => {

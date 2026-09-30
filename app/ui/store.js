@@ -14,6 +14,8 @@ Two workspaces, kept apart and the same shape:
              last_updated, decision, decided_on }. decision is the CEO's
              answer as recorded on the page ("Yes, go ahead", "No: reason",
              "Chose: option two", "Decided: ..."), decided_on its date.
+             moves_metric names one of its area's metrics the task is meant
+             to move; a miss on that metric makes the task important.
     weeks    { weekEnding, tasks, metrics, received }. The last week is the
              current one and reads the live list (its tasks are null). A
              finished week keeps a frozen copy, so history can be told.
@@ -174,7 +176,7 @@ export function cleanPeople(people) {
 }
 
 export const TASK_COLUMNS = ["id", "area", "task", "owner", "due_date", "status", "waiting_on", "blocked_by",
-  "decision_type", "last_updated", "decision", "decided_on"];
+  "decision_type", "last_updated", "decision", "decided_on", "moves_metric"];
 
 function cleanRows(rows) {
   return list(rows)

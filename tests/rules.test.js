@@ -118,6 +118,15 @@ test("overdue decision is urgent even if recently pending", () => {
   assert.equal(classified.quadrant, QUADRANT_NEEDS_DECISION_NOW);
 });
 
+test("a metric miss lifts only the tasks linked to that metric", () => {
+  const missed = new Map([["Wasla Pay", ["Sales"]]]);
+  const linked = classifyCommitment(make({ movesMetric: "sales" }), TODAY, [], missed);
+  const other = classifyCommitment(make({ movesMetric: "Churn" }), TODAY, [], missed);
+  const none = classifyCommitment(make({}), TODAY, [], missed);
+  assert.ok(linked.importance);
+  assert.ok(!other.importance && !none.importance);
+});
+
 test("core and experimental tiers score the same", () => {
   // Only Flagship lifts importance. Core ranks above Experimental only in
   // the order inside a group.

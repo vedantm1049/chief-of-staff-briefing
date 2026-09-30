@@ -192,3 +192,23 @@ test("a published sheet's CSV reads like the Excel sheet", () => {
   const { rows } = weekly.readMetricSheet(table, own.setup);
   assert.deepEqual(rows.map((r) => [r.metric, r.value, r.count]), [["Sales", "93000", ""], ["Customer rating", "4.6", "40"]]);
 });
+
+test("a person's sheet shows a blocker by title and reads it back as its id", () => {
+  const own = company();
+  own.tasks[1].blocked_by = "t1";   // Omar's books wait on Priya's discount policy
+  const table = tableOf(weekly.taskSheet(own, own.people[1]));
+  assert.equal(table.rows[0].blocked_by, "Approve discount policy");
+  const diff = weekly.diffTaskSheet(own, table, "2026-09-29");
+  assert.equal(diff.updated.length, 0);   // nothing changed: the title maps back to t1
+});
+
+test("blocked by an id survives renaming the task it waits on", async () => {
+  const { buildBriefing } = await import("../app/engine/briefing.js");
+  const own = company();
+  own.tasks[1].blocked_by = "t1";
+  own.tasks[0].task = "Approve the Q4 discount policy (renamed)";
+  const b = buildBriefing({ weekEnding: "2026-09-27", tasks: own.tasks, metrics: [] },
+    { setup: own.setup, aliases: weekly.peopleRows(own.people) });
+  const books = b.allCommitments.find((c) => c.id === "t2");
+  assert.deepEqual(b.blocksMap.get(b.allCommitments.find((c) => c.id === "t1")), [books]);
+});

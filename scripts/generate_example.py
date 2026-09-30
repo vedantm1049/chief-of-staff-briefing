@@ -67,7 +67,8 @@ PEOPLE = [
     ("Layla Haddad", CENTRAL, []), ("Reem Qassim", CENTRAL, []), ("Priya Nair", CENTRAL, ["P. Nair"]),
 ]
 
-# Titles other tasks point at in blocked_by.
+# Task titles. blocked_by holds the id of the task waited on, as the page
+# keeps it.
 VISA = "Clear the visa block with immigration"
 ICE_CREAM = "Finish and launch the ice-cream summer campaign"
 BRANDING = "Finish branding for Wasla Wash"
@@ -75,10 +76,10 @@ WASH = "Launch Wasla Wash"
 RIDER_APP = "Roll out the new rider app in Sharjah, huge momentum, on the verge of a big unlock"
 
 
-def task(id, area, text, owner, due, status, updated, waiting_on="", blocked_by="", decision=""):
+def task(id, area, text, owner, due, status, updated, waiting_on="", blocked_by="", decision="", moves=""):
     return {"id": id, "area": area, "task": text, "owner": owner, "due_date": due, "status": status,
             "waiting_on": waiting_on, "blocked_by": blocked_by, "decision_type": decision, "last_updated": updated,
-            "decision": "", "decided_on": ""}
+            "decision": "", "decided_on": "", "moves_metric": moves}
 
 
 def week1():
@@ -90,31 +91,32 @@ def week1():
         task("t-office", CENTRAL, "Approve the office move to a new Dubai floor, AED 90K fit-out", "Reem Qassim", "2026-10-09",
              "Waiting on decision", "2026-09-25", waiting_on="CEO", decision="Yes or no"),
         task("t-hiring", CENTRAL, "Ramp up hiring for Wasla Minutes", "Reem Qassim", "2026-10-31",
-             "In progress", "2026-09-15", blocked_by=VISA),
+             "In progress", "2026-09-15", blocked_by="t-visa"),
         task("t-icecream", CENTRAL, f"{ICE_CREAM}, three options for the CEO", "Priya Nair", "2026-09-15",
              "Waiting on decision", "2026-09-10", waiting_on="CEO", decision="Pick an option"),
-        task("t-branding", CENTRAL, BRANDING, "Priya Nair", "2026-09-25", "In progress", "2026-09-12", blocked_by=ICE_CREAM),
+        task("t-branding", CENTRAL, BRANDING, "Priya Nair", "2026-09-25", "In progress", "2026-09-12", blocked_by="t-icecream"),
         task("t-workshop", CENTRAL, "Q4 brand refresh workshop", "Priya Nair", "", "In progress", "2026-09-20"),
         task("t-seller", CENTRAL, "Refresh the seller contract template for Wasla.com", "Layla Haddad", "2026-09-30",
              "In progress", "2026-09-24"),
         task("t-board", CENTRAL, "Board pack legal review", "Layla Haddad", "2026-10-01", "Open", "2026-09-23"),
         task("t-books", CENTRAL, "Close the September books", "Layla Haddad", "2026-10-05", "Open", "2026-09-26"),
         # Labs: the rest of the chain, and a pilot nobody has touched in weeks.
-        task("t-wash", LABS, WASH, "Omar Siddiqui", "2026-10-05", "In progress", "2026-09-22", blocked_by=BRANDING),
+        task("t-wash", LABS, WASH, "Omar Siddiqui", "2026-10-05", "In progress", "2026-09-22", blocked_by="t-branding"),
         task("t-b2b", LABS, "Show the prototype for Wasla Business", "Omar Siddiqui", "2026-10-15", "Open", "2026-09-22",
-             blocked_by=WASH),
+             blocked_by="t-wash"),
         task("t-laundry", LABS, "Pilot corporate laundry pickups, waiting to hear back from the vendor", "Omar Siddiqui",
              "2026-10-20", "In progress", "2026-09-05"),
         # Minutes.
         task("t-stores", MINUTES, "Open three dark stores in Abu Dhabi", "Farah Al Mansoori", "2026-10-10", "In progress", "2026-09-26"),
-        task("t-riders", MINUTES, "Sign the rider agency contract for Sharjah stores", "Zayd", "2026-09-24", "In progress", "2026-09-23"),
+        task("t-riders", MINUTES, "Sign the rider agency contract for Sharjah stores", "Zayd", "2026-09-24", "In progress", "2026-09-23",
+             moves="Average delivery time"),
         # Wasla.com. A decision waiting on Legal, not the CEO.
         task("t-returns", COM, "Change the returns policy, waiting on Legal review", "Rahul Mehta", "2026-10-08",
              "Waiting on decision", "2026-09-25", waiting_on="Legal", decision="Yes or no"),
         task("t-payments", COM, "Add instalment payments at checkout", "Raj Mehta", "2026-10-20", "In progress", "2026-09-26"),
         # Food. Untouched since 12 Sep, written up as if it were flying, due
         # "next Tuesday" every week.
-        task("t-riderapp", FOOD, RIDER_APP, "Mina", "next Tuesday", "In progress", "2026-09-12"),
+        task("t-riderapp", FOOD, RIDER_APP, "Mina", "next Tuesday", "In progress", "2026-09-12", moves="Customer rating"),
         task("t-menu", FOOD, "Menu price review with the top 50 restaurants", "Ahmed El-Sayed", "2026-10-12", "In progress", "2026-09-25"),
     ]
 

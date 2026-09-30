@@ -59,6 +59,7 @@ export function makeCommitment(fields) {
     principalBlocked: false,
     decision: "",           // the boss's answer, as recorded on the page
     decidedOn: null,
+    movesMetric: "",        // the one of its area's metrics this task is meant to move
     ...fields,
   };
 }
@@ -112,6 +113,7 @@ export function loadTasks(rows, { areaNames, aliases, today, boss }) {
         decisionPending,
         principalBlocked: decisionPending && isBlockedOnPrincipal(description, waitingOn, boss),
         decision: text(row.decision),
+        movesMetric: text(row.moves_metric),
         decidedOn: parseIsoDate(clean(row.decided_on)),
       });
     });

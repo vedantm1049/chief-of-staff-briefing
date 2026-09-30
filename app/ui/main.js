@@ -259,7 +259,7 @@ function drawTasks() {
 function taskChange(el) {
   const o = cur();
   let m;
-  if (el.dataset.id && ["task", "due_date", "status", "area", "owner", "waiting_on", "decision_type", "blocked_by"].includes(el.name)) {
+  if (el.dataset.id && ["task", "due_date", "status", "area", "owner", "waiting_on", "decision_type", "blocked_by", "moves_metric"].includes(el.name)) {
     const t = o.tasks.find((x) => x.id === el.dataset.id);
     if (!t) return;
     t[el.name] = el.value;

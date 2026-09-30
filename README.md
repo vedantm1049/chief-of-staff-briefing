@@ -32,22 +32,22 @@ The example is Wasla Group, a made-up Dubai holding company with five businesses
 
 - **Overdue**: an open item past its due date.
 - **Stale**: an open item untouched for 7 days or more. Only the last-updated date counts, never how the task is worded.
-- **Conflict**: one person with two open items due within a day of each other, after their name spellings are matched.
+- **Two deadlines a day apart**: one person with two open items due within a day of each other, after their name spellings are matched. It says only that the dates are close, not that the person is overloaded.
 - **Decision pending**: status says so, or the task uses one of a fixed list of phrases ("waiting on ... sign-off", "awaiting decision"). Split by whether it waits on the boss or on someone else. A decision's wait is measured by its own clock and never called stale.
 - **No deadline**: no usable due date, blank or unreadable. Listed so a date gets set, not scored as "not urgent" and dropped.
-- **Metric miss**: a metric is worse than its target by more than its margin, in the direction that counts as good. A number that rests on responses (a customer rating) is only judged on enough of them: the example uses 0.2 points and 10 ratings.
+- **Metric miss**: a metric is worse than its target by more than its margin, in the direction that counts as good. A number that rests on responses (a customer rating) is only judged on enough of them: the example uses 0.2 points and 10 ratings. On the Tasks screen, a task can be linked to the metric it is meant to move.
 
 An item waiting on another open item is neither stale nor overdue in its own right. It is listed on its blocker's card, with the whole chain behind it, so the briefing points at one root cause rather than several symptoms.
 
 ## How flagged items are ranked
 
-Importance is high if the area is Flagship, the item waits on the boss, it holds up two or more open items (counting the whole chain behind it), or its area missed a metric target. Urgency is high if the item is overdue, due within 3 days, or a decision that has waited 5 days or more. That gives four groups: needs decision now, on your radar, flag but don't escalate, and omit. Inside the top group, decisions come first, quickest (yes or no) before hardest. Inside every group, Flagship comes before Core, and Core before Experimental.
+Importance is high if the area is Flagship, the item waits on the boss, it holds up two or more open items (counting the whole chain behind it), or it is linked to a metric its area missed this week. A miss lifts only the tasks linked to that metric, not everything the area does. Urgency is high if the item is overdue, due within 3 days, or a decision that has waited 5 days or more. That gives four groups: needs decision now, on your radar, flag but don't escalate, and omit. Inside the top group, decisions come first, quickest (yes or no) before hardest. Inside every group, Flagship comes before Core, and Core before Experimental.
 
 ## Week over week
 
 Each flagged item is marked **new**, **back** after a gap, or its **Nth week running**. Anything flagged last week but not this week is listed as **decided** (with the boss's answer), **done**, **cleared** (with the reason: deadline set, date moved, updated) or **removed, not done**, meaning it vanished from its tracker without ever being marked done. Due dates that keep moving are shown on the card, which is how a free-text "next Tuesday" that rolls forward every week gets caught.
 
-A task is recognised across weeks by its id, so it can be renamed or reassigned without losing its history.
+A task is recognised across weeks by its id, so it can be renamed or reassigned without losing its history. Blocked by points at a task's id too, shown as "Title (Owner)", so renaming a task never breaks what waits on it.
 
 ## How it is built
 
