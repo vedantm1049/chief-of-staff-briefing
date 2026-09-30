@@ -1,0 +1,18 @@
+# Runs the tests on every push and pull request.
+name: tests
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+      - name: The example is what the generator writes
+        run: |
+          python3 scripts/generate_example.py
+          git diff --exit-code data/example.json
