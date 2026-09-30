@@ -5,7 +5,7 @@ and the events.
 import { esc, nav, link, backupBar } from "./render.js";
 import { METRIC_SUGGESTIONS } from "../engine/config.js";
 import { fmtLong, parseIsoDate } from "../engine/dates.js";
-import { openTasksOf } from "./weekly.js";
+import { openTasksOf, setupSteps } from "./weekly.js";
 
 const TIERS = [
   ["Flagship", "Matters most. Its items always count as important."],
@@ -41,6 +41,19 @@ export function intro({ hasOwn }) {
     <p class="meta">The example is a made-up company, Wasla Group, with four weeks of reports.</p>
   </section>
   ${backupBar({ scope: "own", hasData: false })}`;
+}
+
+/** The first-run checklist, on a new company's screens until something has come back. */
+export function checklist(own, scope, current) {
+  if (scope !== "own") return "";
+  const steps = setupSteps(own);
+  if (steps.every((s) => s.done)) return "";
+  const next = steps.findIndex((s) => !s.done);
+  return `
+  <ol class="checklist-steps" aria-label="Getting started">
+    ${steps.map((s, i) => `<li class="${s.done ? "done" : i === next ? "next" : ""}">
+      ${s.done ? "✓ " : ""}${i === next && s.screen !== current ? `<a href="${link(scope, s.screen)}">${esc(s.label)}</a>` : esc(s.label)}</li>`).join("")}
+  </ol>`;
 }
 
 // --- Setup ------------------------------------------------------------------------
@@ -84,10 +97,11 @@ function areaCard(a, i, kind) {
 }
 
 /** draft: { company, areaKind, boss, cosEmail, areas: [{ name, tier, leader, metrics }] } */
-export function setupScreen(draft, { firstTime, message, scope }) {
+export function setupScreen(draft, { firstTime, message, scope, own }) {
   const kind = draft.areaKind || "area";
   return `
   ${firstTime ? '<nav class="toolbar"><a href="#/">Back</a></nav>' : nav("setup", scope)}
+  ${checklist(own, scope, "setup")}
   <form class="setup" data-form="setup">
     <h1>${firstTime ? "Set up for your company" : "Setup"}</h1>
     <p class="lede">Once. You can change any of it later. Saved in this browser only.</p>
@@ -190,6 +204,7 @@ export function tasksScreen(own, { message, matchQuestion, scope }) {
   }).join("");
   return `
   ${nav("tasks", scope)}
+  ${checklist(own, scope, "tasks")}
   <section class="tasks">
     <h1>People and their tasks</h1>
     <p class="lede">Everyone who owns work, and what they own. Changes save as you go. Each person can also
@@ -228,7 +243,34 @@ function linkedCount(own) {
 }
 
 /** week: the current week or null. uploads: files dropped this visit, read and checked. */
-export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, googleLink, scope }) {
+/** Going through every request in turn: one draft at a time, with that
+person's sheet next to it. queue: { items, i } or null. */
+function requestRun(queue, total) {
+  if (!queue) {
+    return total ? `
+    <div class="run">
+      <span><strong>${plural(total, "request")}</strong> still to send this week.</span>
+      <button type="button" class="primary small" data-act="run-start">Go through them one by one</button>
+    </div>` : '<div class="run"><span class="ok">Every request has come back.</span></div>';
+  }
+  if (queue.i >= queue.items.length) {
+    const skipped = queue.items.length - queue.opened;
+    return `<div class="run"><span class="ok">Done: ${plural(queue.opened, "draft")} opened${skipped ? `, ${skipped} skipped` : ""}.</span>
+      <button type="button" class="link" data-act="run-stop">Close</button></div>`;
+  }
+  const r = queue.items[queue.i];
+  return `
+    <div class="run running" role="status">
+      <span>Request ${queue.i + 1} of ${queue.items.length}: <strong>${esc(r.who)}</strong>, ${esc(r.what)}</span>
+      ${r.kind === "tasks" ? `<button type="button" class="link" data-act="task-sheet" data-p="${r.index}">1. Download their sheet</button>` : ""}
+      <button type="button" class="primary small" data-act="run-open">${r.kind === "tasks" ? "2. " : ""}Open the draft</button>
+      <button type="button" class="link" data-act="run-skip">Skip</button>
+      <button type="button" class="link" data-act="run-stop">Stop</button>
+      ${r.kind === "tasks" ? '<span class="hint">Attach the sheet to the draft before sending.</span>' : ""}
+    </div>`;
+}
+
+export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, googleLink, scope, queue, pending }) {
   const { setup, people } = own;
   const week = own.weeks.at(-1) ?? null;
   const kind = setup.areaKind;
@@ -241,6 +283,7 @@ export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, goo
   if (!week) {
     return `
   ${nav("week", scope)}
+  ${checklist(own, scope, "week")}
   <section class="week">
     <h1>This week</h1>
     <p class="lede">Each week has the same rhythm: on Monday, ask each ${esc(kind)} leader for last week's numbers
@@ -285,11 +328,14 @@ export function weekScreen(own, { suggestedWeek, message, uploads, cosEmail, goo
         </li>`).join("")}</ul>` : "";
   return `
   ${nav("week", scope)}
+  ${checklist(own, scope, "week")}
   <section class="week">
     <h1>Week ending ${fmtLong(parseIsoDate(w))}</h1>
     <p class="lede">Ask on Monday, back by ${due}. Drafts open in your own email app; nothing is sent from
     this page. Attach each person's sheet to their email; a leader's sheet is the same every week.</p>
     ${message ? `<p class="message" role="alert">${esc(message)}</p>` : ""}
+
+    ${requestRun(queue, pending)}
 
     <h2>1. Numbers from each ${esc(kind)} leader</h2>
     <div class="table-wrap"><table class="checklist"><tbody>${leaderRows}</tbody></table></div>

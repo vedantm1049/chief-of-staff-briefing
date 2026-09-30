@@ -295,3 +295,46 @@ export function lastSunday(from = new Date()) {
   d.setDate(d.getDate() - d.getDay());
   return toIso(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
 }
+
+// --- Progress ---------------------------------------------------------------------
+
+/** Who has sent what for one week: area leaders' numbers and people's task
+updates. Only areas that report metrics are counted for numbers. */
+export function reportingStatus(own, weekEnding) {
+  const week = own.weeks.find((w) => w.weekEnding === weekEnding);
+  if (!week) return null;
+  const areas = own.setup.areas.filter((a) => a.metrics.length).map((a) => a.name);
+  const people = own.people.map((p) => p.name);
+  return {
+    numbers: { received: areas.filter((a) => week.received.metrics.includes(a)), waiting: areas.filter((a) => !week.received.metrics.includes(a)) },
+    tasks: { received: people.filter((p) => week.received.tasks.includes(p)), waiting: people.filter((p) => !week.received.tasks.includes(p)) },
+  };
+}
+
+/** Every request still to send this week, in order: leaders for numbers, then
+people for task updates. Those already received are left out. */
+export function requestQueue(own, weekEnding) {
+  const week = own.weeks.find((w) => w.weekEnding === weekEnding);
+  if (!week) return [];
+  const leaders = own.setup.areas
+    .map((a, i) => ({ a, i }))
+    .filter(({ a }) => a.leader.email && a.metrics.length && !week.received.metrics.includes(a.name))
+    .map(({ a, i }) => ({ kind: "metrics", index: i, who: a.leader.name || a.name, what: `numbers for ${a.name}`,
+      href: metricRequest(a, weekEnding) }));
+  const people = own.people
+    .map((p, i) => ({ p, i }))
+    .filter(({ p }) => p.email && !week.received.tasks.includes(p.name))
+    .map(({ p, i }) => ({ kind: "tasks", index: i, who: p.name, what: "task update", href: taskRequest(own, p, weekEnding) }));
+  return [...leaders, ...people];
+}
+
+/** First-run steps for a new company, and which are done. */
+export function setupSteps(own) {
+  const received = own.weeks.some((w) => w.received.metrics.length || w.received.tasks.length || w.metrics.length);
+  return [
+    { label: "Set up your areas, leaders and metrics", done: own.setup.areas.length > 0, screen: "setup" },
+    { label: "Add the people who own work, and their tasks", done: own.people.length > 0 && own.tasks.length > 0, screen: "tasks" },
+    { label: "Start your first week and send the requests", done: own.weeks.length > 0, screen: "week" },
+    { label: "Upload what comes back", done: received, screen: "week" },
+  ];
+}

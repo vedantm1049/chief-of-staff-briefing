@@ -212,3 +212,22 @@ test("blocked by an id survives renaming the task it waits on", async () => {
   const books = b.allCommitments.find((c) => c.id === "t2");
   assert.deepEqual(b.blocksMap.get(b.allCommitments.find((c) => c.id === "t1")), [books]);
 });
+
+test("progress: who has reported this week, and the requests still to send", () => {
+  const own = weekly.startWeek(company(), "2026-09-27");
+  assert.equal(weekly.requestQueue(own, "2026-09-27").length, 4);   // 2 leaders, 2 people
+  own.weeks[0].received = { metrics: ["Sales"], tasks: ["Omar Ali"] };
+  const status = weekly.reportingStatus(own, "2026-09-27");
+  assert.deepEqual(status.numbers, { received: ["Sales"], waiting: ["Finance"] });
+  assert.deepEqual(status.tasks, { received: ["Omar Ali"], waiting: ["Priya Nair"] });
+  assert.deepEqual(weekly.requestQueue(own, "2026-09-27").map((r) => `${r.kind}:${r.who}`), ["metrics:Omar Ali", "tasks:Priya Nair"]);
+});
+
+test("the first-run checklist follows a new company's progress", () => {
+  const blank = cleanWorkspace("own", {});
+  assert.deepEqual(weekly.setupSteps(blank).map((s) => s.done), [false, false, false, false]);
+  const own = weekly.startWeek(company(), "2026-09-27");
+  assert.deepEqual(weekly.setupSteps(own).map((s) => s.done), [true, true, true, false]);
+  own.weeks[0].received.metrics.push("Sales");
+  assert.ok(weekly.setupSteps(own).every((s) => s.done));
+});

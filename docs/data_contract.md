@@ -145,3 +145,4 @@ After an outside review:
 - **"Conflict" is called "two deadlines a day apart".** The rule only knows two due dates are close, not that the person is overloaded; the page now says only what it knows.
 - **The CEO view is shorter.** Explanations moved into one "How this page decides" section at the foot; metrics show what needs attention first with the rest folded away; empty groups take one line.
 - **Tests run on GitHub** on every push, and check the example file is exactly what its generator writes.
+- **Progress on the page.** The CEO view says who has sent their numbers and task updates for the week shown ("numbers from 4 of 5 businesses, waiting on Wasla Labs"). This week can go through every request still to send, one draft at a time, with that person's sheet beside it. A new company's screens show a short checklist until something has come back.

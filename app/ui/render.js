@@ -500,7 +500,26 @@ export function backupBar({ scope, hasData, saved = true, message = "" }) {
     </div>`;
 }
 
-/** state: { scope, setup, briefings, current, notes, cosEmail, saved, message, notice } */
+function pluralWord(w) {
+  if (/(s|sh|ch|x|z)$/.test(w)) return `${w}es`;
+  if (/[^aeiou]y$/.test(w)) return `${w.slice(0, -1)}ies`;
+  return `${w}s`;
+}
+
+/** Who has sent their numbers and task updates for the week shown. */
+function reportingLine(r, kind = "area", scope = "own") {
+  if (!r) return "";
+  const n = r.numbers, t = r.tasks;
+  const total = (x) => x.received.length + x.waiting.length;
+  const part = (x, what, noun) => (total(x) ? `${what} from <strong>${x.received.length} of ${total(x)}</strong> ${noun}${
+    x.waiting.length && x.waiting.length <= 3 ? ` (waiting on ${esc(x.waiting.join(", "))})` : ""}` : "");
+  const parts = [part(n, "Numbers", total(n) === 1 ? kind : pluralWord(kind)), part(t, "task updates", "people")].filter(Boolean);
+  if (!parts.length) return "";
+  const allIn = !n.waiting.length && !t.waiting.length;
+  return `<div class="reporting${allIn ? " all-in" : ""}">${parts.join(" · ")}${allIn ? "" : ` · <a href="${link(scope, "week")}">This week</a>`}</div>`;
+}
+
+/** state: { scope, setup, briefings, current, notes, cosEmail, saved, message, notice, reporting } */
 export function renderPage(state) {
   const { briefings, current: b, setup } = state;
   const tiers = b.tiers;
@@ -519,6 +538,7 @@ export function renderPage(state) {
     <div class="header-meta">For the ${esc(setup.boss)} · week ending ${week} · scored as of ${fmtLong(b.today)}</div>
     ${weekNav(briefings, b)}
     ${summary(b)}
+    ${reportingLine(state.reporting, state.kind, state.scope)}
     ${dataCheck(b)}
     ${state.notice ? `<div class="notice" role="status">${esc(state.notice.text)}
       ${state.notice.href ? `<a class="button-link" href="${esc(state.notice.href)}">${esc(state.notice.label)}</a>` : ""}</div>` : ""}

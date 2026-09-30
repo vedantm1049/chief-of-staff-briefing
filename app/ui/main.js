@@ -26,7 +26,8 @@ const ws = { example: null, own: store.loadWorkspace("own") ?? store.cleanWorksp
 
 let route = { scope: "own", screen: "", week: null };
 let briefings = [];
-let notice = null;           // after the boss answers: what was recorded, and a draft to the owner
+let notice = null;
+let queue = null;            // going through this week's requests one by one: { items, i }           // after the boss answers: what was recorded, and a draft to the owner
 let message = "";
 let setupDraft = null;
 let matchQuestion = "";
@@ -95,7 +96,7 @@ async function show() {
   route = parseRoute();
   const s = route.screen;
   if (s !== previous.screen || route.scope !== previous.scope) {
-    message = ""; matchQuestion = ""; uploads = []; notice = null;
+    message = ""; matchQuestion = ""; uploads = []; notice = null; queue = null;
     window.scrollTo(0, 0);
   }
   if (route.scope === "example" && !(await ensureExample())) return;
@@ -135,6 +136,7 @@ function draw() {
   root.innerHTML = renderPage({
     scope: route.scope, setup: cur().setup, briefings, current,
     notes: cur().notes, cosEmail: cosEmail(), saved, message, notice,
+    reporting: weekly.reportingStatus(cur(), week), kind: cur().setup.areaKind,
   });
   document.title = `${cur().setup.company || "Your company"} briefing, week ending ${week}`;
 }
@@ -173,7 +175,7 @@ function draftFrom(company) {
 }
 
 function drawSetup(note = "") {
-  root.innerHTML = setupScreen(setupDraft, { firstTime: !hasSetup(), message: note, scope: route.scope });
+  root.innerHTML = setupScreen(setupDraft, { firstTime: !hasSetup(), message: note, scope: route.scope, own: cur() });
   document.title = "Setup, Chief of Staff briefing";
 }
 
@@ -343,9 +345,11 @@ function tasksClick(el) {
 // --- This week --------------------------------------------------------------------
 
 function drawWeek() {
+  const week = cur().weeks.at(-1);
   root.innerHTML = weekScreen(cur(), {
     suggestedWeek: weekly.lastSunday(), message, uploads, cosEmail: cosEmail(), scope: route.scope,
-    googleLink: weekly.reminderGoogleLink(cur(), cosEmail()),
+    googleLink: weekly.reminderGoogleLink(cur(), cosEmail()), queue,
+    pending: week ? weekly.requestQueue(cur(), week.weekEnding).length : 0,
   });
   document.title = "This week, Chief of Staff briefing";
 }
@@ -470,6 +474,20 @@ function weekClick(el, ev) {
       return applyUpload(uploads[Number(el.dataset.i)]);
     case "fetch-linked":
       return fetchLinked();
+    case "run-start":
+      queue = { items: weekly.requestQueue(o, week.weekEnding), i: 0, opened: 0 };
+      return drawWeek();
+    case "run-open":
+      location.href = queue.items[queue.i].href;
+      queue.i++;
+      queue.opened++;
+      return drawWeek();
+    case "run-skip":
+      queue.i++;
+      return drawWeek();
+    case "run-stop":
+      queue = null;
+      return drawWeek();
     default:
   }
 }

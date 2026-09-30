@@ -316,3 +316,16 @@ details.more-metrics summary { cursor: pointer; color: var(--flag); margin-botto
 .quadrant-empty .subtitle { margin: 2px 0 0; }
 .example-bar { padding: 8px 12px; margin-bottom: 14px; }
 .example-bar a.primary { padding: 6px 12px; font-size: 13px; }
+
+/* First-run checklist, reporting line, going through requests */
+ol.checklist-steps { margin: 0 0 20px; padding: 12px 14px 12px 34px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 14px; }
+ol.checklist-steps li { margin: 3px 0; color: var(--muted); }
+ol.checklist-steps li.done { color: var(--ok); }
+ol.checklist-steps li.next { color: var(--ink); font-weight: 600; }
+.reporting { margin-top: 8px; font-size: 13px; color: var(--muted); }
+.reporting strong { color: var(--ink); }
+.reporting.all-in strong { color: var(--ok); }
+.run { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 14px 0; padding: 10px 14px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+.run.running { border-left: 4px solid var(--flag); }
